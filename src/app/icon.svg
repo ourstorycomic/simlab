@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="liq" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="64" height="64" rx="14" fill="url(#bg)"/>
+  <!-- Erlenmeyer flask -->
+  <path d="M24 10h16v18l12 22a6 6 0 0 1-5 9H17a6 6 0 0 1-5-9l12-22V10Z" fill="#0f172a" opacity="0.9"/>
+  <path d="M24 10h16v18l12 22a6 6 0 0 1-5 9H17a6 6 0 0 1-5-9l12-22V10Z" fill="#e2e8f0" opacity="0.25"/>
+  <!-- Liquid -->
+  <path d="M17 48a6 6 0 0 0 5 9h20a6 6 0 0 0 5-9l-5.5-10h-19L17 48Z" fill="url(#liq)"/>
+  <!-- Bubbles -->
+  <circle cx="26" cy="42" r="2" fill="#93c5fd" opacity="0.9"/>
+  <circle cx="33" cy="38" r="1.4" fill="#93c5fd" opacity="0.8"/>
+  <circle cx="37" cy="45" r="1.8" fill="#bfdbfe" opacity="0.9"/>
+  <!-- Neck mark -->
+  <rect x="23.5" y="8" width="17" height="3" rx="1" fill="#cbd5e1"/>
+</svg>

@@ -1,0 +1,126 @@
+import type { Config } from "tailwindcss";
+
+const config: Config = {
+  darkMode: "class",
+  content: [
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ["var(--font-be-vietnam-pro)", "system-ui", "-apple-system", "sans-serif"],
+        mono: ["var(--font-be-vietnam-pro)", "ui-monospace", "monospace"],
+      },
+      colors: {
+        lab: {
+          bg: "#f8fafc",
+          surface: "#ffffff",
+          "surface-light": "#f8fafc",
+          panel: "#ffffff",
+          "panel-light": "#f3f4f6",
+          border: "#e2e8f0",
+          "border-light": "#f1f5f9",
+          accent: "#2563eb",
+          "accent-dim": "#1d4ed8",
+          danger: "#dc2626",
+          warning: "#d97706",
+          success: "#16a34a",
+          text: "#0f172a",
+          "text-dim": "#64748b",
+          // Dark mode
+          dark: {
+            bg: "#0a0e17",
+            surface: "#111827",
+            "surface-light": "#1f2937",
+            panel: "#1a1f2e",
+            "panel-light": "#1f2937",
+            border: "#374151",
+            "border-light": "#2d3748",
+            accent: "#3b82f6",
+            "accent-dim": "#60a5fa",
+            text: "#f3f4f6",
+            "text-dim": "#9ca3af",
+          },
+        },
+        chemical: {
+          red: "#ef4444",
+          blue: "#3b82f6",
+          green: "#22c55e",
+          yellow: "#eab308",
+          purple: "#a855f7",
+          orange: "#f97316",
+          cyan: "#06b6d4",
+          pink: "#ec4899",
+        },
+      },
+      animation: {
+        "bubble-rise": "bubble-rise 2.5s ease-in-out infinite",
+        "liquid-slosh": "liquid-slosh 3s ease-in-out infinite",
+        "fade-in": "fade-in 0.4s ease-out",
+        "slide-up": "slide-up 0.4s ease-out",
+        "scale-in": "scale-in 0.3s ease-out",
+        "tube-appear": "tube-appear 0.5s ease-out forwards",
+        "float": "float 6s ease-in-out infinite",
+        "beaker-shake": "beaker-shake 0.6s ease-in-out infinite",
+        "pour-in": "pour-in 0.5s ease-out forwards",
+        "pour-trail": "pour-trail 0.7s ease-out forwards",
+        "flame-flicker": "flame-flicker 0.3s ease-in-out infinite",
+        "smoke-rise": "smoke-rise 3s ease-out infinite",
+      },
+      keyframes: {
+        "bubble-rise": {
+          "0%": { transform: "translateY(0) scale(1)", opacity: "0.4" },
+          "50%": { transform: "translateY(-30px) scale(1.1)", opacity: "0.7" },
+          "100%": { transform: "translateY(-60px) scale(0.8)", opacity: "0" },
+        },
+        "liquid-slosh": {
+          "0%, 100%": { transform: "rotate(-1.5deg) translateX(0)" },
+          "25%": { transform: "rotate(1.5deg) translateX(3px)" },
+          "50%": { transform: "rotate(-1deg) translateX(-3px)" },
+          "75%": { transform: "rotate(1deg) translateX(2px)" },
+        },
+        "fade-in": { from: { opacity: "0" }, to: { opacity: "1" } },
+        "slide-up": { from: { opacity: "0", transform: "translateY(20px)" }, to: { opacity: "1", transform: "translateY(0)" } },
+        "scale-in": { "0%": { transform: "scale(0.8)", opacity: "0" }, "100%": { transform: "scale(1)", opacity: "1" } },
+        float: { "0%, 100%": { transform: "translateY(0)" }, "50%": { transform: "translateY(-8px)" } },
+        "beaker-shake": {
+          "0%, 100%": { transform: "translateX(0) rotate(0deg)" },
+          "15%": { transform: "translateX(-2px) rotate(-0.8deg)" },
+          "30%": { transform: "translateX(2px) rotate(0.8deg)" },
+          "45%": { transform: "translateX(-1.5px) rotate(-0.5deg)" },
+          "60%": { transform: "translateX(1.5px) rotate(0.5deg)" },
+        },
+        "pour-in": {
+          "0%": { transform: "translateY(-30px) scale(0.7)", opacity: "0" },
+          "50%": { opacity: "0.9" },
+          "100%": { transform: "translateY(0) scale(1)", opacity: "1" },
+        },
+        "pour-trail": {
+          "0%": { transform: "translateY(-80px) scaleY(0)", opacity: "0.7" },
+          "30%": { transform: "translateY(-10px) scaleY(1)", opacity: "0.4" },
+          "60%": { transform: "translateY(20px) scaleY(0.5)", opacity: "0.15" },
+          "100%": { transform: "translateY(60px) scaleY(0)", opacity: "0" },
+        },
+        "flame-flicker": {
+          "0%, 100%": { transform: "scaleY(1) scaleX(1)", opacity: "0.9" },
+          "25%": { transform: "scaleY(1.06) scaleX(0.95)", opacity: "1" },
+          "50%": { transform: "scaleY(0.95) scaleX(1.05)", opacity: "0.8" },
+          "75%": { transform: "scaleY(1.04) scaleX(0.97)", opacity: "0.95" },
+        },
+        "smoke-rise": {
+          "0%": { transform: "translateY(0) scale(1)", opacity: "0.4" },
+          "100%": { transform: "translateY(-60px) scale(2.5)", opacity: "0" },
+        },
+        "tube-appear": {
+          "0%": { transform: "scale(0.5) translateY(20px)", opacity: "0" },
+          "50%": { transform: "scale(1.05) translateY(-2px)", opacity: "1" },
+          "100%": { transform: "scale(1) translateY(0)", opacity: "1" },
+        },
+      },
+    },
+  },
+  plugins: [],
+};
+export default config;
