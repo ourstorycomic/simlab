@@ -73,43 +73,33 @@ export default function Home() {
                 let loggedIn: User | null = null;
                 
                 let res;
-                try {
-                    if (mode === "register") {
-                        res = await fetch("/api/auth/register", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ name, email, password, role, school: school || undefined })
-                        });
-                    } else {
-                        res = await fetch("/api/auth/login", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ email, password })
-                        });
-                    }
-
-                    if (res && res.ok) {
-                        loggedIn = await res.json() as User;
-                    }
-                } catch {
-                    // API failed, fallback to local storage
+                if (mode === "register") {
+                    res = await fetch("/api/auth/register", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ name, email, password, role, school: school || undefined })
+                    });
+                } else {
+                    res = await fetch("/api/auth/login", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ email, password })
+                    });
                 }
 
-                if (!loggedIn) {
-                    // Fallback to local storage
-                    if (mode === "register") {
-                        loggedIn = registerUser({ name, email, password, role, school: school || undefined });
-                    } else {
-                        loggedIn = loginUser(email, password);
-                    }
+                if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.error || "Lỗi kết nối máy chủ Supabase. Hãy kiểm tra biến môi trường trên Vercel.");
                 }
+
+                loggedIn = await res.json() as User;
                 
                 // BẮT BUỘC ĐỒNG BỘ: lưu vào cache local để hàm getCurrentUser() ở Dashboard tìm thấy
                 syncUser(loggedIn);
 
                 setSession(loggedIn.id, rememberMe);
                 setUser(loggedIn);
-                showToast(`${mode === "register" ? "Đăng ký" : "Đăng nhập"} thành công. Xin chào ${loggedIn.name}!`);
+                showToast(`${mode === "register" ? "Đăng ký" : "Đăng nhập"} thành công qua Supabase! Xin chào ${loggedIn.name}!`);
                 router.push(loggedIn.role === "teacher" ? "/dashboard/teacher" : "/dashboard/student");
             } catch (err) {
                 setError(err instanceof Error ? err.message : "Có lỗi xảy ra");
@@ -139,23 +129,19 @@ export default function Home() {
             setError("");
             seedIfNeeded();
             try {
-                let loggedIn: User | null = null;
-                try {
-                    const res = await fetch("/api/auth/login", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ email: demoEmail, password: demoPassword })
-                    });
-                    if (res && res.ok) {
-                        loggedIn = await res.json() as User;
-                    }
-                } catch {
-                    // network fallback
+                let res;
+                res = await fetch("/api/auth/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email: demoEmail, password: demoPassword })
+                });
+
+                if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.error || "Lỗi kết nối máy chủ Supabase. Hãy kiểm tra biến môi trường trên Vercel.");
                 }
 
-                if (!loggedIn) {
-                    loggedIn = loginUser(demoEmail, demoPassword);
-                }
+                let loggedIn = await res.json() as User;
 
                 setSession(loggedIn.id);
                 setUser(loggedIn);
