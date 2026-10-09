@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { Tour, TourStep } from "@/components/Tour";
 
 const InfoTooltip = ({ title, content }: { title: string; content: React.ReactNode }) => (
     <div className="relative group ml-2 inline-block">
@@ -16,7 +17,15 @@ const InfoTooltip = ({ title, content }: { title: string; content: React.ReactNo
 );
 
 export default function Pendulum() {
-    
+    const [tourOpen, setTourOpen] = useState(false);
+
+    const tourSteps: TourStep[] = [
+        { target: "#pendulum-canvas", title: "Kéo thả quả nặng", description: "Bấm giữ và kéo quả bóng này để thay đổi góc lệch ban đầu (Biên độ), sau đó thả tay ra để con lắc TỰ ĐỘNG dao động." },
+        { target: "#pendulum-stats", title: "Thông số Trực tiếp", description: "Theo dõi Góc lệch, Chu kỳ, Vận tốc thay đổi liên tục khi con lắc chuyển động." },
+        { target: "#pendulum-controls", title: "Bảng Điều khiển", description: "Bạn có thể thay đổi Chiều dài dây, Khối lượng, Lực cản không khí và Hành tinh để quan sát sự thay đổi." },
+        { target: "#pendulum-energy", title: "Bảo toàn Cơ năng", description: "Biểu đồ này cho thấy sự chuyển hóa liên tục giữa Động năng và Thế năng. Tổng Cơ năng luôn được bảo toàn nếu không có lực cản." }
+    ];
+
     // Physics Parameters
     const [length, setLength] = useState(2); // Length in meters (1 to 5)
     const [gravity, setGravity] = useState(9.8); // Gravity in m/s^2
@@ -303,6 +312,7 @@ export default function Pendulum() {
     const handleMouseUp = () => {
         if (isDraggingRef.current) {
             isDraggingRef.current = false;
+            setIsPlaying(true); // Automatically start playing when dropped
         }
     };
 
@@ -312,9 +322,10 @@ export default function Pendulum() {
     const maxEnergy = Math.max(0.1, energy.total); // Prevent NaN or Infinity
 
     return (
-        <div className="flex-1 flex flex-col lg:flex-row h-full w-full">
+        <div className="flex-1 flex flex-col lg:flex-row h-full w-full relative">
+                <Tour steps={tourSteps} isOpen={tourOpen} onClose={() => setTourOpen(false)} />
                 {/* Control Panel (Left) */}
-                <div className="w-full lg:w-96 bg-slate-800/50 border-r border-slate-700 p-6 flex flex-col gap-6 overflow-y-auto custom-scrollbar backdrop-blur-sm z-10 shadow-2xl">
+                <div id="pendulum-controls" className="w-full lg:w-96 bg-slate-800/50 border-r border-slate-700 p-6 flex flex-col gap-6 overflow-y-auto custom-scrollbar backdrop-blur-sm z-10 shadow-2xl">
                     <div>
                         <h2 className="font-bold text-lg text-white mb-5 flex items-center gap-2">
                             <svg className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -437,6 +448,13 @@ export default function Pendulum() {
                                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                             </button>
                         </div>
+                        <button 
+                            onClick={() => setTourOpen(true)}
+                            className="mt-3 w-full py-2.5 bg-slate-800 hover:bg-slate-700 border border-indigo-500/30 text-indigo-300 rounded-xl transition-colors text-sm font-semibold flex justify-center items-center gap-2"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            Mở Hướng dẫn (Tour)
+                        </button>
                     </div>
                 </div>
 
@@ -444,7 +462,7 @@ export default function Pendulum() {
                 <div className="flex-1 flex flex-col relative bg-[radial-gradient(ellipse_at_bottom,_var(--tw-gradient-stops))] from-slate-800 via-slate-900 to-black">
                     
                     {/* Live Data Overlays */}
-                    <div className="absolute top-6 left-6 z-10 flex gap-4 pointer-events-none">
+                    <div id="pendulum-stats" className="absolute top-6 left-6 z-10 flex gap-4 pointer-events-none">
                         <div className="bg-slate-900/60 backdrop-blur border border-slate-700 p-4 rounded-2xl shadow-2xl">
                             <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Góc lệch ($\alpha$)</p>
                             <p className="text-3xl font-mono font-bold text-white">{(Math.abs(angle) * 180 / Math.PI).toFixed(1)}<span className="text-sm font-sans text-slate-500 ml-1">°</span></p>
@@ -487,7 +505,7 @@ export default function Pendulum() {
                     </div>
 
                     {/* Canvas */}
-                    <div className="flex-1 flex justify-center items-center relative">
+                    <div id="pendulum-canvas" className="flex-1 flex justify-center items-center relative">
                         <canvas 
                             ref={canvasRef} 
                             width={600} 
@@ -512,7 +530,7 @@ export default function Pendulum() {
 
                     {/* Energy Chart Panel */}
                     {showEnergy && (
-                        <div className="h-48 bg-slate-900/80 backdrop-blur-md border-t border-slate-700 p-6 flex flex-col justify-center animate-slide-up relative z-10">
+                        <div id="pendulum-energy" className="h-48 bg-slate-900/80 backdrop-blur-md border-t border-slate-700 p-6 flex flex-col justify-center animate-slide-up relative z-10">
                             <h3 className="text-sm font-bold text-slate-300 mb-4 flex items-center gap-2">
                                 <svg className="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                                 Biểu đồ Năng lượng Thời gian thực (Cơ năng bảo toàn)
