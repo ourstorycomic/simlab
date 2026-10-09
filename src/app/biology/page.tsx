@@ -18,7 +18,9 @@ function LabFallback() {
 export default function BiologyPage() {
     const [tourOpen, setTourOpen] = useState(false);
     const tourSteps: TourStep[] = [
-        { target: "#tour-biology-bench", title: "Mô hình sinh học", description: "Xoay, thu phóng và tương tác với các cơ quan 3D để xem chi tiết giải phẫu." }
+        { target: "#tour-bio-sidebar", title: "Danh sách Mô hình", description: "Tại đây bạn có thể chọn các cơ quan sinh lý khác nhau để bắt đầu quan sát." },
+        { target: "#tour-bio-viewer", title: "Khu vực Tương tác 3D", description: "Bạn có thể xoay, phóng to, thu nhỏ mô hình 3D tự do. Hãy thử bấm vào các chấm xanh (hotspots) trên mô hình để xem các bộ phận chi tiết." },
+        { target: "#tour-bio-info", title: "Bảng Thông tin chi tiết", description: "Các kiến thức chuyên sâu về cấu tạo và chức năng sinh học sẽ được hiển thị ở khu vực này, giúp bạn hiểu rõ hơn về đối tượng đang quan sát." }
     ];
 
     useEffect(() => {

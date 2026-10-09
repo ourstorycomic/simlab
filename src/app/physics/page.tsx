@@ -12,8 +12,11 @@ export default function PhysicsLab() {
     const [activeTab, setActiveTab] = useState<"pendulum" | "circuit" | "optics">("circuit");
     const [tourOpen, setTourOpen] = useState(false);
     const tourSteps: TourStep[] = [
-        { target: "#tour-physics-tabs", title: "Phân môn Vật lý", description: "Chuyển đổi giữa Động lực học, Điện học, và Quang học." },
-        { target: "#tour-physics-main", title: "Khu vực thí nghiệm", description: "Tương tác với các thông số vật lý ở khu vực này và quan sát hiện tượng thời gian thực." }
+        { target: "#tour-physics-tabs", title: "Khám phá Vật Lý", description: "Chào mừng đến với Lab Vật Lý. Ở đây được chia làm 3 phân môn chính, bạn có thể dễ dàng chuyển đổi bằng thanh công cụ này." },
+        { target: "#tour-physics-main", title: "Thí nghiệm Động Lực Học", description: "Phân môn đầu tiên là Động lực học. Tại đây bạn có thể mô phỏng con lắc lò xo, thay đổi khối lượng và độ cứng để xem đồ thị dao động.", tabId: "tab-pendulum" },
+        { target: "#tour-physics-main", title: "Thí nghiệm Điện Học", description: "Bấm sang tab Điện học, bạn sẽ được tự tay lắp ráp mạch điện với pin, bóng đèn, điện trở. Hệ thống sẽ tự động tính toán ampe và volt.", tabId: "tab-circuit" },
+        { target: "#tour-physics-main", title: "Thí nghiệm Quang Học", description: "Phân môn Quang học cho phép bạn quan sát đường truyền ánh sáng qua thấu kính phân kỳ và hội tụ. Hãy thử kéo thả vật sáng để thấy sự thay đổi của ảnh.", tabId: "tab-optics" },
+        { target: "header a", title: "Hoàn tất", description: "Sau khi thực hành xong, bạn có thể nhấn nút này để trở về trang chủ. Chúc bạn học tốt!" }
     ];
 
     useEffect(() => {
@@ -44,6 +47,7 @@ export default function PhysicsLab() {
                 {/* Tabs */}
                 <div id="tour-physics-tabs" className="flex bg-slate-900/50 p-1 rounded-lg border border-slate-700">
                     <button
+                        id="tab-pendulum"
                         onClick={() => setActiveTab("pendulum")}
                         className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-all ${
                             activeTab === "pendulum" ? "bg-indigo-600 text-white shadow-md" : "text-slate-400 hover:text-white"
@@ -52,6 +56,7 @@ export default function PhysicsLab() {
                         Động Lực Học
                     </button>
                     <button
+                        id="tab-circuit"
                         onClick={() => setActiveTab("circuit")}
                         className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-all ${
                             activeTab === "circuit" ? "bg-amber-600 text-white shadow-md" : "text-slate-400 hover:text-white"
@@ -60,6 +65,7 @@ export default function PhysicsLab() {
                         Điện Học
                     </button>
                     <button
+                        id="tab-optics"
                         onClick={() => setActiveTab("optics")}
                         className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-all ${
                             activeTab === "optics" ? "bg-sky-600 text-white shadow-md" : "text-slate-400 hover:text-white"

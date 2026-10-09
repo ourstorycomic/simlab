@@ -20,15 +20,16 @@ export const metadata: Metadata = {
     description:
         "Nền tảng thực hành khoa học ảo tương tác chuẩn GDPT 2018 — Khám phá Hóa học, Vật lý và Sinh học với mô phỏng trực quan, theo dõi tiến độ và chấm điểm tự động",
     keywords: [
-        "hóa học",
+        "giáo dục",
         "phòng thí nghiệm ảo",
         "simlab",
-        "chemistry lab",
+        "stem",
+        "khoa học",
+        "thực hành hóa học",
+        "thực hành vật lý",
+        "mô hình sinh học",
         "virtual lab",
-        "phản ứng hóa học",
-        "thí nghiệm ảo",
-        "chemistry simulation",
-        "mô phỏng hóa học",
+        "edtech",
     ],
     authors: [{ name: "Simlab" }],
     creator: "Simlab",
@@ -43,9 +44,9 @@ export const metadata: Metadata = {
         apple: [{ url: "/apple-icon.png", sizes: "180x180" }],
     },
     openGraph: {
-        title: "Simlab — Phòng thí nghiệm hóa học ảo",
+        title: "Simlab — Nền tảng thực hành khoa học ảo",
         description:
-            "Khám phá phản ứng hóa học với mô phỏng trực quan, kéo thả hóa chất và quan sát hiện tượng",
+            "Khám phá Hóa học, Vật lý và Sinh học trực quan với các thí nghiệm mô phỏng và mô hình 3D sinh động",
         type: "website",
         locale: "vi_VN",
         siteName: "Simlab",
@@ -55,15 +56,15 @@ export const metadata: Metadata = {
                 url: "/og-image.png",
                 width: 1200,
                 height: 630,
-                alt: "Simlab — Phòng thí nghiệm hóa học ảo",
+                alt: "Simlab — Nền tảng thực hành khoa học ảo",
             },
         ],
     },
     twitter: {
         card: "summary_large_image",
-        title: "Simlab — Phòng thí nghiệm hóa học ảo",
+        title: "Simlab — Nền tảng thực hành khoa học ảo",
         description:
-            "Khám phá phản ứng hóa học với mô phỏng trực quan, kéo thả hóa chất và quan sát hiện tượng",
+            "Khám phá Hóa học, Vật lý và Sinh học trực quan với các thí nghiệm mô phỏng và mô hình 3D sinh động",
         images: ["/og-image.png"],
     },
     robots: {
@@ -103,7 +104,7 @@ export default function RootLayout({
                             applicationCategory: "EducationalApplication",
                             operatingSystem: "Any",
                             description:
-                                "Phòng thí nghiệm hóa học ảo tương tác — khám phá phản ứng hóa học, kéo thả hóa chất và quan sát hiện tượng",
+                                "Nền tảng thực hành khoa học ảo (Hóa học, Vật lý, Sinh học) trực quan, an toàn và dễ sử dụng",
                             url: "https://simlab.vercel.app",
                             inLanguage: "vi",
                             offers: { "@type": "Offer", price: "0", priceCurrency: "VND" },

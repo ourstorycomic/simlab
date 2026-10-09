@@ -155,7 +155,7 @@ export default function BiologyBench() {
     return (
         <div className="flex flex-col md:flex-row h-[calc(100vh-64px)] bg-[#f8fafc] dark:bg-[#0a0e17] text-gray-800 dark:text-gray-100 transition-colors duration-300">
             {/* Sidebar: Organ List */}
-            <div className="w-full md:w-72 flex-shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-y-auto flex flex-col">
+            <div id="tour-bio-sidebar" className="w-full md:w-72 flex-shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-y-auto flex flex-col">
                 <div className="p-4 border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur z-10">
                     <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                         <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -192,7 +192,7 @@ export default function BiologyBench() {
             {/* Main Area: 3D Viewer & Info */}
             <div className="flex-1 flex flex-col lg:flex-row gap-6 p-4 md:p-6 overflow-hidden">
                 {/* 3D Canvas */}
-                <div className="flex-1 min-h-[400px] lg:min-h-0 bg-white dark:bg-gray-900 rounded-3xl p-2 shadow-sm border border-gray-200 dark:border-gray-800 flex flex-col relative">
+                <div id="tour-bio-viewer" className="flex-1 min-h-[400px] lg:min-h-0 bg-white dark:bg-gray-900 rounded-3xl p-2 shadow-sm border border-gray-200 dark:border-gray-800 flex flex-col relative">
                     <ModelViewer 
                         modelUrl={selectedOrgan.file} 
                         hotspots={selectedOrgan.hotspots}
@@ -201,7 +201,7 @@ export default function BiologyBench() {
                 </div>
 
                 {/* Info Panel */}
-                <div className="w-full lg:w-80 flex-shrink-0 flex flex-col gap-4">
+                <div id="tour-bio-info" className="w-full lg:w-80 flex-shrink-0 flex flex-col gap-4">
                     <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-200 dark:border-gray-800 h-full flex flex-col">
                         <div className="mb-6">
                             <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-2">{selectedOrgan.name}</h3>

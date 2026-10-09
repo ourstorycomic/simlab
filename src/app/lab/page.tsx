@@ -2,8 +2,8 @@ import { Suspense } from "react";
 import LabBench from "@/components/LabBench";
 
 export const metadata = {
-    title: "Phòng thí nghiệm",
-    description: "Phòng thí nghiệm hóa học ảo Simlab — thực hành thí nghiệm an toàn, trực quan, bám sát chương trình GDPT 2018.",
+    title: "Lab Hóa học",
+    description: "Phòng thí nghiệm hóa học ảo Simlab — thực hành phản ứng hóa học an toàn, trực quan, bám sát chương trình GDPT 2018.",
 };
 
 function LabFallback() {

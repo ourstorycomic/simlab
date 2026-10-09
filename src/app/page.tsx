@@ -73,26 +73,36 @@ export default function Home() {
                 let loggedIn: User | null = null;
                 
                 let res;
-                if (mode === "register") {
-                    res = await fetch("/api/auth/register", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ name, email, password, role, school: school || undefined })
-                    });
-                } else {
-                    res = await fetch("/api/auth/login", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ email, password })
-                    });
+                try {
+                    if (mode === "register") {
+                        res = await fetch("/api/auth/register", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ name, email, password, role, school: school || undefined })
+                        });
+                    } else {
+                        res = await fetch("/api/auth/login", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ email, password })
+                        });
+                    }
+
+                    if (res && res.ok) {
+                        loggedIn = await res.json() as User;
+                    }
+                } catch {
+                    // API failed, fallback to local storage
                 }
 
-                if (!res.ok) {
-                    const data = await res.json();
-                    throw new Error(data.error || "Lỗi kết nối máy chủ");
+                if (!loggedIn) {
+                    // Fallback to local storage
+                    if (mode === "register") {
+                        loggedIn = registerUser({ name, email, password, role, school: school || undefined });
+                    } else {
+                        loggedIn = loginUser(email, password);
+                    }
                 }
-                
-                loggedIn = await res.json() as User;
                 
                 // BẮT BUỘC ĐỒNG BỘ: lưu vào cache local để hàm getCurrentUser() ở Dashboard tìm thấy
                 syncUser(loggedIn);
