@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import React, { useState, useEffect, useRef, useCallback } from "react";
 
 const InfoTooltip = ({ title, content }: { title: string; content: React.ReactNode }) => (
     <div className="relative group ml-2 inline-block">
