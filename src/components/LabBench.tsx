@@ -575,10 +575,16 @@ export default function LabBench() {
                         <path d="M10 10l-2 14" strokeWidth="0.8" />
                         <path d="M18 10l2 14" strokeWidth="0.8" />
                     </svg>
-                    <div>
-                        <h1 className="text-base font-bold text-gray-800 dark:text-gray-100">Simlab Edu</h1>
+                    <Link href="/" className="group cursor-pointer">
+                        <h1 className="text-base font-bold text-gray-800 dark:text-gray-100 group-hover:text-blue-500 transition-colors">Simlab Edu</h1>
                         <p className="text-[10px] text-gray-400 dark:text-gray-500">Nền tảng Giáo dục Kỹ thuật số</p>
-                    </div>
+                    </Link>
+                    <Link
+                        href="/"
+                        className="ml-4 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 text-xs font-semibold hover:bg-slate-200 dark:hover:bg-slate-600 transition-all shadow-sm"
+                    >
+                        Trở về Trang chủ
+                    </Link>
                     {assignment && (
                         <Link
                             href="/dashboard/student"
