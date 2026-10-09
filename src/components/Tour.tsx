@@ -35,7 +35,7 @@ export function Tour({ steps, isOpen, onClose }: TourProps) {
                         hasStarted.current = false;
                         onClose();
                     },
-                    onPopoverRendered: (popover) => {
+                    onPopoverRender: (popover) => {
                         // Workaround to ensure element is rendered
                         // if tab was just clicked
                     },
