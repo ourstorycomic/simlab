@@ -1,6 +1,20 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+
+const InfoTooltip = ({ title, content }: { title: string; content: React.ReactNode }) => (
+    <div className="relative group ml-2 inline-block">
+        <svg className="w-4 h-4 text-slate-400 hover:text-indigo-400 cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block w-64 p-3 bg-slate-800 text-slate-200 text-xs rounded-xl shadow-2xl border border-slate-700 z-50">
+            <p className="font-bold text-indigo-400 mb-1">{title}</p>
+            {content}
+            <div className="absolute left-1/2 -translate-x-1/2 top-full border-4 border-transparent border-t-slate-800" />
+        </div>
+    </div>
+);
 
 export default function Pendulum() {
     
@@ -109,6 +123,33 @@ export default function Pendulum() {
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+        // Draw Protractor
+        ctx.beginPath();
+        ctx.arc(originX, originY, 200, 0, Math.PI); // Half circle at bottom
+        ctx.strokeStyle = "rgba(148, 163, 184, 0.15)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        
+        for (let a = -Math.PI / 2; a <= Math.PI / 2; a += Math.PI / 12) {
+            const isMajor = Math.abs(a % (Math.PI / 6)) < 0.01;
+            const r1 = isMajor ? 190 : 195;
+            const r2 = 200;
+            ctx.beginPath();
+            ctx.moveTo(originX + r1 * Math.sin(a), originY + r1 * Math.cos(a));
+            ctx.lineTo(originX + r2 * Math.sin(a), originY + r2 * Math.cos(a));
+            ctx.strokeStyle = isMajor ? "rgba(148, 163, 184, 0.4)" : "rgba(148, 163, 184, 0.2)";
+            ctx.stroke();
+
+            if (isMajor) {
+                const deg = Math.round(a * 180 / Math.PI);
+                ctx.fillStyle = "rgba(148, 163, 184, 0.6)";
+                ctx.font = "10px sans-serif";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(`${deg}°`, originX + 215 * Math.sin(a), originY + 215 * Math.cos(a));
+            }
+        }
+
         // Draw Support/Anchor
         ctx.fillStyle = "#334155";
         ctx.fillRect(originX - 40, originY - 10, 80, 10);
@@ -124,23 +165,23 @@ export default function Pendulum() {
         // Store trace
         if (isPlaying) {
             traceRef.current.push({x: bobX, y: bobY});
-            if (traceRef.current.length > 150) traceRef.current.shift(); // Keep last 150 points
+            if (traceRef.current.length > 80) traceRef.current.shift(); // Keep last 80 points
         } else if (isDraggingRef.current) {
             traceRef.current = [];
         }
 
-        // Draw trace
+        // Draw solid smooth trace
         if (traceRef.current.length > 1) {
             ctx.beginPath();
             ctx.moveTo(traceRef.current[0].x, traceRef.current[0].y);
             for (let i = 1; i < traceRef.current.length; i++) {
                 ctx.lineTo(traceRef.current[i].x, traceRef.current[i].y);
             }
-            ctx.strokeStyle = "rgba(148, 163, 184, 0.4)";
-            ctx.lineWidth = 2;
-            ctx.setLineDash([5, 5]);
+            ctx.strokeStyle = "rgba(99, 102, 241, 0.5)"; // indigo-500 with opacity
+            ctx.lineWidth = 4;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
             ctx.stroke();
-            ctx.setLineDash([]);
         }
 
         // Draw string
@@ -287,7 +328,10 @@ export default function Pendulum() {
                             {/* Length */}
                             <div className="bg-slate-800/80 p-4 rounded-xl border border-slate-700/50">
                                 <div className="flex justify-between items-end mb-2">
-                                    <label className="text-sm font-semibold text-slate-300">Chiều dài dây ($l$)</label>
+                                    <label className="text-sm font-semibold text-slate-300">
+                                        Chiều dài dây ($l$)
+                                        <InfoTooltip title="Chiều dài (l)" content="Tăng chiều dài dây làm tăng chu kỳ dao động (T = 2π√(l/g)). Quả nặng sẽ lắc chậm hơn." />
+                                    </label>
                                     <span className="text-lg font-mono font-bold text-indigo-400">{length.toFixed(1)} m</span>
                                 </div>
                                 <input 
@@ -299,7 +343,10 @@ export default function Pendulum() {
 
                             {/* Gravity */}
                             <div className="bg-slate-800/80 p-4 rounded-xl border border-slate-700/50">
-                                <label className="block text-sm font-semibold text-slate-300 mb-2">Gia tốc trọng trường ($g$)</label>
+                                <label className="block text-sm font-semibold text-slate-300 mb-2">
+                                    Gia tốc trọng trường ($g$)
+                                    <InfoTooltip title="Gia tốc trọng trường (g)" content="Thay đổi môi trường hành tinh. Gia tốc càng lớn, lực kéo xuống càng mạnh, chu kỳ càng nhỏ (lắc nhanh hơn)." />
+                                </label>
                                 <div className="relative">
                                     <select 
                                         value={gravity} 
@@ -312,7 +359,7 @@ export default function Pendulum() {
                                         <option value="3.72">Sao Hỏa (3.72 m/s²)</option>
                                     </select>
                                     <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-slate-400">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"></path></svg>
                                     </div>
                                 </div>
                             </div>
@@ -320,7 +367,10 @@ export default function Pendulum() {
                             {/* Mass */}
                             <div className="bg-slate-800/80 p-4 rounded-xl border border-slate-700/50">
                                 <div className="flex justify-between items-end mb-2">
-                                    <label className="text-sm font-semibold text-slate-300">Khối lượng quả nặng ($m$)</label>
+                                    <label className="text-sm font-semibold text-slate-300">
+                                        Khối lượng quả nặng ($m$)
+                                        <InfoTooltip title="Khối lượng (m)" content="Không làm thay đổi chu kỳ dao động của con lắc lý tưởng! Tuy nhiên, nó tỉ lệ thuận với Động năng và Thế năng." />
+                                    </label>
                                     <span className="text-lg font-mono font-bold text-cyan-400">{mass.toFixed(1)} kg</span>
                                 </div>
                                 <input 
@@ -333,7 +383,10 @@ export default function Pendulum() {
                             {/* Damping */}
                             <div className="bg-slate-800/80 p-4 rounded-xl border border-slate-700/50">
                                 <div className="flex justify-between items-end mb-2">
-                                    <label className="text-sm font-semibold text-slate-300">Lực cản môi trường (Damping)</label>
+                                    <label className="text-sm font-semibold text-slate-300">
+                                        Lực cản môi trường
+                                        <InfoTooltip title="Lực cản (Damping)" content="Mô phỏng lực cản không khí. Làm tiêu hao cơ năng, khiến biên độ dao động giảm dần theo thời gian (Dao động tắt dần)." />
+                                    </label>
                                     <span className="text-sm font-mono font-bold text-rose-400">{friction.toFixed(2)}</span>
                                 </div>
                                 <input 
@@ -394,6 +447,10 @@ export default function Pendulum() {
                     {/* Live Data Overlays */}
                     <div className="absolute top-6 left-6 z-10 flex gap-4 pointer-events-none">
                         <div className="bg-slate-900/60 backdrop-blur border border-slate-700 p-4 rounded-2xl shadow-2xl">
+                            <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Góc lệch ($\alpha$)</p>
+                            <p className="text-3xl font-mono font-bold text-white">{(Math.abs(angle) * 180 / Math.PI).toFixed(1)}<span className="text-sm font-sans text-slate-500 ml-1">°</span></p>
+                        </div>
+                        <div className="bg-slate-900/60 backdrop-blur border border-slate-700 p-4 rounded-2xl shadow-2xl">
                             <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Chu kỳ (T)</p>
                             <p className="text-3xl font-mono font-bold text-white">{period.toFixed(2)}<span className="text-sm font-sans text-slate-500 ml-1">s</span></p>
                         </div>
@@ -407,12 +464,28 @@ export default function Pendulum() {
                         </div>
                     </div>
 
-                    {/* Instruction tooltip */}
-                    {!isPlaying && !isDraggingRef.current && angle === Math.PI / 4 && (
-                        <div className="absolute top-[45%] left-1/2 translate-x-[-50%] bg-indigo-600/90 text-white px-4 py-2 rounded-full text-sm font-medium animate-bounce pointer-events-none shadow-lg shadow-indigo-500/20 backdrop-blur">
-                            👆 Click giữ và kéo quả nặng để thay đổi góc ban đầu
-                        </div>
-                    )}
+                    {/* Floating Instruction Guide */}
+                    <div className="absolute top-6 right-6 z-10 w-80 bg-slate-800/90 backdrop-blur-md border border-slate-700 rounded-2xl shadow-2xl p-5 overflow-hidden">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500" />
+                        <h3 className="font-bold text-white mb-3 flex items-center gap-2">
+                            <svg className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                            Hướng dẫn Thí nghiệm
+                        </h3>
+                        <ul className="text-sm text-slate-300 space-y-3">
+                            <li className="flex items-start gap-2">
+                                <span className="text-indigo-400 mt-0.5">•</span>
+                                <span><strong>Kéo thả quả nặng:</strong> Click và giữ quả nặng để thay đổi góc lệch ban đầu (Biên độ).</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <span className="text-indigo-400 mt-0.5">•</span>
+                                <span><strong>Quan sát Vectors:</strong> Mũi tên <span className="text-emerald-400">Xanh (Vận tốc v)</span> đổi chiều liên tục, <span className="text-rose-400">Đỏ (Trọng lực P)</span> luôn hướng xuống.</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <span className="text-indigo-400 mt-0.5">•</span>
+                                <span><strong>Thước đo góc:</strong> Chú ý các mốc độ (°) mờ trên background để biết chính xác biên độ dao động.</span>
+                            </li>
+                        </ul>
+                    </div>
 
                     {/* Canvas */}
                     <div className="flex-1 flex justify-center items-center relative">
