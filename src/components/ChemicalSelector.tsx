@@ -161,44 +161,75 @@ export default function ChemicalSelector({
     }, [refChemical]);
 
     const filteredChemicals = useMemo(() => {
-        const query = searchQuery.trim();
-        if (!query) {
+        const q = searchQuery.trim();
+        if (!q) {
             return chemicals.filter((c) => activeCategory === "all" || c.category === activeCategory);
         }
 
-        const normQuery = normalizeVietnamese(normalizeChemicalFormula(query));
-        const queryTokens = normQuery.split(/\s+/).filter(Boolean);
+        const normQuery = normalizeVietnamese(normalizeChemicalFormula(q));
+        const rawQueryLower = q.toLowerCase();
 
-        return chemicals.filter((c) => {
-            const matchCategory = activeCategory === "all" || c.category === activeCategory;
-            if (!matchCategory) return false;
+        // Tính điểm phù hợp cho mỗi chất để đưa kết quả chính xác nhất lên đầu
+        const scored: { chemical: Chemical; score: number }[] = [];
+
+        for (const c of chemicals) {
+            if (activeCategory !== "all" && c.category !== activeCategory) {
+                continue;
+            }
 
             const rawFormula = c.formula || "";
             const flatFormula = normalizeChemicalFormula(rawFormula);
             const normName = normalizeVietnamese(c.name);
             const normFormula = normalizeVietnamese(flatFormula);
-            const normRawFormula = normalizeVietnamese(rawFormula);
             const normId = normalizeVietnamese(c.id);
-            const normDesc = normalizeVietnamese(c.description || "");
-            const normCategory = normalizeVietnamese(c.category || "");
 
-            // Hỗ trợ từ đồng nghĩa IUPAC: sulf <-> sunf, chlor <-> clor, photph <-> phosph
-            const synonymText = normName
-                .replace(/sunf/g, "sulf").replace(/clor/g, "chlor").replace(/photph/g, "phosph") + " " +
-                normName
-                .replace(/sulf/g, "sunf").replace(/chlor/g, "clor").replace(/phosph/g, "photph");
+            let score = 0;
 
-            const searchableText = `${normName} ${normFormula} ${normRawFormula} ${normId} ${normDesc} ${normCategory} ${synonymText}`.toLowerCase();
+            // 1. Khớp chính xác công thức hóa học (Tuyệt đối ưu tiên, ví dụ: "Cu", "Fe", "H2SO4", "NaCl")
+            if (flatFormula.toLowerCase() === rawQueryLower || rawFormula.toLowerCase() === rawQueryLower || normFormula === normQuery) {
+                score = Math.max(score, 1000);
+            }
+            // 2. Khớp chính xác tên hóa chất (ví dụ: "Đồng", "dong", "Sắt", "sat")
+            else if (normName === normQuery) {
+                score = Math.max(score, 900);
+            }
+            // 3. Tên hoặc công thức bắt đầu bằng từ khóa (ví dụ: "Axit Sun...", "CuSO4...")
+            else if (flatFormula.toLowerCase().startsWith(rawQueryLower) || normFormula.startsWith(normQuery)) {
+                score = Math.max(score, 800);
+            } else if (normName.startsWith(normQuery)) {
+                score = Math.max(score, 700);
+            }
+            // 4. Tên chứa từ khóa như một từ hoàn chỉnh (ví dụ: "Đồng" trong "Đồng(II) Sunfat", "vôi" trong "Nước Vôi Trong")
+            else {
+                const nameWords = normName.split(/[\s()_,-]+/).filter(Boolean);
+                const isNameWordMatch = nameWords.some((w) => w === normQuery || w.startsWith(normQuery));
+                if (isNameWordMatch) {
+                    score = Math.max(score, 600);
+                } else if (normName.includes(normQuery)) {
+                    score = Math.max(score, 500);
+                } else if (flatFormula.toLowerCase().includes(rawQueryLower) || normFormula.includes(normQuery)) {
+                    score = Math.max(score, 400);
+                } else if (normId === normQuery || normId.includes(normQuery)) {
+                    score = Math.max(score, 300);
+                } else if (q.length >= 3) {
+                    // Hỗ trợ từ đồng nghĩa IUPAC (sulf <-> sunf, chlor <-> clor)
+                    const synonymName = normName
+                        .replace(/sunf/g, "sulf").replace(/clor/g, "chlor") + " " +
+                        normName.replace(/sulf/g, "sunf").replace(/chlor/g, "clor");
+                    if (synonymName.includes(normQuery)) {
+                        score = Math.max(score, 250);
+                    }
+                }
+            }
 
-            return queryTokens.every((token) => {
-                return (
-                    searchableText.includes(token) ||
-                    flatFormula.toLowerCase().includes(token) ||
-                    rawFormula.toLowerCase().includes(token) ||
-                    c.id.toLowerCase().includes(token)
-                );
-            });
-        });
+            if (score > 0) {
+                scored.push({ chemical: c, score });
+            }
+        }
+
+        // Sắp xếp theo điểm số giảm dần
+        scored.sort((a, b) => b.score - a.score);
+        return scored.map((s) => s.chemical);
     }, [activeCategory, searchQuery]);
 
     const handleChemicalClick = (chemical: Chemical) => {
