@@ -78,7 +78,7 @@ export const curriculum: GradeCurriculum[] = [
           {
             id: "g9-c1-b8",
             name: "Bài 8: Một số bazơ quan trọng",
-            experimentIds: ["exp-cuso4-naoh"],
+            experimentIds: ["exp-cuso4-naoh", "exp-cuoh2-acid"],
           },
           {
             id: "g9-c1-b9",
@@ -99,7 +99,7 @@ export const curriculum: GradeCurriculum[] = [
           {
             id: "g9-c2-b17",
             name: "Bài 17: Dãy hoạt động hóa học của kim loại",
-            experimentIds: ["exp-fe-cuso4"],
+            experimentIds: ["exp-fe-cuso4", "exp-al-cucl2"],
           },
         ],
       },
@@ -176,6 +176,17 @@ export const curriculum: GradeCurriculum[] = [
           },
         ],
       },
+      {
+        id: "g10-c6",
+        name: "[Hóa học] Chương 6: Oxi – Lưu huỳnh",
+        lessons: [
+          {
+            id: "g10-c6-b32",
+            name: "Bài 32: Axit sunfuric và muối sunfat",
+            experimentIds: ["exp-cu-h2so4"],
+          },
+        ],
+      },
       // Vật lý lớp 10
       {
         id: "g10-vl-c2",
@@ -242,6 +253,11 @@ export const curriculum: GradeCurriculum[] = [
             name: "Bài 8: Amoniac và muối amoni",
             experimentIds: ["exp-nh3-hcl"],
           },
+          {
+            id: "g11-c2-b9",
+            name: "Bài 9: Axit nitric và muối nitrat",
+            experimentIds: ["exp-cu-hno3"],
+          },
         ],
       },
       // Vật lý lớp 11
@@ -279,6 +295,17 @@ export const curriculum: GradeCurriculum[] = [
     grade: 12,
     label: "Lớp 12",
     chapters: [
+      {
+        id: "g12-c6",
+        name: "[Hóa học] Chương 6: Kim loại kiềm, kiềm thổ, nhôm",
+        lessons: [
+          {
+            id: "g12-c6-b27",
+            name: "Bài 27: Nhôm và hợp chất của nhôm",
+            experimentIds: ["exp-al-naoh"],
+          },
+        ],
+      },
       {
         id: "g12-c7",
         name: "[Hóa học] Chương 7: Sắt và một số kim loại quan trọng",

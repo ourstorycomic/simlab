@@ -345,7 +345,7 @@ export default function LabBench() {
                 }, 400);
             }
 
-            const maxDuration = Math.max(...result.effects.map((e) => e.duration)) + 1000;
+            const maxDuration = Math.max(0, ...result.effects.map((e) => e.duration)) + 1000;
             setTimeout(() => {
                 setLabStatus("complete");
             }, maxDuration);
@@ -430,7 +430,7 @@ export default function LabBench() {
             setProgress(0);
             return;
         }
-        const maxDuration = Math.max(...activeReaction.result.effects.map((e) => e.duration)) + 1000;
+        const maxDuration = Math.max(0, ...activeReaction.result.effects.map((e) => e.duration)) + 1000;
         const update = () => {
             const elapsed = Date.now() - activeReaction.startTime;
             setProgress(Math.min(elapsed / maxDuration, 1));
@@ -481,7 +481,7 @@ export default function LabBench() {
         if (!result) return;
         setLabStatus("reacting");
         setActiveReaction({ result, startTime: Date.now() });
-        const maxDuration = Math.max(...result.effects.map((e) => e.duration)) + 1000;
+        const maxDuration = Math.max(0, ...result.effects.map((e) => e.duration)) + 1000;
         setTimeout(() => setLabStatus("complete"), maxDuration);
         if (result.type === "combustion") {
             setTimeout(() => {
@@ -747,7 +747,7 @@ export default function LabBench() {
                 {/* Center: Lab Area */}
                 <div className="flex-1 flex flex-col items-center gap-4 overflow-y-auto p-6">
                     {/* Lab Bench */}
-                    <div className="relative w-full max-w-3xl">
+                    <div className={`relative w-full ${activeReaction?.result?.realVideo ? "max-w-5xl" : "max-w-3xl"} transition-all duration-300`}>
                         <div
                             className="bg-white dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden p-6 transition-colors duration-200"
                             style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}

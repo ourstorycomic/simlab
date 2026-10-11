@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useCallback } from "react";
 import { Chemical, chemicals, chemicalCategories, isLiquidState, getStateLabel } from "@/lib/chemicals";
+import { getReaction } from "@/lib/reactions";
 
 interface ChemicalSelectorProps {
     onSelect: (chemical: Chemical) => void;
@@ -112,6 +113,28 @@ export default function ChemicalSelector({
     const [activeCategory, setActiveCategory] = useState<string>("all");
     const [searchQuery, setSearchQuery] = useState("");
 
+    // ─── Xác định chất tham chiếu (khi người dùng đã chọn 1 chất duy nhất) ───
+    const refChemical = useMemo(() => {
+        if (slot1 && !slot2) return slot1;
+        if (!slot1 && slot2) return slot2;
+        return null;
+    }, [slot1, slot2]);
+
+    // ─── Lập danh sách các hóa chất có phản ứng với refChemical ───
+    const reactableIds = useMemo(() => {
+        if (!refChemical) return new Set<string>();
+        const set = new Set<string>();
+        for (const c of chemicals) {
+            if (c.id === refChemical.id) continue;
+            const r = getReaction(refChemical, c) || getReaction(c, refChemical);
+            // Chỉ coi là có phản ứng nếu r tồn tại và r.type !== "none"
+            if (r && r.type !== "none") {
+                set.add(c.id);
+            }
+        }
+        return set;
+    }, [refChemical]);
+
     const filteredChemicals = useMemo(() => {
         return chemicals.filter((c) => {
             const matchCategory = activeCategory === "all" || c.category === activeCategory;
@@ -122,18 +145,25 @@ export default function ChemicalSelector({
 
     const handleChemicalClick = (chemical: Chemical) => {
         if (disabled || selectedIds.includes(chemical.id)) return;
+        // Nếu đã có 1 chất, chặn click những chất không có phản ứng
+        if (refChemical && !reactableIds.has(chemical.id)) return;
         onSelect(chemical);
     };
 
     const handleDragStart = useCallback(
         (e: React.DragEvent, chemical: Chemical) => {
             if (disabled) { e.preventDefault(); return; }
+            // Nếu đã có 1 chất, chặn kéo thả những chất không có phản ứng
+            if (refChemical && !reactableIds.has(chemical.id)) {
+                e.preventDefault();
+                return;
+            }
             e.dataTransfer.setData("application/simlab-chemical", chemical.id);
             e.dataTransfer.effectAllowed = "copy";
             const dragImage = e.currentTarget as HTMLElement;
             e.dataTransfer.setDragImage(dragImage, dragImage.offsetWidth / 2, dragImage.offsetHeight / 2);
         },
-        [disabled]
+        [disabled, refChemical, reactableIds]
     );
 
     const getChemicalState = (id: string) => {
@@ -177,6 +207,24 @@ export default function ChemicalSelector({
                         <button onClick={() => setSearchQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 text-[10px]">✕</button>
                     )}
                 </div>
+
+                {/* Thông báo ghép phản ứng thông minh */}
+                {refChemical && (
+                    <div className="mt-2 p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex flex-col gap-1">
+                        <div className="flex items-center justify-between text-[10px]">
+                            <span className="text-emerald-800 dark:text-emerald-300 font-semibold flex items-center gap-1.5 truncate">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping flex-shrink-0" />
+                                Đã lấy: <b className="text-emerald-900 dark:text-emerald-200">{refChemical.name}</b>
+                            </span>
+                            <span className="text-[9px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/60 px-1.5 py-0.5 rounded flex-shrink-0">
+                                {reactableIds.size} chất
+                            </span>
+                        </div>
+                        <p className="text-[9px] text-emerald-600 dark:text-emerald-400/90 leading-tight">
+                            💡 Các chất có phản ứng sẽ <b>SÁNG LÊN</b>. Chất không phản ứng bị <b>KHÓA</b>.
+                        </p>
+                    </div>
+                )}
             </div>
 
             {/* Body: Categories on LEFT, Chemicals on RIGHT */}
@@ -203,11 +251,17 @@ export default function ChemicalSelector({
                     <div className="grid grid-cols-2 gap-1.5">
                         {filteredChemicals.map((chemical) => {
                             const state = getChemicalState(chemical.id);
-                            const isPlaced = state === "slot1" || state === "slot2";
-                            const isDisabled = disabled || (isPlaced && !slot1 && !slot2);
                             const isSlot1 = state === "slot1";
                             const isSlot2 = state === "slot2";
+                            const isPlaced = isSlot1 || isSlot2;
                             const isLiquid = isLiquidState(chemical.state);
+
+                            // Tính toán trạng thái phản ứng thông minh
+                            const isRefSelf = refChemical?.id === chemical.id;
+                            const canReactWithRef = refChemical ? reactableIds.has(chemical.id) : true;
+                            const isBlockedByRef = Boolean(refChemical && !canReactWithRef && !isRefSelf);
+
+                            const isDisabled = disabled || (isPlaced && !slot1 && !slot2) || isBlockedByRef;
 
                             return (
                                 <button
@@ -217,17 +271,32 @@ export default function ChemicalSelector({
                                     onDragStart={(e) => handleDragStart(e, chemical)}
                                     disabled={isDisabled || !!(isPlaced && slot1 && slot2)}
                                     className={`
-                                        relative flex flex-col items-center gap-1 p-2 rounded-lg border transition-all duration-150 select-none
+                                        relative flex flex-col items-center gap-1 p-2 rounded-lg border transition-all duration-200 select-none
                                         ${isSlot1
                                             ? "border-blue-300 dark:border-blue-600 bg-blue-50/50 dark:bg-blue-900/30"
                                             : isSlot2
                                                 ? "border-purple-300 dark:border-purple-600 bg-purple-50/50 dark:bg-purple-900/30"
-                                                : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm dark:hover:shadow-gray-900/30"
+                                                : refChemical && canReactWithRef && !isRefSelf
+                                                    /* SÁNG LÊN KHI CÓ THỂ PHẢN ỨNG */
+                                                    ? "border-emerald-500 dark:border-emerald-400 bg-emerald-50/80 dark:bg-emerald-950/40 ring-2 ring-emerald-500/40 shadow-sm shadow-emerald-500/20 hover:border-emerald-600 dark:hover:border-emerald-300 hover:shadow-md hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+                                                    : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm"
                                         }
-                                        ${isDisabled ? "opacity-30 cursor-not-allowed" : "cursor-grab active:cursor-grabbing"}
-                                        ${!isDisabled && !isPlaced ? "hover:-translate-y-0.5" : ""}
+                                        ${isBlockedByRef
+                                            /* MỜ MỜ VÀ BLOCK LẠI KHI KHÔNG PHẢN ỨNG */
+                                            ? "opacity-25 grayscale cursor-not-allowed border-dashed border-gray-300 dark:border-gray-700 bg-gray-50/40 dark:bg-gray-800/20 pointer-events-none"
+                                            : isDisabled
+                                                ? "opacity-30 cursor-not-allowed"
+                                                : "cursor-grab active:cursor-grabbing"
+                                        }
+                                        ${!isDisabled && !isPlaced && (!refChemical || canReactWithRef) ? "hover:-translate-y-0.5" : ""}
                                     `}
-                                    title={`${chemical.name} (${chemical.formula})`}
+                                    title={
+                                        refChemical && !canReactWithRef && !isRefSelf
+                                            ? `${chemical.name} — Không có phản ứng với ${refChemical.name} (Đã khóa)`
+                                            : refChemical && canReactWithRef && !isRefSelf
+                                                ? `⚡ ${chemical.name} — CÓ PHẢN ỨNG VỚI ${refChemical.name}!`
+                                                : `${chemical.name} (${chemical.formula})`
+                                    }
                                 >
                                     {/* Slot badge */}
                                     {isSlot1 && (
@@ -235,6 +304,18 @@ export default function ChemicalSelector({
                                     )}
                                     {isSlot2 && (
                                         <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-purple-500 text-[7px] font-bold text-white flex items-center justify-center shadow-sm z-10">2</span>
+                                    )}
+
+                                    {/* Badge sáng phản ứng hoặc khóa */}
+                                    {refChemical && canReactWithRef && !isRefSelf && (
+                                        <span className="absolute -top-1.5 -right-1.5 px-1 py-0.5 rounded-full bg-emerald-600 dark:bg-emerald-500 text-[6px] font-bold text-white flex items-center gap-0.5 shadow-sm z-10 animate-pulse">
+                                            ⚡ Có p/ứ
+                                        </span>
+                                    )}
+                                    {isBlockedByRef && (
+                                        <span className="absolute -top-1 -right-1 px-1 py-0.2 rounded bg-gray-400/80 dark:bg-gray-600/80 text-[6px] font-medium text-white shadow-sm z-10">
+                                            ✕ Khóa
+                                        </span>
                                     )}
 
                                     {/* Preview */}
@@ -248,8 +329,12 @@ export default function ChemicalSelector({
 
                                     {/* Info */}
                                     <div className="text-center leading-tight">
-                                        <p className="text-[9px] font-medium text-gray-700 dark:text-gray-300">{chemical.name}</p>
-                                        <p className="text-[7px] text-gray-400 dark:text-gray-500">{chemical.formula}</p>
+                                        <p className={`text-[9px] font-medium ${refChemical && canReactWithRef && !isRefSelf ? "text-emerald-900 dark:text-emerald-200 font-bold" : "text-gray-700 dark:text-gray-300"}`}>
+                                            {chemical.name}
+                                        </p>
+                                        <p className={`text-[7px] ${refChemical && canReactWithRef && !isRefSelf ? "text-emerald-700 dark:text-emerald-400 font-semibold" : "text-gray-400 dark:text-gray-500"}`}>
+                                            {chemical.formula}
+                                        </p>
                                     </div>
 
                                     {/* Badges */}
@@ -281,22 +366,35 @@ export default function ChemicalSelector({
 
             {/* Legend */}
             <div className="px-3 py-2 border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/80 flex-shrink-0">
-                <div className="flex items-center gap-2 text-[8px] text-gray-400 dark:text-gray-500">
-                    <span className="flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                        Dụng cụ 1
-                    </span>
-                    <span className="flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-                        Dụng cụ 2
-                    </span>
-                    <span className="ml-auto flex items-center gap-1">
-                        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="m3 17 6-6-6-6m9 12h9" />
-                        </svg>
-                        Kéo thả
-                    </span>
-                </div>
+                {refChemical ? (
+                    <div className="flex items-center justify-between text-[8px]">
+                        <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            Sáng: Phản ứng được ({reactableIds.size})
+                        </span>
+                        <span className="flex items-center gap-1 text-gray-400">
+                            <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                            Mờ: Đã khóa (Không p/ứ)
+                        </span>
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-2 text-[8px] text-gray-400 dark:text-gray-500">
+                        <span className="flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                            Dụng cụ 1
+                        </span>
+                        <span className="flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                            Dụng cụ 2
+                        </span>
+                        <span className="ml-auto flex items-center gap-1">
+                            <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="m3 17 6-6-6-6m9 12h9" />
+                            </svg>
+                            Kéo thả
+                        </span>
+                    </div>
+                )}
             </div>
         </div>
     );
