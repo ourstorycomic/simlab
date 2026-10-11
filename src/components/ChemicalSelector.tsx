@@ -14,6 +14,29 @@ interface ChemicalSelectorProps {
     onReset?: () => void;
 }
 
+// ─── Chuẩn hóa tiếng Việt (bỏ dấu) để tìm kiếm linh hoạt (dong -> Đồng, sat -> Sắt) ───
+export function normalizeVietnamese(str: string): string {
+    if (!str) return "";
+    return str
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/đ/g, "d")
+        .replace(/Đ/g, "d")
+        .toLowerCase()
+        .trim();
+}
+
+// ─── Chuyển đổi ký tự chỉ số dưới (subscript) sang số thường (H₂SO₄ -> H2SO4, Cu(OH)₂ -> Cu(OH)2) ───
+export function normalizeChemicalFormula(formula: string): string {
+    if (!formula) return "";
+    const subscriptMap: Record<string, string> = {
+        "₀": "0", "₁": "1", "₂": "2", "₃": "3", "₄": "4",
+        "₅": "5", "₆": "6", "₇": "7", "₈": "8", "₉": "9",
+        "⁺": "+", "⁻": "-",
+    };
+    return formula.replace(/[₀-₉⁺⁻]/g, (char) => subscriptMap[char] || char);
+}
+
 // ─── Realistic mini test tube preview ───
 function MiniTestTube({ chemical }: { chemical: Chemical }) {
     const isLiquid = isLiquidState(chemical.state);
@@ -138,10 +161,43 @@ export default function ChemicalSelector({
     }, [refChemical]);
 
     const filteredChemicals = useMemo(() => {
+        const query = searchQuery.trim();
+        if (!query) {
+            return chemicals.filter((c) => activeCategory === "all" || c.category === activeCategory);
+        }
+
+        const normQuery = normalizeVietnamese(normalizeChemicalFormula(query));
+        const queryTokens = normQuery.split(/\s+/).filter(Boolean);
+
         return chemicals.filter((c) => {
             const matchCategory = activeCategory === "all" || c.category === activeCategory;
-            const matchSearch = !searchQuery || c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.formula.toLowerCase().includes(searchQuery.toLowerCase());
-            return matchCategory && matchSearch;
+            if (!matchCategory) return false;
+
+            const rawFormula = c.formula || "";
+            const flatFormula = normalizeChemicalFormula(rawFormula);
+            const normName = normalizeVietnamese(c.name);
+            const normFormula = normalizeVietnamese(flatFormula);
+            const normRawFormula = normalizeVietnamese(rawFormula);
+            const normId = normalizeVietnamese(c.id);
+            const normDesc = normalizeVietnamese(c.description || "");
+            const normCategory = normalizeVietnamese(c.category || "");
+
+            // Hỗ trợ từ đồng nghĩa IUPAC: sulf <-> sunf, chlor <-> clor, photph <-> phosph
+            const synonymText = normName
+                .replace(/sunf/g, "sulf").replace(/clor/g, "chlor").replace(/photph/g, "phosph") + " " +
+                normName
+                .replace(/sulf/g, "sunf").replace(/chlor/g, "clor").replace(/phosph/g, "photph");
+
+            const searchableText = `${normName} ${normFormula} ${normRawFormula} ${normId} ${normDesc} ${normCategory} ${synonymText}`.toLowerCase();
+
+            return queryTokens.every((token) => {
+                return (
+                    searchableText.includes(token) ||
+                    flatFormula.toLowerCase().includes(token) ||
+                    rawFormula.toLowerCase().includes(token) ||
+                    c.id.toLowerCase().includes(token)
+                );
+            });
         });
     }, [activeCategory, searchQuery]);
 
@@ -214,16 +270,28 @@ export default function ChemicalSelector({
                 <div className="mt-2 relative">
                     <input
                         type="text"
-                        placeholder="Tìm hóa chất..."
+                        placeholder="Tìm theo tên (Cu, Axit...) hoặc CTHH..."
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="lab-input pl-7 text-xs py-1.5"
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            setSearchQuery(val);
+                            if (val.trim() && activeCategory !== "all") {
+                                setActiveCategory("all");
+                            }
+                        }}
+                        className="lab-input pl-7 pr-7 text-xs py-1.5 w-full"
                     />
-                    <svg className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600 w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <svg className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
                     </svg>
                     {searchQuery && (
-                        <button onClick={() => setSearchQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 text-[10px]">✕</button>
+                        <button
+                            onClick={() => setSearchQuery("")}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs w-4 h-4 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700"
+                            title="Xóa tìm kiếm"
+                        >
+                            ✕
+                        </button>
                     )}
                 </div>
 
@@ -287,6 +355,21 @@ export default function ChemicalSelector({
 
                 {/* ─── Chemical Grid (Right Area) ─── */}
                 <div className="flex-1 overflow-y-auto p-2">
+                    {/* Báo cáo số lượng kết quả khi đang tìm kiếm */}
+                    {searchQuery.trim() && (
+                        <div className="mb-2 px-1 flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-400">
+                            <span>
+                                Tìm thấy <b className="text-blue-600 dark:text-blue-400 font-semibold">{filteredChemicals.length}</b> hóa chất
+                            </span>
+                            <button
+                                onClick={() => setSearchQuery("")}
+                                className="text-blue-600 dark:text-blue-400 hover:underline font-medium text-[9px]"
+                            >
+                                Đặt lại
+                            </button>
+                        </div>
+                    )}
+
                     <div className="grid grid-cols-2 gap-1.5">
                         {filteredChemicals.map((chemical) => {
                             const state = getChemicalState(chemical.id);
@@ -393,12 +476,30 @@ export default function ChemicalSelector({
                     </div>
 
                     {filteredChemicals.length === 0 && (
-                        <div className="flex flex-col items-center justify-center py-8 text-gray-400 dark:text-gray-500">
-                            <svg className="w-8 h-8 mb-2 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-                            </svg>
-                            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Không tìm thấy</p>
-                            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">Thử từ khóa khác</p>
+                        <div className="flex flex-col items-center justify-center py-10 px-2 text-center">
+                            <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center mb-2.5 text-blue-500">
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                                </svg>
+                            </div>
+                            <p className="text-xs font-semibold text-gray-700 dark:text-gray-200">Không tìm thấy hóa chất</p>
+                            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 max-w-[170px] leading-relaxed">
+                                Thử gõ tên không dấu (<b>dong</b>, <b>sat</b>, <b>axit</b>) hoặc CTHH (<b>Cu</b>, <b>H2SO4</b>, <b>HNO3</b>)...
+                            </p>
+                            {activeCategory !== "all" && (
+                                <button
+                                    onClick={() => setActiveCategory("all")}
+                                    className="mt-2 text-[10px] text-blue-600 dark:text-blue-400 font-semibold underline"
+                                >
+                                    Tìm trong tất cả danh mục
+                                </button>
+                            )}
+                            <button
+                                onClick={() => setSearchQuery("")}
+                                className="mt-2.5 px-3 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-[10px] font-semibold transition-colors"
+                            >
+                                Xóa tìm kiếm
+                            </button>
                         </div>
                     )}
                 </div>
