@@ -11,6 +11,7 @@ interface ChemicalSelectorProps {
     slot1: Chemical | null;
     slot2: Chemical | null;
     onReplace: (slot: 1 | 2, chemical: Chemical) => void;
+    onReset?: () => void;
 }
 
 // ─── Realistic mini test tube preview ───
@@ -109,6 +110,7 @@ export default function ChemicalSelector({
     slot1,
     slot2,
     onReplace,
+    onReset,
 }: ChemicalSelectorProps) {
     const [activeCategory, setActiveCategory] = useState<string>("all");
     const [searchQuery, setSearchQuery] = useState("");
@@ -144,7 +146,17 @@ export default function ChemicalSelector({
     }, [activeCategory, searchQuery]);
 
     const handleChemicalClick = (chemical: Chemical) => {
-        if (disabled || selectedIds.includes(chemical.id)) return;
+        if (disabled) {
+            // Khi đang có phản ứng hoàn thành hoặc bị khóa, bấm vào bất kỳ chất nào sẽ dọn bàn và chọn ngay chất đó làm chất đầu tiên
+            if (onReset) {
+                onReset();
+                setTimeout(() => {
+                    onSelect(chemical);
+                }, 40);
+            }
+            return;
+        }
+        if (selectedIds.includes(chemical.id)) return;
         // Nếu đã có 1 chất, chặn click những chất không có phản ứng
         if (refChemical && !reactableIds.has(chemical.id)) return;
         onSelect(chemical);
@@ -152,7 +164,14 @@ export default function ChemicalSelector({
 
     const handleDragStart = useCallback(
         (e: React.DragEvent, chemical: Chemical) => {
-            if (disabled) { e.preventDefault(); return; }
+            if (disabled) {
+                if (onReset) {
+                    onReset();
+                } else {
+                    e.preventDefault();
+                    return;
+                }
+            }
             // Nếu đã có 1 chất, chặn kéo thả những chất không có phản ứng
             if (refChemical && !reactableIds.has(chemical.id)) {
                 e.preventDefault();
@@ -163,7 +182,7 @@ export default function ChemicalSelector({
             const dragImage = e.currentTarget as HTMLElement;
             e.dataTransfer.setDragImage(dragImage, dragImage.offsetWidth / 2, dragImage.offsetHeight / 2);
         },
-        [disabled, refChemical, reactableIds]
+        [disabled, onReset, refChemical, reactableIds]
     );
 
     const getChemicalState = (id: string) => {
@@ -207,6 +226,26 @@ export default function ChemicalSelector({
                         <button onClick={() => setSearchQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 text-[10px]">✕</button>
                     )}
                 </div>
+
+                {/* Banner chuyển sang thí nghiệm mới khi đang khóa hoặc đã xong phản ứng */}
+                {disabled && onReset && (
+                    <div className="mt-2.5 p-2.5 rounded-xl bg-gradient-to-r from-blue-500/15 to-indigo-500/15 border border-blue-400/40 dark:border-blue-500/40 flex flex-col gap-1.5 shadow-sm">
+                        <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-blue-700 dark:text-blue-300 flex items-center gap-1">
+                                <span>✨ Đã hoàn thành thí nghiệm</span>
+                            </span>
+                        </div>
+                        <p className="text-[10px] text-gray-600 dark:text-gray-300 leading-tight">
+                            Bấm chọn hóa chất bất kỳ trong danh sách hoặc bấm nút bên dưới để dọn bàn:
+                        </p>
+                        <button
+                            onClick={onReset}
+                            className="w-full py-1.5 px-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-[11px] font-bold flex items-center justify-center gap-1.5 shadow active:scale-95 transition-all"
+                        >
+                            <span>🧪 Làm thí nghiệm khác (Dọn bàn)</span>
+                        </button>
+                    </div>
+                )}
 
                 {/* Thông báo ghép phản ứng thông minh */}
                 {refChemical && (
@@ -262,14 +301,15 @@ export default function ChemicalSelector({
                             const isBlockedByRef = Boolean(refChemical && !canReactWithRef && !isRefSelf);
 
                             const isDisabled = disabled || (isPlaced && !slot1 && !slot2) || isBlockedByRef;
+                            const isHtmlDisabled = isBlockedByRef || (disabled && !onReset) || !!(isPlaced && slot1 && slot2);
 
                             return (
                                 <button
                                     key={chemical.id}
-                                    draggable={!isDisabled}
+                                    draggable={!isDisabled && !disabled}
                                     onClick={() => handleChemicalClick(chemical)}
                                     onDragStart={(e) => handleDragStart(e, chemical)}
-                                    disabled={isDisabled || !!(isPlaced && slot1 && slot2)}
+                                    disabled={isHtmlDisabled}
                                     className={`
                                         relative flex flex-col items-center gap-1 p-2 rounded-lg border transition-all duration-200 select-none
                                         ${isSlot1

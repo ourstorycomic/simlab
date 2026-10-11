@@ -187,37 +187,48 @@ export async function initStore(): Promise<void> {
   if (_initialized) return;
   if (_initPromise) return _initPromise;
   _initPromise = (async () => {
-    const [
-      { data: users }, { data: classes }, { data: assignments },
-      { data: submissions }, { data: members }, { data: progress }, { data: activity }
-    ] = await Promise.all([
-      supabase.from("users").select("*"),
-      supabase.from("classes").select("*"),
-      supabase.from("assignments").select("*"),
-      supabase.from("submissions").select("*"),
-      supabase.from("class_members").select("*"),
-      supabase.from("user_progress").select("*"),
-      supabase.from("activity").select("*"),
-    ]);
+    try {
+      const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 2000));
+      const fetchPromise = Promise.all([
+        supabase.from("users").select("*"),
+        supabase.from("classes").select("*"),
+        supabase.from("assignments").select("*"),
+        supabase.from("submissions").select("*"),
+        supabase.from("class_members").select("*"),
+        supabase.from("user_progress").select("*"),
+        supabase.from("activity").select("*"),
+      ]);
 
-    store.users = (users ?? []).map(mapUser);
-    store.classes = (classes ?? []).map(mapClass);
-    store.assignments = (assignments ?? []).map(mapAssignment);
-    store.submissions = (submissions ?? []).map(mapSubmission);
-    store.joined = {};
-    for (const m of members ?? []) {
-      if (!store.joined[m.student_id]) store.joined[m.student_id] = [];
-      store.joined[m.student_id].push(m.class_code);
+      const result = await Promise.race([fetchPromise, timeoutPromise]) as any;
+      if (Array.isArray(result)) {
+        const [
+          { data: users }, { data: classes }, { data: assignments },
+          { data: submissions }, { data: members }, { data: progress }, { data: activity }
+        ] = result;
+
+        store.users = (users ?? []).map(mapUser);
+        store.classes = (classes ?? []).map(mapClass);
+        store.assignments = (assignments ?? []).map(mapAssignment);
+        store.submissions = (submissions ?? []).map(mapSubmission);
+        store.joined = {};
+        for (const m of members ?? []) {
+          if (!store.joined[m.student_id]) store.joined[m.student_id] = [];
+          store.joined[m.student_id].push(m.class_code);
+        }
+        store.progress = {};
+        for (const p of progress ?? []) store.progress[p.user_id] = mapProgress(p);
+        store.activity = (activity ?? []).map((r: any) => ({
+          id: r.id, userId: r.user_id, type: r.type as ActivityType,
+          label: r.label, detail: r.detail ?? undefined, xp: r.xp, at: r.at,
+        }));
+      }
+    } catch (e) {
+      console.warn("initStore timeout or error, proceeding with cache/defaults", e);
+    } finally {
+      store.session = lsRead<string | null>(K_SESSION, null);
+      store.walkthrough = lsRead<Record<string, boolean>>(K_WALKTHROUGH, {});
+      _initialized = true;
     }
-    store.progress = {};
-    for (const p of progress ?? []) store.progress[p.user_id] = mapProgress(p);
-    store.activity = (activity ?? []).map((r: any) => ({
-      id: r.id, userId: r.user_id, type: r.type as ActivityType,
-      label: r.label, detail: r.detail ?? undefined, xp: r.xp, at: r.at,
-    }));
-    store.session = lsRead<string | null>(K_SESSION, null);
-    store.walkthrough = lsRead<Record<string, boolean>>(K_WALKTHROUGH, {});
-    _initialized = true;
   })();
   return _initPromise;
 }
