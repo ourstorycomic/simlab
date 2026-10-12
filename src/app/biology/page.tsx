@@ -18,8 +18,8 @@ function LabFallback() {
 export default function BiologyPage() {
     const [tourOpen, setTourOpen] = useState(false);
     const tourSteps: TourStep[] = [
-        { target: "#tour-bio-sidebar", title: "Danh sách Mô hình", description: "Tại đây bạn có thể chọn các cơ quan sinh lý khác nhau để bắt đầu quan sát." },
-        { target: "#tour-bio-viewer", title: "Khu vực Tương tác 3D", description: "Bạn có thể xoay, phóng to, thu nhỏ mô hình 3D tự do. Hãy thử bấm vào các chấm xanh (hotspots) trên mô hình để xem các bộ phận chi tiết." },
+        { target: "#tour-bio-sidebar, #tour-bio-sidebar-mobile", title: "Danh sách Mô hình", description: "Tại đây bạn có thể chọn các cơ quan sinh lý khác nhau để bắt đầu quan sát." },
+        { target: "#tour-bio-viewer", title: "Khu vực Tương tác 3D", description: "Bạn có thể xoay, phóng to, thu nhỏ mô hình 3D tự do bằng chuột hoặc ngón tay. Hãy thử chạm/bấm vào các chấm xanh (hotspots) trên mô hình để xem các bộ phận chi tiết." },
         { target: "#tour-bio-info", title: "Bảng Thông tin chi tiết", description: "Các kiến thức chuyên sâu về cấu tạo và chức năng sinh học sẽ được hiển thị ở khu vực này, giúp bạn hiểu rõ hơn về đối tượng đang quan sát." }
     ];
 
@@ -33,24 +33,40 @@ export default function BiologyPage() {
     return (
         <Suspense fallback={<LabFallback />}>
             {/* Header for Biology Lab */}
-            <div className="h-16 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex items-center px-6 justify-between">
-                <div className="flex items-center gap-3">
-                    <a href="/" className="text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
+            <div className="h-14 sm:h-16 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex items-center px-3 sm:px-6 justify-between flex-shrink-0">
+                <div className="flex items-center gap-2 sm:gap-3">
+                    <a 
+                        href="/" 
+                        className="text-gray-500 hover:text-gray-900 dark:hover:text-white p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                        title="Về trang chủ"
+                    >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
                         </svg>
                     </a>
-                    <div className="w-px h-6 bg-gray-200 dark:bg-gray-800"></div>
-                    <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-500 font-bold">
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <div className="w-px h-5 sm:h-6 bg-gray-200 dark:bg-gray-800"></div>
+                    <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-500 font-bold text-sm sm:text-base">
+                        <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418" />
                         </svg>
-                        Sinh Học
+                        <span>Sinh Học 3D</span>
                     </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setTourOpen(true)}
+                        className="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors flex items-center gap-1.5"
+                    >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M12 18h.01" />
+                        </svg>
+                        <span className="hidden sm:inline">Hướng dẫn</span>
+                    </button>
                 </div>
             </div>
             
-            <div id="tour-biology-bench" className="flex-1"><BiologyBench /></div>
+            <div id="tour-biology-bench" className="flex-1 min-h-0 overflow-hidden"><BiologyBench /></div>
             <Tour steps={tourSteps} isOpen={tourOpen} onClose={() => setTourOpen(false)} />
         </Suspense>
     );

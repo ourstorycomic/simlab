@@ -577,9 +577,9 @@ export default function LabBench() {
                 <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-400/10 dark:bg-purple-600/10 blur-3xl" />
             </div>
             {/* Top Bar */}
-            <header className="bg-white dark:bg-gray-800/90 border-b border-gray-200 dark:border-gray-700 px-5 py-3 flex items-center justify-between z-20 flex-shrink-0 transition-colors duration-200 sticky top-0" style={{ boxShadow: "0 1px 2px rgba(0,0,0,0.04) " }}>
-                <div className="flex items-center gap-3">
-                    <svg viewBox="0 0 28 28" className="w-7 h-7 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <header className="bg-white dark:bg-gray-800/90 border-b border-gray-200 dark:border-gray-700 px-3 sm:px-5 py-2 sm:py-3 flex items-center justify-between z-20 flex-shrink-0 transition-colors duration-200 sticky top-0" style={{ boxShadow: "0 1px 2px rgba(0,0,0,0.04) " }}>
+                <div className="flex items-center gap-2 sm:gap-3">
+                    <svg viewBox="0 0 28 28" className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 dark:text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5">
                         <path d="M12 3v5M16 3v5" strokeLinecap="round" />
                         <path d="M10 10h8M8 14h12M6 18h16" />
                         <path d="M8 10l-2 14h16L20 10H8Z" />
@@ -587,14 +587,15 @@ export default function LabBench() {
                         <path d="M18 10l2 14" strokeWidth="0.8" />
                     </svg>
                     <Link href="/" className="group cursor-pointer">
-                        <h1 className="text-base font-bold text-gray-800 dark:text-gray-100 group-hover:text-blue-500 transition-colors">Simlab Edu</h1>
-                        <p className="text-[10px] text-gray-400 dark:text-gray-500">Nền tảng Giáo dục Kỹ thuật số</p>
+                        <h1 className="text-sm sm:text-base font-bold text-gray-800 dark:text-gray-100 group-hover:text-blue-500 transition-colors">Simlab Edu</h1>
+                        <p className="text-[9px] sm:text-[10px] text-gray-400 dark:text-gray-500 hidden sm:block">Nền tảng Giáo dục Kỹ thuật số</p>
                     </Link>
                     <Link
                         href="/"
-                        className="ml-4 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 text-xs font-semibold hover:bg-slate-200 dark:hover:bg-slate-600 transition-all shadow-sm"
+                        className="ml-1 sm:ml-4 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 text-xs font-semibold hover:bg-slate-200 dark:hover:bg-slate-600 transition-all shadow-sm"
                     >
-                        Trở về Trang chủ
+                        <span className="hidden sm:inline">Trở về Trang chủ</span>
+                        <span className="sm:hidden">Trang chủ</span>
                     </Link>
                     {assignment && (
                         <Link

@@ -185,15 +185,16 @@ export default function Home() {
 
             {/* Nav */}
             <header className="relative z-20 sticky top-0 border-b border-gray-200/70 dark:border-gray-800 bg-white/80 dark:bg-gray-900/70 backdrop-blur-md">
-                <div className="max-w-7xl mx-auto px-6 lg:px-8 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <LogoMark className="w-8 h-8" />
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5 sm:gap-3">
+                        <LogoMark className="w-7 h-7 sm:w-8 sm:h-8" />
                         <div>
-                            <p className="text-base font-bold text-gray-800 dark:text-gray-100 leading-tight">Simlab Edu</p>
-                            <p className="text-[10px] text-gray-400 dark:text-gray-500">Nền tảng Giáo dục Kỹ thuật số</p>
+                            <p className="text-sm sm:text-base font-bold text-gray-800 dark:text-gray-100 leading-tight">Simlab Edu</p>
+                            <p className="text-[9px] sm:text-[10px] text-gray-400 dark:text-gray-500">Nền tảng Giáo dục Kỹ thuật số</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    {/* Desktop Navigation */}
+                    <div className="hidden md:flex items-center gap-2">
                         <button
                             onClick={() => document.getElementById("auth-card")?.scrollIntoView({ behavior: "smooth" })}
                             className="lab-btn px-4 py-2 text-sm rounded-full"
@@ -208,6 +209,18 @@ export default function Home() {
                         </button>
                         <button onClick={() => router.push("/physics")} className="lab-btn px-4 py-2 text-sm rounded-full bg-indigo-500 text-white border-transparent hover:bg-indigo-600 dark:bg-indigo-600 dark:hover:bg-indigo-700">
                             Lab Vật lý
+                        </button>
+                    </div>
+                    {/* Mobile Navigation */}
+                    <div className="flex md:hidden items-center gap-1.5">
+                        <button onClick={handleEnterLab} className="lab-btn-primary px-2.5 py-1.5 text-xs rounded-full font-semibold">
+                            Hóa
+                        </button>
+                        <button onClick={handleEnterBiology} className="lab-btn px-2.5 py-1.5 text-xs rounded-full bg-emerald-500 text-white border-transparent font-semibold">
+                            Sinh
+                        </button>
+                        <button onClick={() => router.push("/physics")} className="lab-btn px-2.5 py-1.5 text-xs rounded-full bg-indigo-500 text-white border-transparent font-semibold">
+                            Lý
                         </button>
                     </div>
                 </div>
