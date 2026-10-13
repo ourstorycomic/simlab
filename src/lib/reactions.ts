@@ -2076,6 +2076,619 @@ export function getReaction(
     };
   }
 
+
+  // ══════════════════════════════════════════════════════════════
+  // NHÓM BỔ SUNG MỚI: KIM LOẠI KIỀM, HALOGEN, HỮU CƠ, CROM, SINH HÓA
+  // ══════════════════════════════════════════════════════════════
+
+  // 1. KIM LOẠI KIỀM & KIỀM THỔ + NƯỚC (H₂O)
+  // 2Na + 2H₂O → 2NaOH + H₂↑
+  if (pair("na", "water")) {
+    return {
+      type: "redox",
+      equation: "2Na + 2H₂O → 2NaOH + H₂↑",
+      equationHtml: `2<span class='text-gray-100 font-bold'>Na</span> + 2${WATER_HTML} → 2<span class='text-chemical-blue'>NaOH</span> + ${H2_HTML}`,
+      description: "Natri phản ứng mãnh liệt với nước, nóng chảy thành viên tròn chạy trên mặt nước, sủi bọt khí H₂ mạnh và tỏa nhiều nhiệt có thể bốc cháy ngọn lửa màu vàng.",
+      effects: [
+        { type: "bubbles", intensity: "high", duration: 4000, particleCount: 45 },
+        { type: "flame", intensity: "high", duration: 3500 },
+        { type: "sparkle", intensity: "high", duration: 3000 },
+        { type: "dissolve", intensity: "high", duration: 3500 },
+      ],
+      products: ["naoh", "h2"],
+      observations: [
+        "Viên Na nóng chảy vo tròn chạy quanh mặt nước",
+        "Sủi bọt khí H₂ mãnh liệt và tỏa nhiều nhiệt",
+        "Có thể bốc cháy với ngọn lửa màu vàng đặc trưng của Natri",
+      ],
+      heatChange: "exothermic",
+    };
+  }
+
+  // 2K + 2H₂O → 2KOH + H₂↑
+  if (pair("k", "water")) {
+    return {
+      type: "redox",
+      equation: "2K + 2H₂O → 2KOH + H₂↑",
+      equationHtml: `2<span class='text-gray-100 font-bold'>K</span> + 2${WATER_HTML} → 2<span class='text-chemical-blue'>KOH</span> + ${H2_HTML}`,
+      description: "Kali phản ứng nổ mãnh liệt với nước, bốc cháy ngay lập tức với ngọn lửa màu tím và nổ lách tách.",
+      effects: [
+        { type: "flame", intensity: "high", duration: 3500, targetColor: "#c084fc" },
+        { type: "bubbles", intensity: "high", duration: 4000, particleCount: 50 },
+        { type: "flash", intensity: "high", duration: 2500 },
+        { type: "dissolve", intensity: "high", duration: 3000 },
+      ],
+      products: ["koh", "h2"],
+      observations: [
+        "Mẩu Kali bốc cháy tức thì với ngọn lửa màu tím sáng",
+        "Nổ lách tách trên bề mặt nước, giải phóng lượng nhiệt cực lớn",
+      ],
+      heatChange: "exothermic",
+    };
+  }
+
+  // Ba + 2H₂O → Ba(OH)₂ + H₂↑
+  if (pair("ba", "water")) {
+    return {
+      type: "redox",
+      equation: "Ba + 2H₂O → Ba(OH)₂ + H₂↑",
+      equationHtml: `<span class='text-gray-100 font-bold'>Ba</span> + 2${WATER_HTML} → <span class='text-chemical-blue'>Ba(OH)₂</span> + ${H2_HTML}`,
+      description: "Bari tan mạnh trong nước, sủi bọt khí H₂ tạo dung dịch bazơ Ba(OH)₂.",
+      effects: [
+        { type: "bubbles", intensity: "high", duration: 3500, particleCount: 30 },
+        { type: "dissolve", intensity: "medium", duration: 3000 },
+      ],
+      products: ["baoh2", "h2"],
+      observations: ["Bari tan dần, bọt khí H₂ thoát ra liên tục", "Dung dịch kiềm mạnh làm quỳ tím chuyển xanh"],
+      heatChange: "exothermic",
+    };
+  }
+
+  // Ca + 2H₂O → Ca(OH)₂ + H₂↑
+  if (pair("ca", "water")) {
+    return {
+      type: "redox",
+      equation: "Ca + 2H₂O → Ca(OH)₂ + H₂↑",
+      equationHtml: `<span class='text-gray-100 font-bold'>Ca</span> + 2${WATER_HTML} → <span class='text-gray-200'>Ca(OH)₂</span> + ${H2_HTML}`,
+      description: "Canxi tác dụng với nước tạo bọt khí H₂ và dung dịch vẩn đục màu trắng của vôi tôi Ca(OH)₂ ít tan.",
+      effects: [
+        { type: "bubbles", intensity: "medium", duration: 3500, particleCount: 25 },
+        { type: "precipitate", intensity: "medium", duration: 3000, targetColor: "#f1f5f9" },
+      ],
+      products: ["caoh2", "h2"],
+      observations: ["Sủi bọt khí H₂", "Nước chuyển sang màu trắng đục do Ca(OH)₂ ít tan"],
+      heatChange: "exothermic",
+    };
+  }
+
+  // 2. KIM LOẠI KIỀM + DUNG DỊCH MUỐI (Tác dụng với nước trước)
+  // 2Na + 2H₂O + CuSO₄ → Na₂SO₄ + Cu(OH)₂↓ + H₂↑
+  if (pair("na", "cuso4")) {
+    return {
+      type: "redox",
+      equation: "2Na + 2H₂O + CuSO₄ → Na₂SO₄ + Cu(OH)₂↓ + H₂↑",
+      equationHtml: `2<span class='text-gray-100 font-bold'>Na</span> + 2${WATER_HTML} + <span class='text-blue-400'>CuSO₄</span> → <span class='text-white'>Na₂SO₄</span> + <span class='text-cyan-500 font-bold'>Cu(OH)₂↓</span> + ${H2_HTML}`,
+      description: "Na không đẩy Cu ra khỏi dung dịch mà tác dụng với nước trước sinh NaOH và H₂, sau đó NaOH tác dụng với CuSO₄ tạo kết tủa xanh lam.",
+      effects: [
+        { type: "bubbles", intensity: "high", duration: 4000, particleCount: 40 },
+        { type: "precipitate", intensity: "high", duration: 3500, targetColor: "#06b6d4" },
+        { type: "flame", intensity: "medium", duration: 2500 },
+      ],
+      products: ["na2so4", "cuoh2", "h2"],
+      observations: [
+        "Viên Na vo tròn chạy trên mặt nước, sủi bọt khí H₂ mạnh",
+        "Xuất hiện kết tủa màu xanh lam của Cu(OH)₂ trong dung dịch",
+      ],
+      heatChange: "exothermic",
+    };
+  }
+
+  // 2K + 2H₂O + CuSO₄ → K₂SO₄ + Cu(OH)₂↓ + H₂↑
+  if (pair("k", "cuso4")) {
+    return {
+      type: "redox",
+      equation: "2K + 2H₂O + CuSO₄ → K₂SO₄ + Cu(OH)₂↓ + H₂↑",
+      equationHtml: `2<span class='text-gray-100 font-bold'>K</span> + 2${WATER_HTML} + <span class='text-blue-400'>CuSO₄</span> → <span class='text-white'>K₂SO₄</span> + <span class='text-cyan-500 font-bold'>Cu(OH)₂↓</span> + ${H2_HTML}`,
+      description: "Kali tác dụng với nước sinh bọt khí H₂ kèm tia lửa tím, tạo kết tủa Cu(OH)₂ màu xanh lam.",
+      effects: [
+        { type: "flame", intensity: "high", duration: 3000, targetColor: "#c084fc" },
+        { type: "bubbles", intensity: "high", duration: 4000 },
+        { type: "precipitate", intensity: "high", duration: 3500, targetColor: "#06b6d4" },
+      ],
+      products: ["k2so4", "cuoh2", "h2"],
+      observations: ["Kali bốc cháy tia lửa tím, sủi bọt khí", "Xuất hiện kết tủa Cu(OH)₂ màu xanh lam"],
+      heatChange: "exothermic",
+    };
+  }
+
+  // 3Na + 3H₂O + FeCl₃ → 3NaCl + Fe(OH)₃↓ + 3/2 H₂↑
+  if (pair("na", "fecl3")) {
+    return {
+      type: "redox",
+      equation: "3Na + 3H₂O + FeCl₃ → 3NaCl + Fe(OH)₃↓ + 3/2 H₂↑",
+      equationHtml: `3<span class='text-gray-100 font-bold'>Na</span> + 3${WATER_HTML} + <span class='text-amber-500'>FeCl₃</span> → 3<span class='text-white'>NaCl</span> + <span class='text-amber-800 font-bold'>Fe(OH)₃↓</span> + <span class='text-cyan-300'>H₂↑</span>`,
+      description: "Natri phản ứng với nước sinh bọt khí H₂, sau đó tạo kết tủa Fe(OH)₃ màu nâu đỏ.",
+      effects: [
+        { type: "bubbles", intensity: "high", duration: 3500 },
+        { type: "precipitate", intensity: "high", duration: 3500, targetColor: "#92400e" },
+      ],
+      products: ["nacl", "feoh3", "h2"],
+      observations: ["Sủi bọt khí H₂ mạnh", "Xuất hiện kết tủa Fe(OH)₃ màu nâu đỏ"],
+      heatChange: "exothermic",
+    };
+  }
+
+  // 3. KIM LOẠI KIỀM + AXIT (HCl)
+  if (pair("na", "hcl")) {
+    return {
+      type: "metal_acid",
+      equation: "2Na + 2HCl → 2NaCl + H₂↑",
+      equationHtml: `2<span class='text-gray-100 font-bold'>Na</span> + 2<span class='text-chemical-red'>HCl</span> → 2<span class='text-white'>NaCl</span> + ${H2_HTML}`,
+      description: "Natri phản ứng nổ mãnh liệt với axit HCl, sủi bọt khí H₂ dữ dội.",
+      effects: [
+        { type: "bubbles", intensity: "high", duration: 4000, particleCount: 50 },
+        { type: "flame", intensity: "high", duration: 3000 },
+        { type: "sparkle", intensity: "high", duration: 2500 },
+      ],
+      products: ["nacl", "h2"],
+      observations: ["Phản ứng nổ mạnh tỏa nhiệt lớn", "Bọt khí H₂ thoát ra dữ dội"],
+      heatChange: "exothermic",
+    };
+  }
+
+  if (pair("k", "hcl")) {
+    return {
+      type: "metal_acid",
+      equation: "2K + 2HCl → 2KCl + H₂↑",
+      equationHtml: `2<span class='text-gray-100 font-bold'>K</span> + 2<span class='text-chemical-red'>HCl</span> → 2<span class='text-white'>KCl</span> + ${H2_HTML}`,
+      description: "Kali nổ mãnh liệt với axit HCl.",
+      effects: [
+        { type: "flame", intensity: "high", duration: 3500, targetColor: "#c084fc" },
+        { type: "bubbles", intensity: "high", duration: 4000, particleCount: 50 },
+      ],
+      products: ["kcl", "h2"],
+      observations: ["Nổ mạnh kèm ngọn lửa tím", "Khí H₂ thoát ra mãnh liệt"],
+      heatChange: "exothermic",
+    };
+  }
+
+  if (pair("ca", "hcl")) {
+    return {
+      type: "metal_acid",
+      equation: "Ca + 2HCl → CaCl₂ + H₂↑",
+      equationHtml: `<span class='text-gray-100 font-bold'>Ca</span> + 2<span class='text-chemical-red'>HCl</span> → <span class='text-white'>CaCl₂</span> + ${H2_HTML}`,
+      description: "Canxi tác dụng rất mạnh với axit HCl tạo CaCl₂ và bọt khí H₂.",
+      effects: [
+        { type: "bubbles", intensity: "high", duration: 3500, particleCount: 35 },
+        { type: "dissolve", intensity: "high", duration: 3000 },
+      ],
+      products: ["cacl2", "h2"],
+      observations: ["Canxi tan nhanh, bọt khí H₂ sôi sục"],
+      heatChange: "exothermic",
+    };
+  }
+
+  // 4. PHI KIM & HALOGEN
+  // S + O₂ → SO₂
+  if (pair("s", "o2")) {
+    return {
+      type: "combustion",
+      equation: "S + O₂ →(t°) SO₂↑",
+      equationHtml: `<span class='text-yellow-400 font-bold'>S</span> + <span class='text-gray-200'>O₂</span> →(t°) ${SO2_HTML}`,
+      description: "Lưu huỳnh cháy trong khí oxi với ngọn lửa nhỏ màu xanh nhạt, sinh ra khí SO₂ mùi hắc đặc trưng.",
+      effects: [
+        { type: "flame", intensity: "medium", duration: 3500, targetColor: "#38bdf8" },
+        { type: "smoke", intensity: "medium", duration: 3500 },
+        { type: "bubbles", intensity: "low", duration: 2500 },
+      ],
+      products: ["so2"],
+      observations: [
+        "Lưu huỳnh cháy với ngọn lửa màu xanh nhạt",
+        "Sinh ra khí SO₂ mùi hắc nồng làm cay mắt",
+      ],
+      heatChange: "exothermic",
+    };
+  }
+
+  // 4P + 5O₂ → 2P₂O₅
+  if (pair("p", "o2")) {
+    return {
+      type: "combustion",
+      equation: "4P + 5O₂ →(t°) 2P₂O₅",
+      equationHtml: `4<span class='text-red-600 font-bold'>P</span> + 5<span class='text-gray-200'>O₂</span> →(t°) 2<span class='text-white font-bold'>P₂O₅</span>`,
+      description: "Photpho đỏ cháy sáng chói mãnh liệt trong oxi, tạo ra khói trắng dày đặc là điphotpho pentaoxit (P₂O₅).",
+      effects: [
+        { type: "flash", intensity: "high", duration: 3500 },
+        { type: "flame", intensity: "high", duration: 3500, targetColor: "#fef08a" },
+        { type: "smoke", intensity: "high", duration: 5000 },
+        { type: "sparkle", intensity: "high", duration: 3000 },
+      ],
+      products: ["p2o5"],
+      observations: [
+        "Photpho cháy sáng chói như pháo sáng",
+        "Tạo khói trắng dày đặc bám vào thành ống nghiệm",
+      ],
+      heatChange: "exothermic",
+    };
+  }
+
+  // C + O₂ → CO₂
+  if (pair("c", "o2")) {
+    return {
+      type: "combustion",
+      equation: "C + O₂ →(t°) CO₂↑",
+      equationHtml: `<span class='text-gray-400 font-bold'>C</span> + <span class='text-gray-200'>O₂</span> →(t°) ${CO2_HTML}`,
+      description: "Than cháy đỏ rực trong khí oxi, tỏa nhiều nhiệt và sinh ra khí cacbonic CO₂.",
+      effects: [
+        { type: "flame", intensity: "medium", duration: 3000, targetColor: "#ef4444" },
+        { type: "sparkle", intensity: "high", duration: 3000 },
+      ],
+      products: ["co2"],
+      observations: ["Than cháy sáng đỏ rực rỡ, tỏa lượng nhiệt lớn"],
+      heatChange: "exothermic",
+    };
+  }
+
+  // P₂O₅ + 3H₂O → 2H₃PO₄
+  if (pair("p2o5", "water")) {
+    return {
+      type: "acid_base",
+      equation: "P₂O₅ + 3H₂O → 2H₃PO₄",
+      equationHtml: `<span class='text-white font-bold'>P₂O₅</span> + 3${WATER_HTML} → 2<span class='text-chemical-red'>H₃PO₄</span>`,
+      description: "Khói/bột P₂O₅ tan ngay trong nước tỏa nhiệt tạo dung dịch axit photphoric làm quỳ tím hóa đỏ.",
+      effects: [
+        { type: "dissolve", intensity: "high", duration: 2500 },
+        { type: "color_change", intensity: "low", duration: 1500, targetColor: "#f8fafc" },
+      ],
+      products: ["h3po4"],
+      observations: ["Bột trắng P₂O₅ tan nhanh và tỏa nhiệt trong nước", "Dung dịch tạo thành làm quỳ tím chuyển đỏ"],
+      heatChange: "exothermic",
+    };
+  }
+
+  // 2Fe + 3Cl₂ → 2FeCl₃
+  if (pair("fe", "cl2")) {
+    return {
+      type: "redox",
+      equation: "2Fe + 3Cl₂ →(t°) 2FeCl₃",
+      equationHtml: `2<span class='text-gray-200 font-bold'>Fe</span> + 3<span class='text-lime-400'>Cl₂</span> →(t°) 2<span class='text-amber-500 font-bold'>FeCl₃</span>`,
+      description: "Dây sắt nung đỏ cháy sáng chói trong bình khí clo, sinh ra khói màu nâu đỏ của muối sắt(III) clorua.",
+      effects: [
+        { type: "flame", intensity: "high", duration: 3500, targetColor: "#f59e0b" },
+        { type: "smoke", intensity: "high", duration: 4500 },
+        { type: "sparkle", intensity: "high", duration: 3000 },
+      ],
+      products: ["fecl3"],
+      observations: [
+        "Sắt cháy sáng chói trong khí clo vàng lục",
+        "Tạo ra khói màu nâu đỏ của FeCl₃ lắng dần xuống đáy",
+      ],
+      heatChange: "exothermic",
+    };
+  }
+
+  // Cu + Cl₂ → CuCl₂
+  if (pair("cu", "cl2")) {
+    return {
+      type: "redox",
+      equation: "Cu + Cl₂ →(t°) CuCl₂",
+      equationHtml: `<span class='text-amber-700 font-bold'>Cu</span> + <span class='text-lime-400'>Cl₂</span> →(t°) <span class='text-emerald-500 font-bold'>CuCl₂</span>`,
+      description: "Đồng nung nóng cháy sáng trong khí clo tạo khói CuCl₂.",
+      effects: [
+        { type: "flame", intensity: "medium", duration: 3000, targetColor: "#10b981" },
+        { type: "smoke", intensity: "medium", duration: 3500 },
+      ],
+      products: ["cucl2"],
+      observations: ["Đồng cháy sáng ngọn lửa xanh lam/lục", "Tạo chất màu nâu/lục của CuCl₂"],
+      heatChange: "exothermic",
+    };
+  }
+
+  // H₂ + Cl₂ → 2HCl
+  if (pair("h2", "cl2")) {
+    return {
+      type: "redox",
+      equation: "H₂ + Cl₂ →(as) 2HCl",
+      equationHtml: `<span class='text-cyan-300'>H₂</span> + <span class='text-lime-400'>Cl₂</span> → 2<span class='text-chemical-red'>HCl</span>`,
+      description: "Khí hiđro nổ nhẹ và cháy trong khí clo tạo khí hiđro clorua không màu bốc khói trong không khí ẩm.",
+      effects: [
+        { type: "flash", intensity: "medium", duration: 2000 },
+        { type: "smoke", intensity: "medium", duration: 3000 },
+      ],
+      products: ["hcl"],
+      observations: ["Hỗn hợp nổ nhẹ, màu vàng lục của clo biến mất", "Khí sinh ra bốc khói trắng trong không khí ẩm"],
+      heatChange: "exothermic",
+    };
+  }
+
+  // Cl₂ + 2KI → 2KCl + I₂
+  if (pair("cl2", "ki")) {
+    return {
+      type: "redox",
+      equation: "Cl₂ + 2KI → 2KCl + I₂",
+      equationHtml: `<span class='text-lime-400'>Cl₂</span> + 2<span class='text-white'>KI</span> → 2<span class='text-white'>KCl</span> + <span class='text-amber-900 font-bold'>I₂</span>`,
+      description: "Khí clo sục vào dung dịch KI không màu đẩy iot ra ngoài, dung dịch chuyển sang màu nâu sẫm của iot.",
+      effects: [
+        { type: "color_change", intensity: "high", duration: 2500, targetColor: "#78350f" },
+        { type: "bubbles", intensity: "low", duration: 2000 },
+      ],
+      products: ["kcl", "i2"],
+      observations: [
+        "Dung dịch không màu chuyển dần sang màu vàng nâu rồi nâu sẫm của I-ốt",
+        "Nếu nhỏ thêm hồ tinh bột sẽ chuyển sang màu xanh tím đặc trưng",
+      ],
+      heatChange: "exothermic",
+    };
+  }
+
+  // Br₂ + 2KI → 2KBr + I₂
+  if (pair("br2", "ki")) {
+    return {
+      type: "redox",
+      equation: "Br₂ + 2KI → 2KBr + I₂",
+      equationHtml: `<span class='text-amber-700 font-bold'>Br₂</span> + 2<span class='text-white'>KI</span> → 2<span class='text-white'>KBr</span> + <span class='text-amber-900 font-bold'>I₂</span>`,
+      description: "Brom đẩy iot ra khỏi muối KI làm dung dịch chuyển sang màu nâu đen/tím đen của iot.",
+      effects: [
+        { type: "color_change", intensity: "high", duration: 2000, targetColor: "#581c87" },
+      ],
+      products: ["kbr", "i2"],
+      observations: ["Màu nâu đỏ của brom biến đổi thành màu tím nâu đậm của tinh thể iot phân tán"],
+      heatChange: "none",
+    };
+  }
+
+  // Cl₂ + 2KBr → 2KCl + Br₂
+  if (pair("cl2", "kbr")) {
+    return {
+      type: "redox",
+      equation: "Cl₂ + 2KBr → 2KCl + Br₂",
+      equationHtml: `<span class='text-lime-400'>Cl₂</span> + 2<span class='text-white'>KBr</span> → 2<span class='text-white'>KCl</span> + <span class='text-amber-700 font-bold'>Br₂</span>`,
+      description: "Clo đẩy brom ra khỏi dung dịch muối KBr làm dung dịch chuyển sang màu nâu đỏ của brom.",
+      effects: [
+        { type: "color_change", intensity: "high", duration: 2000, targetColor: "#b45309" },
+      ],
+      products: ["kcl", "br2"],
+      observations: ["Dung dịch không màu chuyển sang màu vàng cam rồi nâu đỏ của nước Brom"],
+      heatChange: "none",
+    };
+  }
+
+  // 5. HÓA HỮU CƠ HYDROCACBON
+  // CaC₂ + 2H₂O → Ca(OH)₂ + C₂H₂↑
+  if (pair("cac2", "water")) {
+    return {
+      type: "gas_evolution",
+      equation: "CaC₂ + 2H₂O → Ca(OH)₂ + C₂H₂↑",
+      equationHtml: `<span class='text-gray-300 font-bold'>CaC₂</span> + 2${WATER_HTML} → <span class='text-gray-200'>Ca(OH)₂</span> + <span class='text-indigo-400 font-bold'>C₂H₂↑</span>`,
+      description: "Đất đèn tác dụng mãnh liệt với nước sủi bọt khí axetilen (C₂H₂) và dung dịch bị vẩn đục trắng của vôi tôi Ca(OH)₂.",
+      effects: [
+        { type: "bubbles", intensity: "high", duration: 4000, particleCount: 45 },
+        { type: "precipitate", intensity: "medium", duration: 3000, targetColor: "#f1f5f9" },
+        { type: "smoke", intensity: "low", duration: 2500 },
+      ],
+      products: ["caoh2", "c2h2"],
+      observations: [
+        "Mẩu đất đèn sủi bọt khí C₂H₂ mãnh liệt",
+        "Nước vôi tôi Ca(OH)₂ sinh ra làm vẩn đục ống nghiệm",
+        "Tỏa nhiệt nhẹ, khí thoát ra có thể châm lửa cháy sáng",
+      ],
+      heatChange: "exothermic",
+    };
+  }
+
+  // C₂H₄ + Br₂ → C₂H₄Br₂ (Làm mất màu dung dịch Brom)
+  if (pair("c2h4", "br2")) {
+    return {
+      type: "color_change",
+      equation: "C₂H₄ + Br₂ → C₂H₄Br₂",
+      equationHtml: `<span class='text-sky-400 font-bold'>C₂H₄</span> + <span class='text-amber-700 font-bold'>Br₂</span> → <span class='text-gray-300'>C₂H₄Br₂</span>`,
+      description: "Khí etilen làm mất màu nâu đỏ của dung dịch nước brom do phản ứng cộng vào liên kết đôi C=C.",
+      effects: [
+        { type: "color_change", intensity: "high", duration: 2500, targetColor: "#f8fafc" },
+        { type: "bubbles", intensity: "low", duration: 2000 },
+      ],
+      products: ["c2h4br2"],
+      observations: [
+        "Dung dịch nước brom từ màu nâu đỏ chuyển dần sang không màu trong suốt",
+        "Phản ứng đặc trưng dùng để nhận biết liên kết đôi (etilen)",
+      ],
+      heatChange: "none",
+    };
+  }
+
+  // C₂H₂ + 2Br₂ → C₂H₂Br₄ (Làm mất màu dung dịch Brom)
+  if (pair("c2h2", "br2")) {
+    return {
+      type: "color_change",
+      equation: "C₂H₂ + 2Br₂ → C₂H₂Br₄",
+      equationHtml: `<span class='text-indigo-400 font-bold'>C₂H₂</span> + 2<span class='text-amber-700 font-bold'>Br₂</span> → <span class='text-gray-300'>C₂H₂Br₄</span>`,
+      description: "Khí axetilen làm mất màu nhanh dung dịch nước brom do phản ứng cộng vào liên kết ba C≡C.",
+      effects: [
+        { type: "color_change", intensity: "high", duration: 2500, targetColor: "#f8fafc" },
+        { type: "bubbles", intensity: "low", duration: 2000 },
+      ],
+      products: ["c2h2br4"],
+      observations: [
+        "Dung dịch nước brom nâu đỏ mất màu hoàn toàn",
+        "Phản ứng nhận biết hydrocacbon có liên kết ba",
+      ],
+      heatChange: "none",
+    };
+  }
+
+  // 3C₂H₄ + 2KMnO₄ + 4H₂O → 3C₂H₄(OH)₂ + 2MnO₂↓ + 2KOH
+  if (pair("c2h4", "kmno4")) {
+    return {
+      type: "redox",
+      equation: "3C₂H₄ + 2KMnO₄ + 4H₂O → 3C₂H₄(OH)₂ + 2MnO₂↓ + 2KOH",
+      equationHtml: `3<span class='text-sky-400'>C₂H₄</span> + 2<span class='text-purple-400'>KMnO₄</span> + 4${WATER_HTML} → 3<span class='text-white'>C₂H₄(OH)₂</span> + 2<span class='text-gray-400 font-bold'>MnO₂↓</span> + 2<span class='text-chemical-blue'>KOH</span>`,
+      description: "Khí etilen làm mất màu thuốc tím và tạo kết tủa màu nâu đen MnO₂ đọng dưới đáy.",
+      effects: [
+        { type: "color_change", intensity: "high", duration: 3000, targetColor: "#f8fafc" },
+        { type: "precipitate", intensity: "high", duration: 3000, targetColor: "#1f2937" },
+        { type: "bubbles", intensity: "low", duration: 2000 },
+      ],
+      products: ["c2h4_oh2", "mno2", "koh"],
+      observations: [
+        "Dung dịch thuốc tím màu tím sẫm nhạt dần rồi mất màu hoàn toàn",
+        "Xuất hiện kết tủa màu nâu đen của MnO₂ lắng xuống đáy",
+      ],
+      heatChange: "none",
+    };
+  }
+
+  // CH₄ + 2O₂ → CO₂ + 2H₂O (Đốt cháy metan)
+  if (pair("ch4", "o2")) {
+    return {
+      type: "combustion",
+      equation: "CH₄ + 2O₂ →(t°) CO₂↑ + 2H₂O",
+      equationHtml: `<span class='text-blue-400'>CH₄</span> + 2<span class='text-gray-200'>O₂</span> →(t°) ${CO2_HTML} + 2${WATER_HTML}`,
+      description: "Khí metan cháy với ngọn lửa màu xanh lam nhạt, tỏa nhiều nhiệt.",
+      effects: [
+        { type: "flame", intensity: "high", duration: 3500, targetColor: "#38bdf8" },
+      ],
+      products: ["co2", "water"],
+      observations: ["Khí cháy với ngọn lửa màu xanh lam nhạt", "Có các giọt nước đọng trên thành bình"],
+      heatChange: "exothermic",
+    };
+  }
+
+  // 2C₂H₂ + 5O₂ → 4CO₂ + 2H₂O (Ngọn lửa đèn xì axetilen)
+  if (pair("c2h2", "o2")) {
+    return {
+      type: "combustion",
+      equation: "2C₂H₂ + 5O₂ →(t°) 4CO₂↑ + 2H₂O",
+      equationHtml: `2<span class='text-indigo-400'>C₂H₂</span> + 5<span class='text-gray-200'>O₂</span> →(t°) 4${CO2_HTML} + 2${WATER_HTML}`,
+      description: "Khí axetilen cháy sáng chói trong oxi với nhiệt độ cực cao (ngọn lửa hàn xì oxi-axetilen).",
+      effects: [
+        { type: "flash", intensity: "high", duration: 3000 },
+        { type: "flame", intensity: "high", duration: 4000, targetColor: "#fef08a" },
+        { type: "sparkle", intensity: "high", duration: 2500 },
+      ],
+      products: ["co2", "water"],
+      observations: ["Cháy sáng chói lòa, tỏa nhiệt lượng cực lớn (trên 3000°C)"],
+      heatChange: "exothermic",
+    };
+  }
+
+  // 6. HỢP CHẤT CỦA CROM (Chuyển dịch cân bằng pH)
+  // K₂Cr₂O₇ + 2KOH ⇌ 2K₂CrO₄ + H₂O (Cam → Vàng)
+  if (pair("k2cr2o7", "koh") || pair("k2cr2o7", "naoh")) {
+    return {
+      type: "color_change",
+      equation: "K₂Cr₂O₇ + 2KOH ⇌ 2K₂CrO₄ + H₂O",
+      equationHtml: `<span class='text-orange-500 font-bold'>K₂Cr₂O₇ (cam)</span> + 2<span class='text-chemical-blue'>KOH</span> ⇌ 2<span class='text-yellow-400 font-bold'>K₂CrO₄ (vàng)</span> + ${WATER_HTML}`,
+      description: "Dung dịch kali đicromat chuyển từ màu da cam sang màu vàng tươi khi cho thêm bazơ kiềm (OH⁻ làm chuyển dịch cân bằng).",
+      effects: [
+        { type: "color_change", intensity: "high", duration: 2000, targetColor: "#eab308" },
+      ],
+      products: ["k2cro4", "water"],
+      observations: [
+        "Dung dịch chuyển ngay lập tức từ màu da cam đậm sang màu vàng tươi",
+        "Minh họa sự chuyển dịch cân bằng cromat - đicromat theo độ pH",
+      ],
+      heatChange: "none",
+    };
+  }
+
+  // 2K₂CrO₄ + H₂SO₄ ⇌ K₂Cr₂O₇ + K₂SO₄ + H₂O (Vàng → Cam)
+  if (pair("k2cro4", "h2so4") || pair("k2cro4", "hcl")) {
+    return {
+      type: "color_change",
+      equation: "2K₂CrO₄ + H₂SO₄ ⇌ K₂Cr₂O₇ + K₂SO₄ + H₂O",
+      equationHtml: `2<span class='text-yellow-400 font-bold'>K₂CrO₄ (vàng)</span> + <span class='text-chemical-red'>H₂SO₄</span> ⇌ <span class='text-orange-500 font-bold'>K₂Cr₂O₇ (cam)</span> + <span class='text-white'>K₂SO₄</span> + ${WATER_HTML}`,
+      description: "Dung dịch kali cromat chuyển từ màu vàng sang màu da cam khi cho thêm axit (H⁺ làm chuyển dịch cân bằng).",
+      effects: [
+        { type: "color_change", intensity: "high", duration: 2000, targetColor: "#ea580c" },
+      ],
+      products: ["k2cr2o7", "k2so4", "water"],
+      observations: [
+        "Dung dịch chuyển từ màu vàng tươi sang màu da cam đậm đặc trưng của Cr₂O₇²⁻",
+      ],
+      heatChange: "none",
+    };
+  }
+
+  // 7. NHÓM SINH HÓA (PROTEIN, ANILIN, PHENOL, LIPID)
+  // Protein + CuSO₄ (phản ứng màu Biure tạo phức tím hoa cà)
+  if (pair("protein", "cuso4")) {
+    return {
+      type: "complex",
+      equation: "Protein + Cu(OH)₂/CuSO₄ → Phức màu Biure (tím)",
+      equationHtml: `<span class='text-amber-200'>Protein</span> + <span class='text-blue-400'>CuSO₄</span> + <span class='text-chemical-blue'>OH⁻</span> → <span class='text-purple-600 font-bold'>[Cu(Biuret)]²⁺ (tím)</span>`,
+      description: "Phản ứng màu Biure: Các liên kết peptit (-CO-NH-) trong phân tử protein tạo phức chất màu tím hoa cà đặc trưng với ion Cu²⁺.",
+      effects: [
+        { type: "color_change", intensity: "high", duration: 2500, targetColor: "#9333ea" },
+      ],
+      products: ["biuret_complex"],
+      observations: [
+        "Dung dịch xuất hiện màu tím hoa cà đặc trưng rất đẹp mắt",
+        "Phản ứng đặc trưng dùng để nhận biết protein (lòng trắng trứng)",
+      ],
+      heatChange: "none",
+    };
+  }
+
+  // Anilin + 3Br₂ → 2,4,6-tribromanilin↓ + 3HBr
+  if (pair("aniline", "br2")) {
+    return {
+      type: "precipitation",
+      equation: "C₆H₅NH₂ + 3Br₂ → C₆H₂Br₃NH₂↓ + 3HBr",
+      equationHtml: `<span class='text-yellow-100'>C₆H₅NH₂</span> + 3<span class='text-amber-700 font-bold'>Br₂</span> → <span class='text-white font-bold'>C₆H₂Br₃NH₂↓</span> + 3<span class='text-chemical-red'>HBr</span>`,
+      description: "Anilin tác dụng tức thì với nước brom tạo kết tủa màu trắng 2,4,6-tribromanilin và làm mất màu brom.",
+      effects: [
+        { type: "precipitate", intensity: "high", duration: 2500, targetColor: "#ffffff" },
+        { type: "color_change", intensity: "high", duration: 2000, targetColor: "#f8fafc" },
+      ],
+      products: ["tribromoaniline", "hbr"],
+      observations: [
+        "Dung dịch nước brom màu nâu đỏ bị mất màu nhanh chóng",
+        "Xuất hiện kết tủa màu trắng của 2,4,6-tribromanilin",
+      ],
+      heatChange: "none",
+    };
+  }
+
+  // Phenol + 3Br₂ → 2,4,6-tribromphenol↓ + 3HBr
+  if (pair("phenol", "br2")) {
+    return {
+      type: "precipitation",
+      equation: "C₆H₅OH + 3Br₂ → C₆H₂Br₃OH↓ + 3HBr",
+      equationHtml: `<span class='text-gray-200'>C₆H₅OH</span> + 3<span class='text-amber-700 font-bold'>Br₂</span> → <span class='text-white font-bold'>C₆H₂Br₃OH↓</span> + 3<span class='text-chemical-red'>HBr</span>`,
+      description: "Phenol tác dụng với dung dịch brom tạo kết tủa trắng 2,4,6-tribromphenol làm mất màu nâu đỏ.",
+      effects: [
+        { type: "precipitate", intensity: "high", duration: 2500, targetColor: "#ffffff" },
+        { type: "color_change", intensity: "high", duration: 2000, targetColor: "#f8fafc" },
+      ],
+      products: ["tribromophenol", "hbr"],
+      observations: [
+        "Xuất hiện kết tủa màu trắng đặc trưng",
+        "Màu nâu đỏ của dung dịch brom biến mất",
+      ],
+      heatChange: "none",
+    };
+  }
+
+  // Lipid + NaOH → Xà phòng + Glixerol (Xà phòng hóa)
+  if (pair("lipid", "naoh")) {
+    return {
+      type: "complex",
+      equation: "(RCOO)₃C₃H₅ + 3NaOH →(t°) 3RCOONa + C₃H₅(OH)₃",
+      equationHtml: `<span class='text-yellow-300'>(RCOO)₃C₃H₅</span> + 3<span class='text-chemical-blue'>NaOH</span> →(t°) 3<span class='text-white font-bold'>RCOONa</span> + <span class='text-gray-200'>C₃H₅(OH)₃</span>`,
+      description: "Phản ứng xà phòng hóa chất béo trong môi trường kiềm tạo muối natri của axit béo (xà phòng) và glixerol.",
+      effects: [
+        { type: "dissolve", intensity: "medium", duration: 3000 },
+        { type: "color_change", intensity: "medium", duration: 2500, targetColor: "#fef08a" },
+      ],
+      products: ["soap", "glycerol"],
+      observations: [
+        "Hỗn hợp chất béo và kiềm tan đều khi đun nóng",
+        "Sau phản ứng thu được chất sánh có bọt xà phòng",
+      ],
+      heatChange: "none",
+    };
+  }
+
   // Không tìm thấy phản ứng phù hợp
   return null;
 }
@@ -2083,6 +2696,66 @@ export function getReaction(
 // ─── Phản ứng khi đun nóng một hóa chất ───
 export function getHeatingReaction(chemical: Chemical): ReactionResult | null {
   switch (chemical.id) {
+    // Lưu huỳnh cháy khi đun nóng trong không khí → SO₂
+    case "s": {
+      return {
+        type: "combustion",
+        equation: "S + O₂ →(t°) SO₂↑",
+        equationHtml: `<span class='text-yellow-400 font-bold'>S</span> + <span class='text-gray-200'>O₂</span> →(t°) ${SO2_HTML}`,
+        description: "Lưu huỳnh nóng chảy rồi bốc cháy với ngọn lửa màu xanh nhạt, sinh ra khí SO₂ mùi hắc đặc trưng.",
+        effects: [
+          { type: "flame", intensity: "medium", duration: 3500, targetColor: "#38bdf8" },
+          { type: "smoke", intensity: "medium", duration: 3500 },
+          { type: "bubbles", intensity: "low", duration: 2500 },
+        ],
+        products: ["so2"],
+        observations: [
+          "Bột lưu huỳnh nóng chảy thành chất lỏng màu vàng cam rồi bốc cháy ngọn lửa màu xanh nhạt",
+          "Thoát ra khí SO₂ mùi hắc nồng",
+        ],
+        heatChange: "exothermic",
+      };
+    }
+
+    // Photpho đỏ cháy khi đun nóng → P₂O₅
+    case "p": {
+      return {
+        type: "combustion",
+        equation: "4P + 5O₂ →(t°) 2P₂O₅",
+        equationHtml: `4<span class='text-red-600 font-bold'>P</span> + 5<span class='text-gray-200'>O₂</span> →(t°) 2<span class='text-white font-bold'>P₂O₅</span>`,
+        description: "Photpho đỏ bốc cháy sáng chói lòa trong không khí tạo ra khói trắng dày đặc là điphotpho pentaoxit (P₂O₅).",
+        effects: [
+          { type: "flash", intensity: "high", duration: 3500 },
+          { type: "flame", intensity: "high", duration: 4000, targetColor: "#fef08a" },
+          { type: "smoke", intensity: "high", duration: 5000 },
+          { type: "sparkle", intensity: "high", duration: 3000 },
+        ],
+        products: ["p2o5"],
+        observations: [
+          "Photpho bốc cháy mãnh liệt với ngọn lửa sáng chói",
+          "Tạo ra lượng lớn khói trắng dày đặc bám quanh thành ống nghiệm",
+        ],
+        heatChange: "exothermic",
+      };
+    }
+
+    // Than cháy khi nung nóng → CO₂
+    case "c": {
+      return {
+        type: "combustion",
+        equation: "C + O₂ →(t°) CO₂↑",
+        equationHtml: `<span class='text-gray-400 font-bold'>C</span> + <span class='text-gray-200'>O₂</span> →(t°) ${CO2_HTML}`,
+        description: "Than nung nóng cháy đỏ rực tỏa nhiều nhiệt và sinh ra khí CO₂.",
+        effects: [
+          { type: "flame", intensity: "medium", duration: 3500, targetColor: "#ef4444" },
+          { type: "sparkle", intensity: "high", duration: 3000 },
+        ],
+        products: ["co2"],
+        observations: ["Than cháy sáng đỏ rực rỡ, tỏa lượng nhiệt lớn"],
+        heatChange: "exothermic",
+      };
+    }
+
     // Etanol cháy → CO₂ + H₂O
     case "etanol": {
       return {

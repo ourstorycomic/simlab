@@ -39,3 +39,7 @@ next-env.d.ts
 
 # scratch
 /scratch/
+
+# office temp files
+~$*.docx
+*.tmp
