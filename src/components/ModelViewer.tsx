@@ -338,8 +338,8 @@ function Model({
         });
     }, [url, slicePlaneType]);
 
-    // Geometry mặt phẳng cắt - Kích thước 3.85 x 3.85 khớp tỉ lệ 1-1 với bounding box của mô hình
-    const planeGeometry = useMemo(() => new THREE.PlaneGeometry(3.85, 3.85), []);
+    // Geometry mặt phẳng cắt - Kích thước 4.8 x 4.8 bao trọn mọi góc xoay mô hình
+    const planeGeometry = useMemo(() => new THREE.PlaneGeometry(4.8, 4.8), []);
 
     // Quaternion hướng mặt phẳng cắt trùng với normal
     const capQuaternion = useMemo(() => {
@@ -681,26 +681,38 @@ export default function ModelViewer({ modelUrl, hotspots = [], onHotspotClick }:
                             <span className="font-semibold text-gray-600 dark:text-gray-300">Vị trí lát cắt:</span>
                             <div className="flex items-center gap-1.5">
                                 <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
-                                    {sliceOffset > 0 ? `+${sliceOffset.toFixed(2)}` : sliceOffset.toFixed(2)}
+                                    {sliceOffset <= -2.2 ? "Nguyên vẹn" : sliceOffset >= 2.2 ? "Cắt hết" : sliceOffset > 0 ? `+${sliceOffset.toFixed(2)}` : sliceOffset.toFixed(2)}
                                 </span>
                                 <button
                                     onClick={() => setSliceOffset(0)}
-                                    className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-500"
-                                    title="Đưa mặt cắt về tâm"
+                                    className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 font-medium transition-colors"
+                                    title="Đưa mặt cắt về chính giữa tâm (50%)"
                                 >
                                     Tâm
+                                </button>
+                                <button
+                                    onClick={() => setSliceOffset(-2.3)}
+                                    className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 font-medium transition-colors"
+                                    title="Đưa mặt phẳng ra hẳn bên ngoài, giữ nguyên vẹn 100% mô hình"
+                                >
+                                    Nguyên vẹn
                                 </button>
                             </div>
                         </div>
                         <input
                             type="range"
-                            min="-1.5"
-                            max="1.5"
+                            min="-2.4"
+                            max="2.4"
                             step="0.05"
                             value={sliceOffset}
                             onChange={(e) => setSliceOffset(parseFloat(e.target.value))}
                             className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                         />
+                        <div className="flex justify-between text-[9px] text-gray-400 dark:text-gray-500 font-medium px-0.5">
+                            <span>Nguyên vẹn (0% cắt)</span>
+                            <span>Tâm (50%)</span>
+                            <span>Cắt sâu (100%)</span>
+                        </div>
                     </div>
 
                     {/* Đảo chiều cắt & chú thích y khoa */}
