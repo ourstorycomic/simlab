@@ -1,9 +1,10 @@
 "use client";
 
-import React, { Suspense, useState } from "react";
+import React, { Suspense, useState, useMemo, useRef, useLayoutEffect } from "react";
 import * as THREE from "three";
 import { Canvas, ThreeEvent } from "@react-three/fiber";
 import { OrbitControls, useGLTF, Environment, ContactShadows, Html } from "@react-three/drei";
+import { createAnatomicalAtlasTexture, getInternalHotspotsForOrgan } from "@/lib/anatomicalAtlas";
 
 export interface HotspotData {
     id: string;
@@ -11,6 +12,143 @@ export interface HotspotData {
     label: string;
     description?: string;
 }
+
+export type SlicePlaneType = "coronal" | "sagittal" | "axial";
+
+export interface OrganTissueConfig {
+    name: string;
+    primaryColor: string;
+    secondaryColor: string;
+    borderColor: string;
+    specularColor: string;
+    roughness: number;
+    metalness: number;
+    description: string;
+}
+
+export function getOrganTissueConfig(url: string): OrganTissueConfig {
+    const lower = url.toLowerCase();
+    if (lower.includes("heart")) {
+        return {
+            name: "Cơ tim (Myocardium)",
+            primaryColor: "#7d141e",
+            secondaryColor: "#9c2431",
+            borderColor: "#3d080e",
+            specularColor: "#e63946",
+            roughness: 0.6,
+            metalness: 0.05,
+            description: "Mặt cắt mô cơ tim đặc dày, có các thớ sợi co bóp và thành cơ buồng tim."
+        };
+    }
+    if (lower.includes("brain")) {
+        return {
+            name: "Nhu mô não (Cortex & White Matter)",
+            primaryColor: "#cdbeb2",
+            secondaryColor: "#dfd5cb",
+            borderColor: "#8a7567",
+            specularColor: "#f1ece6",
+            roughness: 0.75,
+            metalness: 0.02,
+            description: "Phân tầng chất xám vỏ não ở ngoài và chất trắng giàu sợi dẫn truyền ở trong."
+        };
+    }
+    if (lower.includes("kidney")) {
+        return {
+            name: "Vỏ & Tủy thận (Renal Cortex & Medulla)",
+            primaryColor: "#7a2020",
+            secondaryColor: "#9e3434",
+            borderColor: "#420d0d",
+            specularColor: "#e05353",
+            roughness: 0.65,
+            metalness: 0.05,
+            description: "Vỏ thận chứa cuộn mao mạch lọc máu và tháp tủy thận hình nón gom nước tiểu."
+        };
+    }
+    if (lower.includes("liver")) {
+        return {
+            name: "Nhu mô gan (Hepatic Parenchyma)",
+            primaryColor: "#5c1f19",
+            secondaryColor: "#742c23",
+            borderColor: "#330e0a",
+            specularColor: "#a84539",
+            roughness: 0.7,
+            metalness: 0.04,
+            description: "Khối nhu mô gan đặc chứa mạng lưới tiểu thùy và xoang mao mạch dày đặc."
+        };
+    }
+    if (lower.includes("lung")) {
+        return {
+            name: "Nhu mô phổi (Pulmonary Tissue)",
+            primaryColor: "#8f3f3f",
+            secondaryColor: "#ab5a5a",
+            borderColor: "#4a1c1c",
+            specularColor: "#d97979",
+            roughness: 0.85,
+            metalness: 0.02,
+            description: "Mô xốp giàu phế nang đàn hồi và hệ mao mạch phế nang trao đổi dưỡng khí."
+        };
+    }
+    if (lower.includes("pancreas")) {
+        return {
+            name: "Nhu mô tụy (Pancreatic Glandular)",
+            primaryColor: "#a87850",
+            secondaryColor: "#c2936a",
+            borderColor: "#613f24",
+            specularColor: "#e6b98e",
+            roughness: 0.7,
+            metalness: 0.03,
+            description: "Mô tuyến ngoại tiết tiết enzyme tiêu hóa và tiểu đảo nội tiết tiết insulin."
+        };
+    }
+    if (lower.includes("intestine")) {
+        return {
+            name: "Thành niêm mạc ruột (Intestinal Wall)",
+            primaryColor: "#994747",
+            secondaryColor: "#b86363",
+            borderColor: "#572121",
+            specularColor: "#e88080",
+            roughness: 0.55,
+            metalness: 0.05,
+            description: "Lớp cơ trơn nhu động dày dặn và lớp niêm mạc nếp gấp giàu nhung mao hấp thụ."
+        };
+    }
+    if (lower.includes("skin")) {
+        return {
+            name: "Cấu trúc vi thể da (Skin Layers)",
+            primaryColor: "#cf8e69",
+            secondaryColor: "#e8af8e",
+            borderColor: "#875133",
+            specularColor: "#ffd6be",
+            roughness: 0.7,
+            metalness: 0.02,
+            description: "Lớp biểu bì sừng hóa bên ngoài, trung bì liên kết và mô mỡ giàu mạch máu."
+        };
+    }
+    if (lower.includes("eyeball")) {
+        return {
+            name: "Cấu trúc mắt (Eye Interior)",
+            primaryColor: "#334155",
+            secondaryColor: "#475569",
+            borderColor: "#1e293b",
+            specularColor: "#94a3b8",
+            roughness: 0.35,
+            metalness: 0.1,
+            description: "Khoang dịch thủy tinh thể trong suốt bao bọc bởi màng mạch võng mạc cảm thụ."
+        };
+    }
+    return {
+        name: "Tiết diện mô học",
+        primaryColor: "#7d141e",
+        secondaryColor: "#9c2431",
+        borderColor: "#3d080e",
+        specularColor: "#e63946",
+        roughness: 0.65,
+        metalness: 0.05,
+        description: "Mặt cắt mô đặc giải phẫu sinh học."
+    };
+}
+
+
 
 function Model({ 
     url, 
@@ -20,7 +158,10 @@ function Model({
     onHotspotClick, 
     onModelClick,
     showWireframe = false,
-    showCrossSection = false
+    showCrossSection = false,
+    slicePlaneType = "coronal",
+    sliceOffset = 0,
+    sliceInverted = false
 }: { 
     url: string; 
     hotspots: HotspotData[];
@@ -30,17 +171,20 @@ function Model({
     onModelClick: (e: ThreeEvent<MouseEvent>) => void;
     showWireframe?: boolean;
     showCrossSection?: boolean;
+    slicePlaneType?: SlicePlaneType;
+    sliceOffset?: number;
+    sliceInverted?: boolean;
 }) {
     const { scene } = useGLTF(url);
-    const [modelTransform, setModelTransform] = React.useState<{
+    const [modelTransform, setModelTransform] = useState<{
         scale: [number, number, number];
         position: [number, number, number];
     }>({ scale: [1, 1, 1], position: [0, 0, 0] });
     
     // State lưu tọa độ đã được "snap" vào bề mặt
-    const [snappedHotspots, setSnappedHotspots] = React.useState<(HotspotData & { snappedPos?: [number, number, number] })[]>([]);
+    const [snappedHotspots, setSnappedHotspots] = useState<(HotspotData & { snappedPos?: [number, number, number] })[]>([]);
 
-    React.useLayoutEffect(() => {
+    useLayoutEffect(() => {
         if (!scene) return;
 
         const tempScene = scene.clone();
@@ -61,8 +205,7 @@ function Model({
             position: pos,
         });
 
-        // --- BƯỚC QUAN TRỌNG: Snap (hút) tọa độ vào bề mặt mesh ---
-        // Giả lập lại cây 3D để tính toán tọa độ thế giới của mesh
+        // Snap hotspots to mesh surface
         const tempModelGroup = new THREE.Group();
         tempModelGroup.scale.set(s, s, s);
         tempModelGroup.position.set(...pos);
@@ -75,7 +218,6 @@ function Model({
             const target = new THREE.Vector3(...hotspot.position);
             const targetDir = target.clone().normalize();
 
-            // Mảng lưu kết quả tốt nhất cho từng mức độ khắt khe (giống hệt logic Anatomy-Studio)
             const bestPerTolerance = TOLERANCES.map(() => ({
                 vertex: new THREE.Vector3(),
                 normal: new THREE.Vector3(),
@@ -105,7 +247,6 @@ function Model({
                             const dot = vLen > 1e-5 ? v.dot(targetDir) / vLen : 1;
                             const dist = v.distanceToSquared(target);
 
-                            // Kiểm tra từng mức độ khắt khe
                             for (let t = 0; t < TOLERANCES.length; t++) {
                                 if (dot >= TOLERANCES[t]) {
                                     if (dist < bestPerTolerance[t].minDist) {
@@ -124,15 +265,12 @@ function Model({
                 }
             });
 
-            // Lấy điểm gần nhất thuộc mức độ khắt khe cao nhất có tồn tại đỉnh
             const bestMatch = bestPerTolerance.find(t => t.found);
 
             if (bestMatch) {
-                // Tránh trường hợp normal hướng vào trong
                 if (bestMatch.normal.dot(bestMatch.vertex) < 0) {
                     bestMatch.normal.negate();
                 }
-                // Dịch điểm ra ngoài bề mặt một khoảng 0.03 để không bị lấp
                 const finalPos = bestMatch.vertex.addScaledVector(bestMatch.normal, 0.03).toArray();
                 return { ...hotspot, snappedPos: finalPos };
             }
@@ -143,43 +281,185 @@ function Model({
         setSnappedHotspots(newHotspots);
     }, [scene, url, hotspots]);
 
-    // Effect áp dụng Wireframe và Cross-section
-    React.useLayoutEffect(() => {
+    // Tính vector pháp tuyến theo chuẩn 3 mặt phẳng giải phẫu y khoa
+    const normal = useMemo(() => {
+        let v: THREE.Vector3;
+        switch (slicePlaneType) {
+            case "coronal":
+                // Đứng ngang (Trước - Sau / Anterior-Posterior)
+                v = new THREE.Vector3(0, 0, 1);
+                break;
+            case "sagittal":
+                // Đứng dọc (Trái - Phải / Lateral)
+                v = new THREE.Vector3(1, 0, 0);
+                break;
+            case "axial":
+                // Cắt ngang (Trên - Dưới / Superior-Inferior như ảnh CT)
+                v = new THREE.Vector3(0, 1, 0);
+                break;
+            default:
+                v = new THREE.Vector3(0, 0, 1);
+        }
+        if (sliceInverted) {
+            v.negate();
+        }
+        return v;
+    }, [slicePlaneType, sliceInverted]);
+
+    // Mặt phẳng cắt trong không gian cục bộ của Pivot
+    const localClipPlane = useMemo(() => {
+        return new THREE.Plane(normal, -sliceOffset);
+    }, [normal, sliceOffset]);
+
+    // Chuyển mặt phẳng sang World Space phù hợp góc xoay pivot [0.05, -0.28, 0]
+    const worldClipPlane = useMemo(() => {
+        const pivotEuler = new THREE.Euler(0.05, -0.28, 0);
+        const pivotMatrix = new THREE.Matrix4().makeRotationFromEuler(pivotEuler);
+        return localClipPlane.clone().applyMatrix4(pivotMatrix);
+    }, [localClipPlane]);
+
+    // Vật liệu mặt cắt giải phẫu y khoa chân thực (Medical Atlas Material) với Stencil Mask
+    const capMaterial = useMemo(() => {
+        if (typeof window === "undefined") return new THREE.MeshBasicMaterial();
+        const texture = createAnatomicalAtlasTexture(url, slicePlaneType);
+
+        return new THREE.MeshStandardMaterial({
+            map: texture,
+            color: new THREE.Color("#ffffff"), // Giữ nguyên màu sắc rực rỡ chân thực của bản đồ giải phẫu
+            roughness: 0.45,
+            metalness: 0.05,
+            stencilWrite: true,
+            stencilRef: 0,
+            stencilFunc: THREE.NotEqualStencilFunc,
+            stencilFail: THREE.ReplaceStencilOp,
+            stencilZFail: THREE.ReplaceStencilOp,
+            stencilZPass: THREE.ReplaceStencilOp,
+            side: THREE.DoubleSide,
+        });
+    }, [url, slicePlaneType]);
+
+    // Geometry mặt phẳng cắt - Kích thước 3.85 x 3.85 khớp tỉ lệ 1-1 với bounding box của mô hình
+    const planeGeometry = useMemo(() => new THREE.PlaneGeometry(3.85, 3.85), []);
+
+    // Quaternion hướng mặt phẳng cắt trùng với normal
+    const capQuaternion = useMemo(() => {
+        const q = new THREE.Quaternion();
+        q.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
+        return q;
+    }, [normal]);
+
+    // Danh sách điểm giải phẫu nội quan xuất hiện ngay trên mặt cắt khi mở Cắt lớp
+    const internalHotspots = useMemo(() => {
+        if (!showCrossSection) return [];
+        return getInternalHotspotsForOrgan(url, slicePlaneType).map(h => {
+            const pos: [number, number, number] = [
+                h.position[0],
+                h.position[1],
+                h.position[2] + normal.z * sliceOffset * 0.35
+            ];
+            return {
+                ...h,
+                snappedPos: pos,
+                isInternal: true
+            };
+        });
+    }, [showCrossSection, url, normal, sliceOffset, slicePlaneType]);
+
+    const allDisplayHotspots = useMemo(() => {
+        return [...snappedHotspots, ...internalHotspots];
+    }, [snappedHotspots, internalHotspots]);
+
+    // Effect thiết lập WebGL Stencil Capping trên các Mesh con của Model
+    useLayoutEffect(() => {
         if (!scene) return;
 
-        // Tạo mặt cắt dọc (trục X) theo World Space
-        const clipPlane = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0);
+        const STENCIL_GROUP_NAME = "__stencil_capping_group__";
 
         scene.traverse((child) => {
-            if ((child as THREE.Mesh).isMesh) {
+            if ((child as THREE.Mesh).isMesh && child.name !== "__stencil_mesh__") {
                 const mesh = child as THREE.Mesh;
                 mesh.castShadow = false;
                 mesh.receiveShadow = false;
-                
+
                 const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
                 materials.forEach(mat => {
                     (mat as any).wireframe = showWireframe;
-                    mat.clippingPlanes = showCrossSection ? [clipPlane] : null;
-                    // Trả về FrontSide như bản gốc Anatomy Studio để tránh lỗi shadow acne
-                    mat.side = THREE.FrontSide;
+                    mat.clippingPlanes = showCrossSection ? [worldClipPlane] : null;
+                    mat.clipShadows = true;
+                    // DoubleSide đảm bảo không bao giờ bị hốc đen rỗng
+                    mat.side = showCrossSection ? THREE.DoubleSide : THREE.FrontSide;
                     mat.needsUpdate = true;
                 });
+
+                let stencilGroup = mesh.getObjectByName(STENCIL_GROUP_NAME) as THREE.Group | undefined;
+                if (showCrossSection) {
+                    if (!stencilGroup) {
+                        stencilGroup = new THREE.Group();
+                        stencilGroup.name = STENCIL_GROUP_NAME;
+
+                        const baseMat = new THREE.MeshBasicMaterial({
+                            depthWrite: false,
+                            depthTest: false,
+                            colorWrite: false,
+                            stencilWrite: true,
+                            stencilFunc: THREE.AlwaysStencilFunc,
+                        });
+
+                        // 1. Back faces increment stencil
+                        const mat0 = baseMat.clone();
+                        mat0.side = THREE.BackSide;
+                        mat0.stencilFail = THREE.IncrementWrapStencilOp;
+                        mat0.stencilZFail = THREE.IncrementWrapStencilOp;
+                        mat0.stencilZPass = THREE.IncrementWrapStencilOp;
+
+                        // 2. Front faces decrement stencil
+                        const mat1 = baseMat.clone();
+                        mat1.side = THREE.FrontSide;
+                        mat1.stencilFail = THREE.DecrementWrapStencilOp;
+                        mat1.stencilZFail = THREE.DecrementWrapStencilOp;
+                        mat1.stencilZPass = THREE.DecrementWrapStencilOp;
+
+                        const mesh0 = new THREE.Mesh(mesh.geometry, mat0);
+                        mesh0.name = "__stencil_mesh__";
+                        mesh0.renderOrder = 1;
+                        stencilGroup.add(mesh0);
+
+                        const mesh1 = new THREE.Mesh(mesh.geometry, mat1);
+                        mesh1.name = "__stencil_mesh__";
+                        mesh1.renderOrder = 1;
+                        stencilGroup.add(mesh1);
+
+                        mesh.add(stencilGroup);
+                    }
+
+                    stencilGroup.visible = true;
+                    if (stencilGroup.children[0]) {
+                        ((stencilGroup.children[0] as THREE.Mesh).material as THREE.Material).clippingPlanes = [worldClipPlane];
+                    }
+                    if (stencilGroup.children[1]) {
+                        ((stencilGroup.children[1] as THREE.Mesh).material as THREE.Material).clippingPlanes = [worldClipPlane];
+                    }
+                } else {
+                    if (stencilGroup) {
+                        stencilGroup.visible = false;
+                    }
+                }
             }
         });
-    }, [scene, showWireframe, showCrossSection]);
+    }, [scene, showWireframe, showCrossSection, worldClipPlane]);
 
-    // Hàm kiểm tra điểm hotspot có bị mặt cắt xén mất không
-    const isHotspotClipped = (pos: [number, number, number] | undefined) => {
-        if (!showCrossSection || !pos) return false;
-        const v = new THREE.Vector3(...pos);
-        // Chuyển tọa độ từ Pivot (đang xoay) ra World Space để so với clipPlane (1,0,0)
+    // Kiểm tra điểm hotspot có bị mặt phẳng cắt loại bỏ không (hotspots nội quan không bị clip)
+    const isHotspotClipped = (h: HotspotData & { snappedPos?: [number, number, number]; isInternal?: boolean }) => {
+        if (h.isInternal) return false;
+        if (!showCrossSection || !h.snappedPos) return false;
+        const v = new THREE.Vector3(...h.snappedPos);
         v.applyEuler(new THREE.Euler(0.05, -0.28, 0));
-        return v.x < 0; // clipPlane giữ lại phần x > 0
+        return worldClipPlane.distanceToPoint(v) < 0;
     };
 
     return (
         <group rotation={[0.05, -0.28, 0]}>
-            {/* Pivot group với rotation mặc định giống hệt project gốc */}
+            {/* Pivot group với rotation mặc định */}
             
             {/* Model được scale và center độc lập */}
             <group
@@ -189,32 +469,66 @@ function Model({
                 <primitive object={scene} onClick={onModelClick} />
             </group>
 
-            {/* Hotspots là thẻ con của Pivot, không bị scale bởi model */}
-            {snappedHotspots.map((hotspot) => (
+            {/* Mặt phẳng tiết diện giải phẫu mô đặc y khoa chuẩn Atlas */}
+            {showCrossSection && (
+                <mesh
+                    ref={(m) => {
+                        if (m) {
+                            (m as any).onAfterRender = (renderer: any) => {
+                                if (renderer && typeof renderer.clearStencil === "function") {
+                                    renderer.clearStencil();
+                                }
+                            };
+                        }
+                    }}
+                    position={[normal.x * sliceOffset, normal.y * sliceOffset, normal.z * sliceOffset]}
+                    quaternion={capQuaternion}
+                    geometry={planeGeometry}
+                    material={capMaterial}
+                    renderOrder={2}
+                />
+            )}
+
+            {/* Hiển thị cả điểm giải phẫu bề mặt và điểm cấu trúc nội tạng khi cắt lớp */}
+            {allDisplayHotspots.map((hotspot: any) => (
                 <Html
                     key={hotspot.id}
                     position={hotspot.snappedPos || hotspot.position}
                     center
                     zIndexRange={[100, 0]}
                     style={{
-                        display: isHotspotClipped(hotspot.snappedPos) ? 'none' : 'block'
+                        display: isHotspotClipped(hotspot) ? 'none' : 'block'
                     }}
                 >
                     <div className="relative group cursor-pointer">
                         <div 
-                            className={`w-4 h-4 rounded-full border-2 border-white shadow-md transition-all duration-300 ${activeHotspot === hotspot.id ? 'bg-emerald-500 scale-125' : 'bg-blue-500 hover:bg-emerald-400 hover:scale-110'}`}
+                            className={`w-4 h-4 rounded-full border-2 border-white shadow-md transition-all duration-300 ${
+                                activeHotspot === hotspot.id 
+                                    ? 'bg-emerald-500 scale-125' 
+                                    : hotspot.isInternal 
+                                        ? 'bg-amber-500 hover:bg-amber-400 hover:scale-110 ring-2 ring-amber-300/50' 
+                                        : 'bg-blue-500 hover:bg-emerald-400 hover:scale-110'
+                            }`}
                             onClick={(e) => {
                                 e.stopPropagation();
                                 setActiveHotspot(activeHotspot === hotspot.id ? null : hotspot.id);
                                 if (onHotspotClick) onHotspotClick(hotspot);
                             }}
                         >
-                            <div className="absolute inset-0 rounded-full animate-ping bg-blue-400 opacity-40"></div>
+                            <div className={`absolute inset-0 rounded-full animate-ping opacity-40 ${hotspot.isInternal ? 'bg-amber-400' : 'bg-blue-400'}`}></div>
                         </div>
-                        {/* Tooltip chỉ hiển thị Tên (Label), phần chi tiết để bên Sidebar */}
-                        <div className={`absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg rounded-lg py-1.5 px-3 transition-all duration-200 pointer-events-none origin-bottom ${activeHotspot === hotspot.id ? 'opacity-100 scale-100' : 'opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100'}`}>
+                        <div className={`absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max max-w-xs bg-white dark:bg-gray-900 border ${hotspot.isInternal ? 'border-amber-400/60 dark:border-amber-600/60 shadow-amber-500/10' : 'border-gray-200 dark:border-gray-700'} shadow-xl rounded-xl py-2 px-3 transition-all duration-200 pointer-events-none origin-bottom ${activeHotspot === hotspot.id ? 'opacity-100 scale-100' : 'opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100'}`}>
+                            {hotspot.isInternal && (
+                                <span className="text-[9px] font-bold text-amber-500 dark:text-amber-400 uppercase tracking-wider block mb-0.5">
+                                    🔬 Cấu trúc bên trong
+                                </span>
+                            )}
                             <h4 className="text-xs font-bold text-gray-900 dark:text-white">{hotspot.label}</h4>
-                            {/* Mũi tên trỏ xuống */}
+                            {hotspot.description && (
+                                <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">
+                                    {hotspot.description}
+                                </p>
+                            )}
                             <div className="absolute top-full left-1/2 -translate-x-1/2 w-2 h-2 bg-white dark:bg-gray-900 border-b border-r border-gray-200 dark:border-gray-700 rotate-45 -mt-1"></div>
                         </div>
                     </div>
@@ -230,9 +544,15 @@ export default function ModelViewer({ modelUrl, hotspots = [], onHotspotClick }:
     const [showWireframe, setShowWireframe] = useState(false);
     const [showCrossSection, setShowCrossSection] = useState(false);
 
+    // Cấu hình mặt cắt giải phẫu chuẩn y khoa
+    const [slicePlaneType, setSlicePlaneType] = useState<SlicePlaneType>("coronal");
+    const [sliceOffset, setSliceOffset] = useState<number>(0);
+    const [sliceInverted, setSliceInverted] = useState<boolean>(false);
+
+    const organConfig = useMemo(() => getOrganTissueConfig(modelUrl), [modelUrl]);
+
     const handleModelClick = (e: ThreeEvent<MouseEvent>) => {
         e.stopPropagation();
-        console.log(`[DEV] Click coord (world): [${e.point.x.toFixed(3)}, ${e.point.y.toFixed(3)}, ${e.point.z.toFixed(3)}]`);
         setActiveHotspot(null);
     };
 
@@ -243,13 +563,13 @@ export default function ModelViewer({ modelUrl, hotspots = [], onHotspotClick }:
         >
             <Canvas 
                 camera={{ position: [0, 0, 4], fov: 45 }} 
-                gl={{ localClippingEnabled: true, powerPreference: "high-performance" }}
+                gl={{ localClippingEnabled: true, stencil: true, powerPreference: "high-performance" }}
                 className="w-full h-full touch-none"
                 style={{ touchAction: "none", width: "100%", height: "100%" }}
             >
-                <ambientLight intensity={0.5} />
-                <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} castShadow />
-                <pointLight position={[-10, -10, -10]} intensity={0.5} />
+                <ambientLight intensity={0.6} />
+                <spotLight position={[10, 10, 10]} angle={0.2} penumbra={1} intensity={1.2} castShadow />
+                <pointLight position={[-10, -10, -10]} intensity={0.6} />
                 
                 <Suspense fallback={null}>
                     <Model 
@@ -261,6 +581,9 @@ export default function ModelViewer({ modelUrl, hotspots = [], onHotspotClick }:
                         onModelClick={handleModelClick} 
                         showWireframe={showWireframe}
                         showCrossSection={showCrossSection}
+                        slicePlaneType={slicePlaneType}
+                        sliceOffset={sliceOffset}
+                        sliceInverted={sliceInverted}
                     />
                     <Environment preset="city" />
                     <ContactShadows position={[0, -1.5, 0]} opacity={0.4} scale={10} blur={2} far={4} />
@@ -292,7 +615,118 @@ export default function ModelViewer({ modelUrl, hotspots = [], onHotspotClick }:
                 </span>
             </div>
 
-            {/* Thanh công cụ 3D Tools (Toolbar) */}
+            {/* BẢNG ĐIỀU KHIỂN CẮT LỚP GIẢI PHẪU Y KHOA CHUYÊN DỤNG */}
+            {showCrossSection && (
+                <div className="absolute top-12 left-2.5 right-2.5 sm:top-auto sm:bottom-4 sm:left-4 sm:right-auto sm:w-80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md p-3 sm:p-3.5 rounded-2xl shadow-xl border border-indigo-200 dark:border-indigo-900/60 z-20 transition-all duration-300">
+                    <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-gray-100 dark:border-gray-800">
+                        <div className="flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                            <h4 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+                                Cắt lớp Mô đặc Y khoa
+                            </h4>
+                        </div>
+                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/50">
+                            {organConfig.name}
+                        </span>
+                    </div>
+
+                    {/* Chọn 3 mặt cắt giải phẫu quốc tế */}
+                    <div className="space-y-1.5 mb-2.5">
+                        <label className="text-[11px] font-semibold text-gray-600 dark:text-gray-300 flex items-center justify-between">
+                            <span>Mặt phẳng giải phẫu:</span>
+                            <span className="text-[10px] text-gray-400">
+                                {slicePlaneType === "coronal" ? "Đứng ngang (Trước/Sau)" : slicePlaneType === "sagittal" ? "Đứng dọc (Trái/Phải)" : "Cắt ngang (CT/MRI)"}
+                            </span>
+                        </label>
+                        <div className="grid grid-cols-3 gap-1 p-0.5 bg-gray-100 dark:bg-gray-800/80 rounded-lg text-[11px] font-medium">
+                            <button
+                                onClick={() => setSlicePlaneType("coronal")}
+                                className={`py-1.5 px-1 rounded-md text-center transition-all ${
+                                    slicePlaneType === "coronal"
+                                        ? "bg-white dark:bg-indigo-600 text-indigo-600 dark:text-white shadow-sm font-bold"
+                                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
+                                }`}
+                                title="Mặt phẳng Đứng Ngang (Coronal) - Chuẩn quan sát buồng tim & phổi"
+                            >
+                                Coronal
+                            </button>
+                            <button
+                                onClick={() => setSlicePlaneType("sagittal")}
+                                className={`py-1.5 px-1 rounded-md text-center transition-all ${
+                                    slicePlaneType === "sagittal"
+                                        ? "bg-white dark:bg-indigo-600 text-indigo-600 dark:text-white shadow-sm font-bold"
+                                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
+                                }`}
+                                title="Mặt phẳng Đứng Dọc (Sagittal) - Chia đôi bán cầu não/tim"
+                            >
+                                Sagittal
+                            </button>
+                            <button
+                                onClick={() => setSlicePlaneType("axial")}
+                                className={`py-1.5 px-1 rounded-md text-center transition-all ${
+                                    slicePlaneType === "axial"
+                                        ? "bg-white dark:bg-indigo-600 text-indigo-600 dark:text-white shadow-sm font-bold"
+                                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
+                                }`}
+                                title="Mặt phẳng Cắt Ngang (Axial) - Chuẩn lát cắt vi tính CT/MRI"
+                            >
+                                Axial
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Thanh trượt độ sâu cắt (Depth Offset) */}
+                    <div className="space-y-1 mb-2.5">
+                        <div className="flex items-center justify-between text-[11px]">
+                            <span className="font-semibold text-gray-600 dark:text-gray-300">Vị trí lát cắt:</span>
+                            <div className="flex items-center gap-1.5">
+                                <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                                    {sliceOffset > 0 ? `+${sliceOffset.toFixed(2)}` : sliceOffset.toFixed(2)}
+                                </span>
+                                <button
+                                    onClick={() => setSliceOffset(0)}
+                                    className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-500"
+                                    title="Đưa mặt cắt về tâm"
+                                >
+                                    Tâm
+                                </button>
+                            </div>
+                        </div>
+                        <input
+                            type="range"
+                            min="-1.5"
+                            max="1.5"
+                            step="0.05"
+                            value={sliceOffset}
+                            onChange={(e) => setSliceOffset(parseFloat(e.target.value))}
+                            className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                        />
+                    </div>
+
+                    {/* Đảo chiều cắt & chú thích y khoa */}
+                    <div className="flex items-center justify-between gap-2 pt-1 border-t border-gray-100 dark:border-gray-800">
+                        <button
+                            onClick={() => setSliceInverted(!sliceInverted)}
+                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
+                                sliceInverted
+                                    ? "bg-indigo-50 border-indigo-300 text-indigo-700 dark:bg-indigo-950/80 dark:border-indigo-700 dark:text-indigo-300"
+                                    : "bg-gray-50 border-gray-200 text-gray-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
+                            }`}
+                            title="Đổi hướng nhìn sang nửa còn lại của cơ quan"
+                        >
+                            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                            </svg>
+                            <span>Đảo chiều cắt</span>
+                        </button>
+                        <span className="text-[10px] text-gray-400 italic truncate max-w-[140px]" title={organConfig.description}>
+                            {organConfig.description}
+                        </span>
+                    </div>
+                </div>
+            )}
+
+            {/* Thanh công cụ 3D Tools (Toolbar góc dưới bên phải) */}
             <div className="absolute bottom-2.5 right-2.5 sm:bottom-6 sm:right-6 flex flex-col gap-1.5 sm:gap-2.5 z-10">
                 <button 
                     onClick={() => setIsAutoRotate(!isAutoRotate)}
@@ -306,18 +740,20 @@ export default function ModelViewer({ modelUrl, hotspots = [], onHotspotClick }:
                 </button>
                 <button 
                     onClick={() => setShowCrossSection(!showCrossSection)}
-                    className={`flex items-center gap-2 p-2 sm:px-4 sm:py-2.5 rounded-xl border shadow-sm transition-all duration-200 ${showCrossSection ? 'bg-indigo-500 border-indigo-600 text-white shadow-indigo-500/25' : 'bg-white/95 dark:bg-gray-800/95 backdrop-blur border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
-                    title="Cắt lớp (Cross-section)"
+                    className={`flex items-center gap-2 p-2 sm:px-4 sm:py-2.5 rounded-xl border shadow-sm transition-all duration-200 ${showCrossSection ? 'bg-indigo-600 border-indigo-700 text-white shadow-indigo-600/30 ring-2 ring-indigo-400/30' : 'bg-white/95 dark:bg-gray-800/95 backdrop-blur border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
+                    title="Cắt lớp giải phẫu y khoa (Medical Cross-section)"
                 >
                     <svg className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M14.121 14.121L19 19m-7-7l-7-7m7 7l-2.121 2.121M15.536 8.464a2 2 0 11-2.828-2.828 2 2 0 012.828 2.828zM8.464 15.536a2 2 0 11-2.828-2.828 2 2 0 012.828 2.828z" />
                     </svg>
-                    <span className="hidden sm:inline text-sm font-semibold whitespace-nowrap">Cắt lớp</span>
+                    <span className="hidden sm:inline text-sm font-semibold whitespace-nowrap">
+                        {showCrossSection ? "Tắt cắt lớp" : "Cắt lớp y khoa"}
+                    </span>
                 </button>
                 <button 
                     onClick={() => setShowWireframe(!showWireframe)}
                     className={`flex items-center gap-2 p-2 sm:px-4 sm:py-2.5 rounded-xl border shadow-sm transition-all duration-200 ${showWireframe ? 'bg-violet-500 border-violet-600 text-white shadow-violet-500/25' : 'bg-white/95 dark:bg-gray-800/95 backdrop-blur border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
-                    title="Chế độ khung dây (Layers)"
+                    title="Chế độ khung dây (Wireframe)"
                 >
                     <svg className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
