@@ -29,6 +29,7 @@ import SafetyModal from "./SafetyModal";
 import AssignmentQuiz from "./AssignmentQuiz";
 import ScienceLab from "./ScienceLab";
 import { Tour, TourStep } from "./Tour";
+import LabHeader from "./LabHeader";
 
 export type ActiveReaction = {
     result: ReactionResult;
@@ -576,81 +577,49 @@ export default function LabBench() {
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-400/10 dark:bg-blue-600/10 blur-3xl" />
                 <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-400/10 dark:bg-purple-600/10 blur-3xl" />
             </div>
-            {/* Top Bar */}
-            <header className="bg-white dark:bg-gray-800/90 border-b border-gray-200 dark:border-gray-700 px-3 sm:px-5 py-2 sm:py-3 flex items-center justify-between z-20 flex-shrink-0 transition-colors duration-200 sticky top-0" style={{ boxShadow: "0 1px 2px rgba(0,0,0,0.04) " }}>
-                <div className="flex items-center gap-2 sm:gap-3">
-                    <svg viewBox="0 0 28 28" className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 dark:text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5">
-                        <path d="M12 3v5M16 3v5" strokeLinecap="round" />
-                        <path d="M10 10h8M8 14h12M6 18h16" />
-                        <path d="M8 10l-2 14h16L20 10H8Z" />
-                        <path d="M10 10l-2 14" strokeWidth="0.8" />
-                        <path d="M18 10l2 14" strokeWidth="0.8" />
-                    </svg>
-                    <Link href="/" className="group cursor-pointer">
-                        <h1 className="text-sm sm:text-base font-bold text-gray-800 dark:text-gray-100 group-hover:text-blue-500 transition-colors">Simlab Edu</h1>
-                        <p className="text-[9px] sm:text-[10px] text-gray-400 dark:text-gray-500 hidden sm:block">Nền tảng Giáo dục Kỹ thuật số</p>
-                    </Link>
-                    <Link
-                        href="/"
-                        className="ml-1 sm:ml-4 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 text-xs font-semibold hover:bg-slate-200 dark:hover:bg-slate-600 transition-all shadow-sm"
-                    >
-                        <span className="hidden sm:inline">Trở về Trang chủ</span>
-                        <span className="sm:hidden">Trang chủ</span>
-                    </Link>
-                    {assignment && (
-                        <Link
-                            href="/dashboard/student"
-                            className="ml-2 px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 text-blue-600 dark:text-blue-400 text-xs font-medium hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors inline-flex items-center gap-1"
-                        >
-                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-                            </svg>
-                            Bài tập
-                        </Link>
-                    )}
-                </div>
 
-                <div className="flex items-center gap-3">
-                    {/* Status */}
-                    <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600">
-                        <span
-                            className={`w-2 h-2 rounded-full ${labStatus === "reacting"
-                                ? "bg-blue-500 animate-pulse"
-                                : labStatus === "complete"
-                                    ? "bg-green-500"
-                                    : "bg-gray-300 dark:bg-gray-600"
+            {/* Standardized Lab Header */}
+            <LabHeader
+                currentSubject="chemistry"
+                onTourOpen={() => setTourOpen(true)}
+                centerContent={
+                    <>
+                        {/* Status */}
+                        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700">
+                            <span
+                                className={`w-2 h-2 rounded-full ${
+                                    labStatus === "reacting"
+                                        ? "bg-blue-500 animate-pulse"
+                                        : labStatus === "complete"
+                                            ? "bg-green-500"
+                                            : "bg-gray-300 dark:bg-gray-600"
                                 }`}
-                        />
-                        <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                            {labStatus === "idle"
-                                ? "Sẵn sàng"
-                                : labStatus === "reacting"
-                                    ? "Đang phản ứng..."
-                                    : "Hoàn thành"}
-                        </span>
-                    </div>
-
-                    {/* Glassware indicator */}
-                    {hasBothChemicals && glassware && (
-                        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700">
-                            <svg className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.75v4.5m0 4.5v4.5m0-13.5h4.5m-4.5 0H5.25m4.5 13.5h4.5m-4.5 0H5.25" />
-                            </svg>
-                            <span className="text-[10px] font-medium text-emerald-700 dark:text-emerald-400">
-                                {glasswareNames[glassware]}
+                            />
+                            <span className="text-xs text-gray-600 dark:text-gray-300 font-medium">
+                                {labStatus === "idle"
+                                    ? "Sẵn sàng"
+                                    : labStatus === "reacting"
+                                        ? "Đang phản ứng..."
+                                        : "Hoàn thành"}
                             </span>
                         </div>
-                    )}
 
-                    {/* Phím tắt */}
-                    <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600" title="Phím tắt: T = Thí nghiệm, L = Xóa, D = Sáng/Tối, Esc = Đóng">
-                        <svg className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.75v4.5m0 4.5v4.5m0-13.5h4.5m-4.5 0H5.25m4.5 13.5h4.5m-4.5 0H5.25" />
-                        </svg>
-                        <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400">T · L · D</span>
-                    </div>
+                        {/* Glassware indicator */}
+                        {hasBothChemicals && glassware && (
+                            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800">
+                                <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+                                    🧪 {glasswareNames[glassware]}
+                                </span>
+                            </div>
+                        )}
 
-                    {/* Buttons */}
+                        {/* Shortcuts badge */}
+                        <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700" title="Phím tắt: T = Thí nghiệm, L = Xóa, D = Sáng/Tối, Esc = Đóng">
+                            <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 font-mono">T · L · D</span>
+                        </div>
+                    </>
+                }
+                rightContent={
                     <div className="flex items-center gap-2">
                         {assignment && (
                             <button
@@ -664,59 +633,42 @@ export default function LabBench() {
                                 {submitted ? "Xem lại bài" : "Nộp bài"}
                             </button>
                         )}
-                        <button onClick={() => setShowExperiments(true)} className="lab-btn px-3 py-1.5 text-xs flex items-center gap-1" title="Xem thí nghiệm mẫu">
-                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.75v4.5m0 4.5v4.5m0-13.5h4.5m-4.5 0H5.25m4.5 13.5h4.5m-4.5 0H5.25" />
+                        <button onClick={() => setShowExperiments(true)} className="lab-btn px-3 py-1.5 text-xs flex items-center gap-1.5" title="Xem thí nghiệm mẫu (T)">
+                            <svg className="w-3.5 h-3.5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z" />
                             </svg>
-                            Thí nghiệm
+                            <span className="hidden sm:inline">Thí nghiệm</span>
                         </button>
                         {hasAnyChemical && !hasBothChemicals && !activeReaction && (
-                            <button onClick={handleHeat} className="lab-btn px-3 py-1.5 text-xs flex items-center gap-1" title="Đốt nóng hóa chất">
-                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a5.25 5.25 0 0 0 5.25-5.25c0-1.77-1.13-3.06-2.25-4.5-.75-.96-1.5-2.06-1.5-3.75 0-1.2.36-2.07.75-3-1.2.3-2.85 1.5-3.75 3-1.2 2.01-1.5 3.94-1.5 5.25A5.25 5.25 0 0 0 12 21Z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a5.25 5.25 0 0 1-5.25-5.25c0-1.77 1.13-3.06 2.25-4.5.75-.96 1.5-2.06 1.5-3.75 0-1.2-.36-2.07-.75-3-1.2.3-2.85 1.5-3.75 3-1.2 2.01-1.5 3.94-1.5 5.25A5.25 5.25 0 0 1 12 21Z" />
+                            <button onClick={handleHeat} className="lab-btn px-3 py-1.5 text-xs flex items-center gap-1.5" title="Đốt nóng hóa chất">
+                                <svg className="w-3.5 h-3.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z" />
                                 </svg>
-                                Đốt nóng
+                                <span className="hidden sm:inline">Đốt nóng</span>
                             </button>
                         )}
                         {hasBothChemicals && !activeReaction && (
-                            <button onClick={handleReact} className="lab-btn-primary px-4 py-1.5 text-xs flex items-center gap-1">
-                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <button onClick={handleReact} className="lab-btn-primary px-3.5 py-1.5 text-xs flex items-center gap-1.5 shadow-sm">
+                                <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.75v4.5m0 4.5v4.5m0-13.5h4.5m-4.5 0H5.25m4.5 13.5h4.5m-4.5 0H5.25" />
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 18h13.5A2.25 2.25 0 0 0 21 15.75V8.25A2.25 2.25 0 0 0 18.75 6H5.25A2.25 2.25 0 0 0 3 8.25v7.5A2.25 2.25 0 0 0 5.25 18Z" />
                                 </svg>
-                                Phản ứng
+                                <span>Phản ứng</span>
                             </button>
                         )}
                         {hasAnyChemical && (
                             <button
                                 onClick={handleClearAll}
-                                className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm transition-all active:scale-95"
-                                title="Dọn sạch bàn thí nghiệm để bắt đầu bài mới (Phím tắt: L)"
+                                className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-xs flex items-center gap-1 shadow-sm transition-all active:scale-95"
+                                title="Dọn sạch bàn thí nghiệm để bắt đầu bài mới (L)"
                             >
-                                <span className="text-sm">🧪</span>
-                                <span>Làm thí nghiệm khác (Xóa bàn)</span>
+                                <span className="text-xs">🧹</span>
+                                <span className="hidden lg:inline">Xóa bàn</span>
                             </button>
                         )}
-                        {/* Dark mode toggle */}
-                        <button
-                            onClick={toggleDarkMode}
-                            className="p-2 rounded-md bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
-                            title={isDark ? "Chuyển sang chế độ sáng" : "Chuyển sang chế độ tối"}
-                        >
-                            {isDark ? (
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
-                                </svg>
-                            ) : (
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
-                                </svg>
-                            )}
-                        </button>
                     </div>
-                </div>
-            </header>
+                }
+            />
 
             {/* Assignment banner */}
             {assignment && (

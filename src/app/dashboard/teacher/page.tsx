@@ -25,6 +25,7 @@ import { curriculum } from "@/lib/curriculum";
 import { useToast } from "@/components/toast";
 import { Avatar, ProfileModal, ProgressBar } from "@/components/Avatar";
 import { Tour, TourStep } from "@/components/Tour";
+import Footer from "@/components/Footer";
 type Tab = "classes" | "assignments" | "results";
 
 function getExperiment(id: string): Experiment | undefined {
@@ -1226,6 +1227,8 @@ export default function TeacherDashboard() {
                     load();
                 }}
             />
+
+            <Footer className="mt-16" />
         </div>
     );
 }

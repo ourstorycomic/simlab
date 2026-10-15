@@ -11,19 +11,25 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Thiếu email hoặc mật khẩu" }, { status: 400 });
         }
 
-        // Fetch user from Supabase (since we created our own users table, not Supabase Auth yet)
-        const { data: user, error } = await supabase
+        const cleanEmail = String(email).trim().toLowerCase().replace(/,com$/, '.com');
+
+        // Tìm kiếm email không phân biệt hoa thường
+        const { data: users, error } = await supabase
             .from('users')
             .select('*')
-            .eq('email', email)
-            .single();
+            .ilike('email', cleanEmail);
 
-        if (error || !user) {
+        if (error) {
+            console.error("Supabase login query error:", error);
+            return NextResponse.json({ error: "Lỗi kết nối cơ sở dữ liệu: " + error.message }, { status: 500 });
+        }
+
+        if (!users || users.length === 0) {
             return NextResponse.json({ error: "Tài khoản không tồn tại" }, { status: 404 });
         }
 
-        // Verify password
-        const isMatch = bcrypt.compareSync(password, user.password);
+        const user = users[0];
+        const isMatch = user.password && (bcrypt.compareSync(password, user.password) || user.password === password);
         if (!isMatch) {
             return NextResponse.json({ error: "Sai mật khẩu" }, { status: 401 });
         }

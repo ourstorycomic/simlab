@@ -26,6 +26,7 @@ import { curriculum, GradeCurriculum } from "@/lib/curriculum";
 import { useToast } from "@/components/toast";
 import { Avatar, BadgeChip, ProfileModal, XPBar } from "@/components/Avatar";
 import { Tour, TourStep } from "@/components/Tour";
+import Footer from "@/components/Footer";
 function getExperiment(id: string): Experiment | undefined {
     return experiments.find((e) => e.id === id);
 }
@@ -689,6 +690,8 @@ export default function StudentDashboard() {
                     </div>
                 </div>
             )}
+
+            <Footer className="mt-16" />
         </div>
     );
 }

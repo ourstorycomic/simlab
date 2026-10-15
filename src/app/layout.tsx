@@ -86,7 +86,7 @@ export default function RootLayout({
 }) {
     return (
         <html lang="vi" className={`dark ${beVietnamPro.variable}`} suppressHydrationWarning>
-            <body className="antialiased max-h-screen">
+            <body className="antialiased min-h-screen">
                 {/* Apply saved theme before paint to avoid flash */}
                 <script
                     dangerouslySetInnerHTML={{

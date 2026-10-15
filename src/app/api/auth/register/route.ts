@@ -12,15 +12,28 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Thiếu thông tin bắt buộc" }, { status: 400 });
         }
 
+        // Chuẩn hóa email
+        const cleanEmail = String(email).trim().toLowerCase().replace(/,com$/, '.com');
+
+        // Kiểm tra định dạng email hợp lệ
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(cleanEmail)) {
+            return NextResponse.json({ error: "Định dạng email không hợp lệ (ví dụ: giaovien@gmail.com)" }, { status: 400 });
+        }
+
         // Check if user already exists
-        const { data: existingUser } = await supabase
+        const { data: existingUsers, error: checkError } = await supabase
             .from('users')
             .select('id')
-            .eq('email', email)
-            .single();
+            .ilike('email', cleanEmail);
+
+        if (checkError) {
+            console.error("Check existing user error:", checkError);
+            return NextResponse.json({ error: "Lỗi kết nối cơ sở dữ liệu: " + checkError.message }, { status: 500 });
+        }
         
-        if (existingUser) {
-            return NextResponse.json({ error: "Email này đã được đăng ký" }, { status: 400 });
+        if (existingUsers && existingUsers.length > 0) {
+            return NextResponse.json({ error: "Email này đã được đăng ký trong hệ thống" }, { status: 400 });
         }
 
         // Hash password
@@ -33,11 +46,11 @@ export async function POST(req: Request) {
             .from('users')
             .insert({
                 id: userId,
-                name,
-                email,
+                name: String(name).trim(),
+                email: cleanEmail,
                 password: hashedPassword,
                 role,
-                school: school || null
+                school: school ? String(school).trim() : null
             });
 
         if (error) {
@@ -46,10 +59,10 @@ export async function POST(req: Request) {
 
         const newUser = {
             id: userId,
-            name,
-            email,
+            name: String(name).trim(),
+            email: cleanEmail,
             role,
-            school: school || undefined
+            school: school ? String(school).trim() : undefined
         };
 
         return NextResponse.json(newUser, { status: 201 });

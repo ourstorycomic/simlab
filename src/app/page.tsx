@@ -15,6 +15,7 @@ import {
     syncUser,
 } from "@/lib/storage";
 import { useToast } from "@/components/toast";
+import Footer from "@/components/Footer";
 
 type AuthMode = "login" | "register";
 
@@ -74,17 +75,18 @@ export default function Home() {
                 let loggedIn: User | null = null;
                 
                 let res;
+                const cleanEmail = email.trim();
                 if (mode === "register") {
                     res = await fetch("/api/auth/register", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ name, email, password, role, school: school || undefined })
+                        body: JSON.stringify({ name: name.trim(), email: cleanEmail, password, role, school: school?.trim() || undefined })
                     });
                 } else {
                     res = await fetch("/api/auth/login", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ email, password })
+                        body: JSON.stringify({ email: cleanEmail, password })
                     });
                 }
 
@@ -538,71 +540,7 @@ export default function Home() {
                 </section>
             </main>
 
-            <footer className="relative z-10 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 mt-20 pt-16 pb-8">
-                <div className="max-w-7xl mx-auto px-6 lg:px-8">
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12">
-                        <div className="col-span-2 lg:col-span-2">
-                            <div className="flex items-center gap-2.5 mb-4">
-                                <LogoMark className="w-8 h-8" />
-                                <span className="text-xl font-bold text-gray-900 dark:text-white">Simlab Edu</span>
-                            </div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-6 max-w-xs">
-                                Nền tảng thực hành khoa học kỹ thuật số toàn diện dành cho các trường trung học phổ thông. Giải pháp EdTech đạt chuẩn GDPT 2018.
-                            </p>
-                            <div className="flex gap-4">
-                                <a href="#" className="text-gray-400 hover:text-blue-500 transition-colors">
-                                    <span className="sr-only">Facebook</span>
-                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" /></svg>
-                                </a>
-                                <a href="#" className="text-gray-400 hover:text-blue-500 transition-colors">
-                                    <span className="sr-only">LinkedIn</span>
-                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fillRule="evenodd" d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" clipRule="evenodd" /></svg>
-                                </a>
-                            </div>
-                        </div>
-                        <div>
-                            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Sản phẩm</h3>
-                            <ul className="space-y-3 text-sm text-gray-500 dark:text-gray-400">
-                                <li><a href="#" className="hover:text-blue-500 transition-colors">Lab Hóa học (MVP)</a></li>
-                                <li><a href="#" className="hover:text-blue-500 transition-colors">Lab Vật lý (Beta)</a></li>
-                                <li><a href="#" className="hover:text-blue-500 transition-colors">Lab Sinh học (Sắp ra mắt)</a></li>
-                                <li><a href="#" className="hover:text-blue-500 transition-colors">Bảng điều khiển Giáo viên</a></li>
-                                <li><a href="#" className="hover:text-blue-500 transition-colors">API Tích hợp LMS</a></li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Tài nguyên</h3>
-                            <ul className="space-y-3 text-sm text-gray-500 dark:text-gray-400">
-                                <li><a href="#" className="hover:text-blue-500 transition-colors">Tài liệu HDSD</a></li>
-                                <li><a href="#" className="hover:text-blue-500 transition-colors">Giáo án GDPT 2018</a></li>
-                                <li><a href="#" className="hover:text-blue-500 transition-colors">Thư viện Video</a></li>
-                                <li><a href="#" className="hover:text-blue-500 transition-colors">Blog Giáo dục</a></li>
-                                <li><a href="#" className="hover:text-blue-500 transition-colors">Cộng đồng Giáo viên</a></li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Công ty</h3>
-                            <ul className="space-y-3 text-sm text-gray-500 dark:text-gray-400">
-                                <li><a href="#" className="hover:text-blue-500 transition-colors">Về chúng tôi</a></li>
-                                <li><a href="#" className="hover:text-blue-500 transition-colors">Tuyển dụng</a></li>
-                                <li><a href="#" className="hover:text-blue-500 transition-colors">Liên hệ Sales</a></li>
-                                <li><a href="#" className="hover:text-blue-500 transition-colors">Điều khoản Dịch vụ</a></li>
-                                <li><a href="#" className="hover:text-blue-500 transition-colors">Chính sách Bảo mật</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div className="pt-8 border-t border-gray-200 dark:border-gray-800 flex flex-col md:flex-row items-center justify-between gap-4">
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                            © 2026 Simlab Enterprise. Đã đăng ký bản quyền. Được phát triển tại Việt Nam.
-                        </p>
-                        <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-                            <span>Bảo mật dữ liệu chuẩn ISO 27001</span>
-                            <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600"></span>
-                            <span>Tuân thủ FERPA & GDPR</span>
-                        </div>
-                    </div>
-                </div>
-            </footer>
+            <Footer className="mt-20" />
         </div>
     );
 }
