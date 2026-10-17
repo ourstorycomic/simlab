@@ -50,7 +50,9 @@ Simlab là nền tảng **phòng thí nghiệm hóa học ảo** dành cho giáo
 ```
 simlab/
 ├─ docs/
-│  └─ PROJECT.md                    # Tài liệu dự án (file này)
+│  ├─ PROJECT.md                    # Tài liệu tổng quan sản phẩm
+│  ├─ TECHNICAL_ARCHITECTURE.md     # Tài liệu kiến trúc & công nghệ chuyên sâu
+│  └─ supabase-schema.sql           # Schema cơ sở dữ liệu Supabase PostgreSQL
 ├─ scripts/
 │  └─ validate-reactions.ts         # Kiểm tra tính hợp lệ của CSDL phản ứng
 ├─ src/

@@ -89,6 +89,7 @@ export default function LabBench() {
     const [activeReaction, setActiveReaction] = useState<ActiveReaction | null>(null);
     const [labStatus, setLabStatus] = useState<"idle" | "reacting" | "complete">("idle");
     const [dragOver, setDragOver] = useState(false);
+    const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
     // Gamification: walkthrough 90s + badge feedback
     const [showWalkthrough, setShowWalkthrough] = useState(false);
@@ -696,10 +697,32 @@ export default function LabBench() {
                 </div>
             )}
 
+            {/* Mobile Chemical Drawer Toggle Button & Bar (visible only on mobile) */}
+            <div className="md:hidden flex items-center justify-between gap-2 px-3 py-2 bg-gray-50 dark:bg-slate-800/80 border-b border-gray-200 dark:border-slate-700">
+                <button
+                    onClick={() => setMobileSidebarOpen(true)}
+                    className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-xs active:scale-95 transition-all"
+                >
+                    <span>🧪 Mở kho hóa chất</span>
+                    <span className="text-[10px] bg-blue-700 px-1.5 py-0.5 rounded-full font-mono">
+                        {[chemical1, chemical2].filter(Boolean).length}/2 đã chọn
+                    </span>
+                </button>
+                {hasAnyChemical && (
+                    <button
+                        onClick={handleClearAll}
+                        className="p-2 rounded-lg bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 text-xs font-medium"
+                        title="Dọn sạch ống nghiệm"
+                    >
+                        🧹
+                    </button>
+                )}
+            </div>
+
             {/* Main Content */}
-            <div className="flex-1 flex overflow-hidden">
-                {/* Left: Chemical Selector */}
-                <div className="w-72 flex-shrink-0 h-full border-r border-gray-200 dark:border-gray-700">
+            <div className="flex-1 flex overflow-hidden relative">
+                {/* Desktop: Chemical Selector (Visible md and up) */}
+                <div id="tour-chemical-selector" className="hidden md:block w-72 flex-shrink-0 h-full border-r border-gray-200 dark:border-gray-700">
                     <ChemicalSelector
                         onSelect={handleSelectChemical}
                         disabled={!!activeReaction}
@@ -711,12 +734,54 @@ export default function LabBench() {
                     />
                 </div>
 
+                {/* Mobile Drawer (visible when mobileSidebarOpen is true) */}
+                {mobileSidebarOpen && (
+                    <div className="fixed inset-0 z-50 md:hidden flex">
+                        <div
+                            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+                            onClick={() => setMobileSidebarOpen(false)}
+                            aria-hidden="true"
+                        />
+                        <div className="relative z-10 w-[85%] max-w-xs h-full bg-white dark:bg-gray-800 shadow-2xl flex flex-col border-r border-gray-200 dark:border-gray-700 animate-in slide-in-from-left duration-200">
+                            <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-slate-800">
+                                <span className="text-xs font-bold text-gray-800 dark:text-gray-100 flex items-center gap-1.5">
+                                    🧪 Kho hóa chất
+                                </span>
+                                <button
+                                    onClick={() => setMobileSidebarOpen(false)}
+                                    className="p-1.5 rounded-lg text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-slate-700 text-xs font-bold"
+                                    aria-label="Đóng"
+                                >
+                                    ✕ Đóng
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-hidden">
+                                <ChemicalSelector
+                                    onSelect={(chem) => {
+                                        handleSelectChemical(chem);
+                                        // Auto-close drawer if both chemicals are filled
+                                        if (chemical1 && !chemical2) {
+                                            setMobileSidebarOpen(false);
+                                        }
+                                    }}
+                                    disabled={!!activeReaction}
+                                    selectedIds={[chemical1?.id, chemical2?.id].filter(Boolean) as string[]}
+                                    slot1={chemical1}
+                                    slot2={chemical2}
+                                    onReplace={handleReplaceChemical}
+                                    onReset={handleClearAll}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Center: Lab Area */}
-                <div className="flex-1 flex flex-col items-center gap-4 overflow-y-auto p-6">
+                <div id="tour-beaker-area" className="flex-1 flex flex-col items-center gap-3 sm:gap-4 overflow-y-auto p-2 sm:p-6">
                     {/* Lab Bench */}
                     <div className={`relative w-full ${activeReaction?.result?.realVideo ? "max-w-5xl" : "max-w-3xl"} transition-all duration-300`}>
                         <div
-                            className="bg-white dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden p-6 transition-colors duration-200"
+                            className="bg-white dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden p-3 sm:p-6 transition-colors duration-200"
                             style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
                         >
                             {/* Grid background */}
