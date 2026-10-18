@@ -12,6 +12,9 @@ interface ChemicalSelectorProps {
     slot2: Chemical | null;
     onReplace: (slot: 1 | 2, chemical: Chemical) => void;
     onReset?: () => void;
+    onTouchDragStart?: (chemical: Chemical, x: number, y: number) => void;
+    onTouchDragMove?: (x: number, y: number) => void;
+    onTouchDragEnd?: () => void;
 }
 
 // ─── Chuẩn hóa tiếng Việt (bỏ dấu) để tìm kiếm linh hoạt (dong -> Đồng, sat -> Sắt) ───
@@ -134,6 +137,9 @@ export default function ChemicalSelector({
     slot2,
     onReplace,
     onReset,
+    onTouchDragStart,
+    onTouchDragMove,
+    onTouchDragEnd,
 }: ChemicalSelectorProps) {
     const [activeCategory, setActiveCategory] = useState<string>("all");
     const [searchQuery, setSearchQuery] = useState("");
@@ -272,6 +278,83 @@ export default function ChemicalSelector({
         [disabled, onReset, refChemical, reactableIds]
     );
 
+    // ─── Touch Drag & Drop cho Mobile & Tablet ───
+    const touchDataRef = React.useRef<{
+        startX: number;
+        startY: number;
+        chemical: Chemical;
+        isDragging: boolean;
+        time: number;
+    } | null>(null);
+    const lastTouchTapTimeRef = React.useRef<number>(0);
+
+    const handleTouchStart = useCallback(
+        (e: React.TouchEvent, chemical: Chemical) => {
+            if (e.touches.length === 0) return;
+            if (disabled && !onReset) return;
+            if (refChemical && !reactableIds.has(chemical.id)) return;
+            if (selectedIds.includes(chemical.id)) return;
+
+            const touch = e.touches[0];
+            touchDataRef.current = {
+                startX: touch.clientX,
+                startY: touch.clientY,
+                chemical,
+                isDragging: false,
+                time: Date.now(),
+            };
+        },
+        [disabled, onReset, refChemical, reactableIds, selectedIds]
+    );
+
+    const handleTouchMove = useCallback(
+        (e: React.TouchEvent) => {
+            if (!touchDataRef.current || e.touches.length === 0) return;
+            const touch = e.touches[0];
+            const dx = touch.clientX - touchDataRef.current.startX;
+            const dy = touch.clientY - touchDataRef.current.startY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            // Khi di chuyển ngón tay quá 8px -> kích hoạt kéo thả
+            if (!touchDataRef.current.isDragging && dist > 8) {
+                touchDataRef.current.isDragging = true;
+                onTouchDragStart?.(touchDataRef.current.chemical, touch.clientX, touch.clientY);
+                if (typeof window !== "undefined" && navigator.vibrate) {
+                    navigator.vibrate(20);
+                }
+            }
+
+            if (touchDataRef.current.isDragging) {
+                if (e.cancelable) e.preventDefault();
+                onTouchDragMove?.(touch.clientX, touch.clientY);
+            }
+        },
+        [onTouchDragStart, touchDataRef, onTouchDragMove]
+    );
+
+    const handleTouchEnd = useCallback(() => {
+        if (!touchDataRef.current) return;
+        if (touchDataRef.current.isDragging) {
+            onTouchDragEnd?.();
+        } else {
+            // Chạm nhanh (Tap) -> Thêm trực tiếp vào ống nghiệm
+            const chem = touchDataRef.current.chemical;
+            lastTouchTapTimeRef.current = Date.now();
+            handleChemicalClick(chem);
+            if (typeof window !== "undefined" && navigator.vibrate) {
+                navigator.vibrate(30);
+            }
+        }
+        touchDataRef.current = null;
+    }, [handleChemicalClick, onTouchDragEnd]);
+
+    const handleTouchCancel = useCallback(() => {
+        if (touchDataRef.current?.isDragging) {
+            onTouchDragEnd?.();
+        }
+        touchDataRef.current = null;
+    }, [onTouchDragEnd]);
+
     const getChemicalState = (id: string) => {
         if (!slot1 && !slot2) return "available";
         if (slot1?.id === id) return "slot1";
@@ -324,6 +407,12 @@ export default function ChemicalSelector({
                             ✕
                         </button>
                     )}
+                </div>
+
+                {/* Mobile / Tablet Drag & Tap Guide */}
+                <div className="mt-2 flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-50/70 dark:bg-emerald-950/40 text-[10px] text-emerald-800 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/50">
+                    <span className="text-xs">👆</span>
+                    <span className="font-medium leading-tight">Chạm để chọn hoặc kéo thả vào ống nghiệm</span>
                 </div>
 
                 {/* Banner chuyển sang thí nghiệm mới khi đang khóa hoặc đã xong phản ứng */}
@@ -421,8 +510,15 @@ export default function ChemicalSelector({
                                 <button
                                     key={chemical.id}
                                     draggable={!isDisabled && !disabled}
-                                    onClick={() => handleChemicalClick(chemical)}
+                                    onClick={() => {
+                                        if (Date.now() - lastTouchTapTimeRef.current < 450) return;
+                                        handleChemicalClick(chemical);
+                                    }}
                                     onDragStart={(e) => handleDragStart(e, chemical)}
+                                    onTouchStart={(e) => handleTouchStart(e, chemical)}
+                                    onTouchMove={handleTouchMove}
+                                    onTouchEnd={handleTouchEnd}
+                                    onTouchCancel={handleTouchCancel}
                                     disabled={isHtmlDisabled}
                                     className={`
                                         relative flex flex-col items-center gap-1 p-2 rounded-lg border transition-all duration-200 select-none

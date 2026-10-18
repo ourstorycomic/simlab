@@ -500,23 +500,39 @@ function Model({
                         display: isHotspotClipped(hotspot) ? 'none' : 'block'
                     }}
                 >
-                    <div className="relative group cursor-pointer">
-                        <div 
-                            className={`w-4 h-4 rounded-full border-2 border-white shadow-md transition-all duration-300 ${
-                                activeHotspot === hotspot.id 
-                                    ? 'bg-emerald-500 scale-125' 
-                                    : hotspot.isInternal 
-                                        ? 'bg-amber-500 hover:bg-amber-400 hover:scale-110 ring-2 ring-amber-300/50' 
-                                        : 'bg-blue-500 hover:bg-emerald-400 hover:scale-110'
-                            }`}
+                    <div className="relative group">
+                        <button
+                            type="button"
+                            className="p-3 -m-3 flex items-center justify-center cursor-pointer focus:outline-none"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 setActiveHotspot(activeHotspot === hotspot.id ? null : hotspot.id);
                                 if (onHotspotClick) onHotspotClick(hotspot);
+                                if (typeof window !== "undefined" && navigator.vibrate) {
+                                    navigator.vibrate(25);
+                                }
+                            }}
+                            onTouchEnd={(e) => {
+                                e.stopPropagation();
+                                setActiveHotspot(activeHotspot === hotspot.id ? null : hotspot.id);
+                                if (onHotspotClick) onHotspotClick(hotspot);
+                                if (typeof window !== "undefined" && navigator.vibrate) {
+                                    navigator.vibrate(25);
+                                }
                             }}
                         >
-                            <div className={`absolute inset-0 rounded-full animate-ping opacity-40 ${hotspot.isInternal ? 'bg-amber-400' : 'bg-blue-400'}`}></div>
-                        </div>
+                            <div 
+                                className={`w-4 h-4 rounded-full border-2 border-white shadow-md transition-all duration-300 ${
+                                    activeHotspot === hotspot.id 
+                                        ? 'bg-emerald-500 scale-125' 
+                                        : hotspot.isInternal 
+                                            ? 'bg-amber-500 hover:bg-amber-400 hover:scale-110 ring-2 ring-amber-300/50' 
+                                            : 'bg-blue-500 hover:bg-emerald-400 hover:scale-110'
+                                }`}
+                            >
+                                <div className={`absolute inset-0 rounded-full animate-ping opacity-40 ${hotspot.isInternal ? 'bg-amber-400' : 'bg-blue-400'}`}></div>
+                            </div>
+                        </button>
                         <div className={`absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max max-w-xs bg-white dark:bg-gray-900 border ${hotspot.isInternal ? 'border-amber-400/60 dark:border-amber-600/60 shadow-amber-500/10' : 'border-gray-200 dark:border-gray-700'} shadow-xl rounded-xl py-2 px-3 transition-all duration-200 pointer-events-none origin-bottom ${activeHotspot === hotspot.id ? 'opacity-100 scale-100' : 'opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100'}`}>
                             {hotspot.isInternal && (
                                 <span className="text-[9px] font-bold text-amber-500 dark:text-amber-400 uppercase tracking-wider block mb-0.5">
@@ -617,7 +633,13 @@ export default function ModelViewer({ modelUrl, hotspots = [], onHotspotClick }:
 
             {/* BẢNG ĐIỀU KHIỂN CẮT LỚP GIẢI PHẪU Y KHOA CHUYÊN DỤNG */}
             {showCrossSection && (
-                <div className="absolute top-12 left-2.5 right-2.5 sm:top-auto sm:bottom-4 sm:left-4 sm:right-auto sm:w-80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md p-3 sm:p-3.5 rounded-2xl shadow-xl border border-indigo-200 dark:border-indigo-900/60 z-20 transition-all duration-300">
+                <div 
+                    className="absolute top-12 left-2.5 right-2.5 sm:top-auto sm:bottom-4 sm:left-4 sm:right-auto sm:w-80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md p-3 sm:p-3.5 rounded-2xl shadow-xl border border-indigo-200 dark:border-indigo-900/60 z-20 transition-all duration-300"
+                    onTouchStart={(e) => e.stopPropagation()}
+                    onTouchMove={(e) => e.stopPropagation()}
+                    onTouchEnd={(e) => e.stopPropagation()}
+                    style={{ touchAction: "auto" }}
+                >
                     <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-gray-100 dark:border-gray-800">
                         <div className="flex items-center gap-1.5">
                             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -706,7 +728,10 @@ export default function ModelViewer({ modelUrl, hotspots = [], onHotspotClick }:
                             step="0.05"
                             value={sliceOffset}
                             onChange={(e) => setSliceOffset(parseFloat(e.target.value))}
-                            className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                            onTouchStart={(e) => e.stopPropagation()}
+                            onTouchMove={(e) => e.stopPropagation()}
+                            style={{ touchAction: "auto" }}
+                            className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                         />
                         <div className="flex justify-between text-[9px] text-gray-400 dark:text-gray-500 font-medium px-0.5">
                             <span>Nguyên vẹn (0% cắt)</span>

@@ -72,8 +72,8 @@ export default function PhysicsLab() {
 
             <Tour steps={tourSteps} isOpen={tourOpen} onClose={() => setTourOpen(false)} />
 
-            {/* Mobile Sub-discipline Switcher (visible only on mobile/tablet < lg) */}
-            <div className="lg:hidden flex items-center justify-center py-2 px-3 bg-slate-800/95 border-b border-slate-700/80 z-20 shrink-0">
+            {/* Mobile Sub-discipline Switcher (visible only on mobile < md) */}
+            <div className="md:hidden flex items-center justify-center py-2 px-3 bg-slate-800/95 border-b border-slate-700/80 z-20 shrink-0">
                 <div className="flex items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-700/80 shadow-inner w-full max-w-sm justify-between">
                     <button
                         onClick={() => setActiveTab("pendulum")}

@@ -9,16 +9,34 @@ export default function Circuit() {
     const bulbResistance = 5; // Fixed bulb resistance
     const [isClosed, setIsClosed] = useState(false); // Switch state
     const [mobileTab, setMobileTab] = useState<"sim" | "controls">("sim");
+    const [isTheaterMode, setIsTheaterMode] = useState(false);
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const requestRef = useRef<number>();
     const electronOffsetRef = useRef(0);
 
-    // Calculations
     const totalResistance = resistor + bulbResistance;
     const current = isClosed ? voltage / totalResistance : 0; // I = U/R
     const bulbVoltage = current * bulbResistance;
     const bulbPower = current * current * bulbResistance;
+
+    const handleCanvasClick = (clientX: number, clientY: number) => {
+        const rect = canvasRef.current?.getBoundingClientRect();
+        if (!rect) return;
+        const scaleX = 800 / rect.width;
+        const scaleY = 600 / rect.height;
+        const x = (clientX - rect.left) * scaleX;
+        const y = (clientY - rect.top) * scaleY;
+
+        // Switch location: x around 325, y around 150
+        const distToSwitch = Math.sqrt((x - 325)**2 + (y - 150)**2);
+        if (distToSwitch < 75) {
+            setIsClosed(prev => !prev);
+            if (typeof window !== "undefined" && navigator.vibrate) {
+                navigator.vibrate(30);
+            }
+        }
+    };
 
     // Animation Loop
     const animate = useCallback(() => {
@@ -239,8 +257,8 @@ export default function Circuit() {
 
             {/* Control Panel (Left on Desktop, Tab on Mobile) */}
             <div
-                className={`w-full lg:w-96 bg-slate-800/50 border-r border-slate-700 p-4 sm:p-6 flex flex-col gap-5 overflow-y-auto z-10 shadow-2xl ${
-                    mobileTab === "controls" ? "flex flex-1" : "hidden lg:flex"
+                className={`w-full lg:w-96 bg-slate-800/50 border-r border-slate-700 p-4 sm:p-6 flex flex-col gap-5 overflow-y-auto z-10 shadow-2xl transition-all duration-300 ${
+                    mobileTab === "controls" ? "flex flex-1" : isTheaterMode ? "hidden" : "hidden lg:flex"
                 }`}
             >
                 <div>
@@ -332,6 +350,42 @@ export default function Circuit() {
                     mobileTab === "sim" ? "flex" : "hidden lg:flex"
                 }`}
             >
+                {/* Top Action Buttons (Theater Mode) */}
+                <div className="absolute top-2.5 right-2.5 sm:top-5 sm:right-5 z-20 flex items-center gap-2">
+                    <button
+                        onClick={() => setIsTheaterMode(!isTheaterMode)}
+                        className={`px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg backdrop-blur transition-all active:scale-95 border ${
+                            isTheaterMode 
+                                ? "bg-amber-600 border-amber-400 text-white shadow-amber-600/30 ring-2 ring-amber-400/30"
+                                : "bg-slate-800/90 hover:bg-slate-700 border-slate-700 text-amber-300"
+                        }`}
+                        title={isTheaterMode ? "Thu nhỏ lại chế độ tiêu chuẩn" : "Phóng to toàn màn hình thí nghiệm cho khán giả"}
+                    >
+                        <svg className="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isTheaterMode ? "M9 9L4 4m0 0l5 0m-5 0l0 5m11 0l5-5m0 0l-5 0m5 0l0 5m-5 11l5 5m0 0l-5 0m5 0l0-5m-11 0l-5 5m0 0l5 0m-5 0l0-5" : "M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"} />
+                        </svg>
+                        <span>{isTheaterMode ? "🔍 Thu nhỏ" : "🖥️ Phóng to Trình chiếu"}</span>
+                    </button>
+                </div>
+
+                {/* Theater Mode Floating Settings Trigger (Desktop only) */}
+                {isTheaterMode && (
+                    <div className="hidden lg:flex absolute top-5 left-5 z-20 items-center gap-2">
+                        <button
+                            onClick={() => setIsTheaterMode(false)}
+                            className="px-3 py-1.5 rounded-xl bg-slate-800/95 hover:bg-slate-700 border border-slate-600 text-amber-300 text-xs font-semibold flex items-center gap-1.5 shadow-xl backdrop-blur transition-all"
+                        >
+                            <svg className="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                            </svg>
+                            <span>📂 Hiện bảng chỉnh (U = {voltage}V, R = {resistor}Ω)</span>
+                        </button>
+                        <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                            🖥️ Trình chiếu Mạch điện
+                        </span>
+                    </div>
+                )}
+
                 {/* Compact meters on mobile */}
                 <div className="lg:hidden p-2 bg-slate-900/80 border-b border-slate-800 flex items-center justify-around text-center text-xs">
                     <div>
@@ -359,7 +413,13 @@ export default function Circuit() {
                         ref={canvasRef} 
                         width={800} 
                         height={600} 
-                        className="w-full max-w-[500px] sm:max-w-none h-auto sm:h-full object-contain z-0"
+                        className="w-full max-w-[500px] sm:max-w-none h-auto sm:h-full object-contain z-0 cursor-pointer touch-none select-none"
+                        onClick={(e) => handleCanvasClick(e.clientX, e.clientY)}
+                        onTouchStart={(e) => {
+                            if (e.touches.length > 0) {
+                                handleCanvasClick(e.touches[0].clientX, e.touches[0].clientY);
+                            }
+                        }}
                     />
                 </div>
 

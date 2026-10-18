@@ -20,6 +20,7 @@ export default function Pendulum() {
     const [tourOpen, setTourOpen] = useState(false);
     const [mobileTab, setMobileTab] = useState<"sim" | "controls" | "energy">("sim");
     const [showGuideModal, setShowGuideModal] = useState(false);
+    const [isTheaterMode, setIsTheaterMode] = useState(false);
 
     const tourSteps: TourStep[] = [
         { target: "#pendulum-canvas", title: "Kéo thả quả nặng", description: "Bấm giữ và kéo quả bóng này để thay đổi góc lệch ban đầu (Biên độ), sau đó thả tay ra để con lắc TỰ ĐỘNG dao động." },
@@ -48,6 +49,7 @@ export default function Pendulum() {
     const requestRef = useRef<number>();
     const lastTimeRef = useRef<number>();
     const isDraggingRef = useRef(false);
+    const [isDragging, setIsDragging] = useState(false);
     
     // History trace
     const traceRef = useRef<{x: number, y: number}[]>([]);
@@ -220,6 +222,17 @@ export default function Pendulum() {
         ctx.shadowOffsetY = 5;
         ctx.fill();
         ctx.shadowColor = "transparent"; // reset shadow
+
+        // Glow indicator when dragging
+        if (isDraggingRef.current) {
+            ctx.beginPath();
+            ctx.arc(bobX, bobY, radius + 8, 0, 2 * Math.PI);
+            ctx.strokeStyle = "rgba(129, 140, 248, 0.9)";
+            ctx.lineWidth = 3;
+            ctx.setLineDash([5, 5]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
         
         // Vectors
         if (showVectors) {
@@ -282,6 +295,19 @@ export default function Pendulum() {
         };
     };
 
+    // Helper to calculate and constrain angle from client coordinates
+    const updateAngleFromCoords = useCallback((clientX: number, clientY: number) => {
+        const coords = getCanvasCoords(clientX, clientY);
+        if (!coords) return;
+
+        let newAngle = Math.atan2(coords.x - originX, coords.y - originY);
+        if (newAngle > Math.PI / 2) newAngle = Math.PI / 2;
+        if (newAngle < -Math.PI / 2) newAngle = -Math.PI / 2;
+
+        setAngle(newAngle);
+        updateEnergies(newAngle, 0);
+    }, [originX, originY]);
+
     // Mouse Interaction
     const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
         const coords = getCanvasCoords(e.clientX, e.clientY);
@@ -293,8 +319,9 @@ export default function Pendulum() {
 
         // Check if clicked inside bob
         const dist = Math.sqrt((coords.x - bobX)**2 + (coords.y - bobY)**2);
-        if (dist <= radius * 2.0) {
+        if (dist <= radius * 2.5) {
             isDraggingRef.current = true;
+            setIsDragging(true);
             setIsPlaying(false); // Pause when grabbing
             setVelocity(0); // Reset velocity
             traceRef.current = [];
@@ -303,23 +330,13 @@ export default function Pendulum() {
 
     const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
         if (!isDraggingRef.current) return;
-        const coords = getCanvasCoords(e.clientX, e.clientY);
-        if (!coords) return;
-
-        // Calculate new angle based on position relative to origin
-        let newAngle = Math.atan2(coords.x - originX, coords.y - originY);
-        
-        // Constrain angle to realistic bounds (e.g., -pi/2 to pi/2)
-        if (newAngle > Math.PI / 2) newAngle = Math.PI / 2;
-        if (newAngle < -Math.PI / 2) newAngle = -Math.PI / 2;
-        
-        setAngle(newAngle);
-        updateEnergies(newAngle, 0); // Update energy while dragging
+        updateAngleFromCoords(e.clientX, e.clientY);
     };
 
     const handleMouseUp = () => {
         if (isDraggingRef.current) {
             isDraggingRef.current = false;
+            setIsDragging(false);
             setIsPlaying(true); // Automatically start playing when dropped
         }
     };
@@ -336,34 +353,83 @@ export default function Pendulum() {
         const radius = 15 + Math.sqrt(mass) * 6;
 
         const dist = Math.sqrt((coords.x - bobX)**2 + (coords.y - bobY)**2);
-        if (dist <= radius * 2.5) {
+        // Generous touch tolerance on mobile (at least 75px)
+        const touchThreshold = Math.max(radius * 3.5, 75);
+
+        if (dist <= touchThreshold) {
+            if (e.cancelable) e.preventDefault();
             isDraggingRef.current = true;
+            setIsDragging(true);
             setIsPlaying(false);
             setVelocity(0);
             traceRef.current = [];
+            if (typeof window !== "undefined" && navigator.vibrate) {
+                navigator.vibrate(25);
+            }
         }
     };
 
     const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
         if (!isDraggingRef.current || e.touches.length === 0) return;
+        if (e.cancelable) e.preventDefault();
         const touch = e.touches[0];
-        const coords = getCanvasCoords(touch.clientX, touch.clientY);
-        if (!coords) return;
-
-        let newAngle = Math.atan2(coords.x - originX, coords.y - originY);
-        if (newAngle > Math.PI / 2) newAngle = Math.PI / 2;
-        if (newAngle < -Math.PI / 2) newAngle = -Math.PI / 2;
-
-        setAngle(newAngle);
-        updateEnergies(newAngle, 0);
+        updateAngleFromCoords(touch.clientX, touch.clientY);
     };
 
     const handleTouchEnd = () => {
         if (isDraggingRef.current) {
             isDraggingRef.current = false;
+            setIsDragging(false);
             setIsPlaying(true);
         }
     };
+
+    // Window-level event listeners to ensure dragging continues seamlessly even if finger/mouse moves outside the canvas
+    useEffect(() => {
+        if (!isDragging) return;
+
+        const handleWinTouchMove = (e: TouchEvent) => {
+            if (!isDraggingRef.current || e.touches.length === 0) return;
+            if (e.cancelable) e.preventDefault();
+            const touch = e.touches[0];
+            updateAngleFromCoords(touch.clientX, touch.clientY);
+        };
+
+        const handleWinTouchEnd = () => {
+            if (isDraggingRef.current) {
+                isDraggingRef.current = false;
+                setIsDragging(false);
+                setIsPlaying(true);
+            }
+        };
+
+        const handleWinMouseMove = (e: MouseEvent) => {
+            if (!isDraggingRef.current) return;
+            updateAngleFromCoords(e.clientX, e.clientY);
+        };
+
+        const handleWinMouseUp = () => {
+            if (isDraggingRef.current) {
+                isDraggingRef.current = false;
+                setIsDragging(false);
+                setIsPlaying(true);
+            }
+        };
+
+        window.addEventListener("touchmove", handleWinTouchMove, { passive: false });
+        window.addEventListener("touchend", handleWinTouchEnd);
+        window.addEventListener("touchcancel", handleWinTouchEnd);
+        window.addEventListener("mousemove", handleWinMouseMove);
+        window.addEventListener("mouseup", handleWinMouseUp);
+
+        return () => {
+            window.removeEventListener("touchmove", handleWinTouchMove);
+            window.removeEventListener("touchend", handleWinTouchEnd);
+            window.removeEventListener("touchcancel", handleWinTouchEnd);
+            window.removeEventListener("mousemove", handleWinMouseMove);
+            window.removeEventListener("mouseup", handleWinMouseUp);
+        };
+    }, [isDragging, updateAngleFromCoords]);
 
     const period = 2 * Math.PI * Math.sqrt(length / gravity);
     
@@ -413,8 +479,8 @@ export default function Pendulum() {
             {/* Control Panel (Left on Desktop, Tab on Mobile) */}
             <div
                 id="pendulum-controls"
-                className={`w-full lg:w-96 bg-slate-800/50 border-r border-slate-700 p-4 sm:p-6 flex flex-col gap-5 overflow-y-auto custom-scrollbar backdrop-blur-sm z-10 shadow-2xl ${
-                    mobileTab === "controls" ? "flex flex-1" : "hidden lg:flex"
+                className={`w-full lg:w-96 bg-slate-800/50 border-r border-slate-700 p-4 sm:p-6 flex flex-col gap-5 overflow-y-auto custom-scrollbar backdrop-blur-sm z-10 shadow-2xl transition-all duration-300 ${
+                    mobileTab === "controls" ? "flex flex-1" : isTheaterMode ? "hidden" : "hidden lg:flex"
                 }`}
             >
                 <div>
@@ -575,8 +641,23 @@ export default function Pendulum() {
                     </div>
                 </div>
 
-                {/* Guide Toggle Button */}
-                <div className="absolute top-2.5 right-2.5 sm:top-6 sm:right-6 z-20">
+                {/* Top Action Buttons (Guide & Theater Mode) */}
+                <div className="absolute top-2.5 right-2.5 sm:top-6 sm:right-6 z-20 flex items-center gap-2">
+                    <button
+                        onClick={() => setIsTheaterMode(!isTheaterMode)}
+                        className={`px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg backdrop-blur transition-all active:scale-95 border ${
+                            isTheaterMode 
+                                ? "bg-indigo-600 border-indigo-400 text-white shadow-indigo-600/30 ring-2 ring-indigo-400/30"
+                                : "bg-slate-800/90 hover:bg-slate-700 border-slate-700 text-indigo-300"
+                        }`}
+                        title={isTheaterMode ? "Thu nhỏ lại chế độ tiêu chuẩn" : "Phóng to toàn màn hình thí nghiệm cho khán giả"}
+                    >
+                        <svg className="w-3.5 h-3.5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isTheaterMode ? "M9 9L4 4m0 0l5 0m-5 0l0 5m11 0l5-5m0 0l-5 0m5 0l0 5m-5 11l5 5m0 0l-5 0m5 0l0-5m-11 0l-5 5m0 0l5 0m-5 0l0-5" : "M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"} />
+                        </svg>
+                        <span>{isTheaterMode ? "🔍 Thu nhỏ" : "🖥️ Phóng to Trình chiếu"}</span>
+                    </button>
+
                     <button
                         onClick={() => setShowGuideModal(!showGuideModal)}
                         className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-indigo-300 text-xs font-semibold flex items-center gap-1.5 shadow-lg backdrop-blur"
@@ -615,13 +696,35 @@ export default function Pendulum() {
                     </div>
                 )}
 
+                {/* Theater Mode Floating Settings Trigger (Desktop only) */}
+                {isTheaterMode && (
+                    <div className="hidden lg:flex absolute top-6 left-6 z-20 items-center gap-2">
+                        <button
+                            onClick={() => setIsTheaterMode(false)}
+                            className="px-3.5 py-2 rounded-xl bg-slate-800/95 hover:bg-slate-700 border border-slate-600 text-indigo-300 text-xs font-semibold flex items-center gap-2 shadow-xl backdrop-blur transition-all"
+                        >
+                            <svg className="w-4 h-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                            </svg>
+                            <span>📂 Hiện bảng cài đặt ({length.toFixed(1)}m, {gravity}m/s²)</span>
+                        </button>
+                        <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                            🖥️ Chế độ Trình chiếu
+                        </span>
+                    </div>
+                )}
+
                 {/* Canvas Container */}
                 <div id="pendulum-canvas" className="flex-1 flex justify-center items-center relative p-2 overflow-hidden">
                     <canvas 
                         ref={canvasRef} 
                         width={600} 
                         height={600} 
-                        className="w-full max-w-[340px] xs:max-w-[380px] sm:max-w-[500px] h-auto aspect-square bg-transparent cursor-grab active:cursor-grabbing z-0 touch-none select-none"
+                        className={`w-full ${
+                            isTheaterMode 
+                                ? "max-w-[650px] sm:max-w-[750px] lg:max-w-[850px] max-h-[82vh]" 
+                                : "max-w-[340px] xs:max-w-[380px] sm:max-w-[500px]"
+                        } h-auto aspect-square bg-transparent cursor-grab active:cursor-grabbing z-0 touch-none select-none transition-all duration-300`}
                         onMouseDown={handleMouseDown}
                         onMouseMove={handleMouseMove}
                         onMouseUp={handleMouseUp}

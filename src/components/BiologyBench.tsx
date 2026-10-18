@@ -145,6 +145,8 @@ export default function BiologyBench() {
     const [selectedOrganId, setSelectedOrganId] = useState<string>(ORGANS[0].id);
     const [activeHotspotInfo, setActiveHotspotInfo] = useState<HotspotData | null>(null);
     const [mobileTab, setMobileTab] = useState<"model" | "info">("model");
+    const [isTheaterMode, setIsTheaterMode] = useState<boolean>(false);
+    const [showInfoDrawer, setShowInfoDrawer] = useState<boolean>(false);
     
     const selectedOrgan = ORGANS.find(o => o.id === selectedOrganId) || ORGANS[0];
 
@@ -154,9 +156,9 @@ export default function BiologyBench() {
     };
 
     return (
-        <div className="flex flex-col md:flex-row h-[calc(100dvh-56px)] sm:h-[calc(100dvh-64px)] bg-[#f8fafc] dark:bg-[#0a0e17] text-gray-800 dark:text-gray-100 transition-colors duration-300 overflow-hidden">
-            {/* Mobile Header: Horizontal Organ Picker & Tab Switcher */}
-            <div id="tour-bio-sidebar-mobile" className="md:hidden flex flex-col bg-white/95 dark:bg-gray-900/95 border-b border-gray-200 dark:border-gray-800 z-20 flex-shrink-0 backdrop-blur">
+        <div className="flex flex-col lg:flex-row h-[calc(100dvh-56px)] sm:h-[calc(100dvh-64px)] bg-[#f8fafc] dark:bg-[#0a0e17] text-gray-800 dark:text-gray-100 transition-colors duration-300 overflow-hidden">
+            {/* Mobile / Tablet Header: Horizontal Organ Picker & Tab Switcher (Screens < lg) */}
+            <div id="tour-bio-sidebar-mobile" className="lg:hidden flex flex-col bg-white/95 dark:bg-gray-900/95 border-b border-gray-200 dark:border-gray-800 z-20 flex-shrink-0 backdrop-blur">
                 {/* Horizontal scrollable organ pills */}
                 <div className="flex items-center gap-1.5 px-3 py-2 overflow-x-auto no-scrollbar scroll-smooth">
                     {ORGANS.map((organ) => {
@@ -216,15 +218,30 @@ export default function BiologyBench() {
                 </div>
             </div>
 
-            {/* Desktop Sidebar: Organ List */}
-            <div id="tour-bio-sidebar" className="hidden md:flex w-72 flex-shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-y-auto flex-col">
-                <div className="p-4 border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur z-10">
+            {/* Desktop Sidebar: Organ List (Screens >= lg) */}
+            <div 
+                id="tour-bio-sidebar" 
+                className={`w-72 flex-shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-y-auto flex-col transition-all duration-300 ${
+                    isTheaterMode ? "hidden" : "hidden lg:flex"
+                }`}
+            >
+                <div className="p-4 border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur z-10 flex items-center justify-between">
                     <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                         <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418" />
                         </svg>
                         Mô hình Giải phẫu
                     </h2>
+                    <button
+                        onClick={() => setIsTheaterMode(true)}
+                        className="p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold flex items-center gap-1 transition-all"
+                        title="Phóng to toàn cảnh trình chiếu cho khán giả"
+                    >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                        </svg>
+                        <span className="text-[11px]">Trình chiếu</span>
+                    </button>
                 </div>
                 <div className="flex-1 p-3 space-y-1.5 overflow-y-auto">
                     {ORGANS.map((organ) => {
@@ -252,31 +269,92 @@ export default function BiologyBench() {
             </div>
 
             {/* Main Area: 3D Viewer & Info */}
-            <div className="flex-1 flex flex-col lg:flex-row gap-3 sm:gap-4 md:gap-6 p-2 sm:p-4 md:p-6 overflow-hidden min-h-0">
+            <div className="flex-1 flex flex-col lg:flex-row gap-3 sm:gap-4 md:gap-6 p-2 sm:p-4 md:p-6 overflow-hidden min-h-0 relative">
                 {/* 3D Canvas Container */}
                 <div 
                     id="tour-bio-viewer" 
                     className={`flex-1 bg-white dark:bg-gray-900 rounded-2xl md:rounded-3xl p-1.5 sm:p-2 shadow-sm border border-gray-200 dark:border-gray-800 flex flex-col relative overflow-hidden min-h-0 ${
-                        mobileTab === "info" ? "hidden md:flex" : "flex h-full"
+                        mobileTab === "info" ? "hidden lg:flex" : "flex h-full"
                     }`}
                 >
+                    {/* Top Floating Control Bar inside 3D Viewer */}
+                    <div className="absolute top-2.5 left-2.5 right-2.5 sm:top-4 sm:left-4 sm:right-4 z-20 flex items-center justify-between pointer-events-none gap-2">
+                        {/* Organ Selector Dropdown / Pills in Theater Mode */}
+                        <div className="pointer-events-auto flex items-center gap-2">
+                            {isTheaterMode ? (
+                                <div className="flex items-center gap-1.5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md px-3 py-1.5 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700">
+                                    <span className="text-xs font-bold text-gray-500 dark:text-gray-400 hidden sm:inline">Cơ quan:</span>
+                                    <select
+                                        value={selectedOrganId}
+                                        onChange={(e) => handleOrganSelect(e.target.value)}
+                                        className="bg-transparent text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400 focus:outline-none cursor-pointer pr-2"
+                                    >
+                                        {ORGANS.map(o => (
+                                            <option key={o.id} value={o.id} className="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100">
+                                                {o.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            ) : (
+                                <div className="hidden lg:flex items-center gap-2 bg-white/90 dark:bg-gray-900/90 backdrop-blur px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 text-xs font-bold text-gray-800 dark:text-gray-200 shadow-sm">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <span>{selectedOrgan.name}</span>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Action buttons (Theater mode & Details) */}
+                        <div className="pointer-events-auto flex items-center gap-2">
+                            {isTheaterMode && (
+                                <button
+                                    onClick={() => setShowInfoDrawer(true)}
+                                    className="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-white/95 dark:bg-gray-800/95 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-1.5 shadow-xl backdrop-blur transition-all active:scale-95"
+                                    title="Xem bảng chi tiết cấu tạo giải phẫu"
+                                >
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                                    </svg>
+                                    <span className="hidden sm:inline">Giải phẫu & Chức năng</span>
+                                </button>
+                            )}
+
+                            <button
+                                onClick={() => setIsTheaterMode(!isTheaterMode)}
+                                className={`px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xl backdrop-blur transition-all active:scale-95 border ${
+                                    isTheaterMode 
+                                        ? "bg-emerald-600 border-emerald-400 text-white shadow-emerald-600/30 ring-2 ring-emerald-400/30"
+                                        : "bg-white/95 dark:bg-gray-800/95 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700 text-emerald-600 dark:text-emerald-400"
+                                }`}
+                                title={isTheaterMode ? "Thu nhỏ lại chế độ tiêu chuẩn" : "Phóng to toàn màn hình mô hình 3D cho khán giả"}
+                            >
+                                <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isTheaterMode ? "M9 9L4 4m0 0l5 0m-5 0l0 5m11 0l5-5m0 0l-5 0m5 0l0 5m-5 11l5 5m0 0l-5 0m5 0l0-5m-11 0l-5 5m0 0l5 0m-5 0l0-5" : "M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"} />
+                                </svg>
+                                <span>{isTheaterMode ? "🔍 Thu nhỏ" : "🖥️ Phóng to Trình chiếu"}</span>
+                            </button>
+                        </div>
+                    </div>
+
                     <ModelViewer 
                         modelUrl={selectedOrgan.file} 
                         hotspots={selectedOrgan.hotspots}
                         onHotspotClick={(hotspot) => setActiveHotspotInfo(hotspot)}
                     />
 
-                    {/* Floating Mobile Hotspot Card */}
+                    {/* Floating Hotspot Card (Shown on mobile OR on desktop in Theater Mode) */}
                     {activeHotspotInfo && (
-                        <div className="md:hidden absolute bottom-2 left-2 right-2 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md p-3.5 rounded-2xl shadow-xl border border-emerald-500/40 z-20 animate-fade-in">
-                            <div className="flex items-start justify-between gap-2 mb-1">
-                                <div className="flex items-center gap-1.5">
+                        <div className={`absolute bottom-3 left-3 right-3 sm:left-6 sm:right-auto sm:max-w-md bg-white/95 dark:bg-gray-900/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-emerald-500/50 z-20 animate-fade-in ${
+                            !isTheaterMode ? "lg:hidden" : ""
+                        }`}>
+                            <div className="flex items-start justify-between gap-2 mb-1.5">
+                                <div className="flex items-center gap-2">
                                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
-                                    <span className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wide">{activeHotspotInfo.label}</span>
+                                    <span className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wide">{activeHotspotInfo.label}</span>
                                 </div>
                                 <button 
                                     onClick={() => setActiveHotspotInfo(null)}
-                                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-0.5"
+                                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-0.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                                     title="Đóng"
                                 >
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -285,25 +363,34 @@ export default function BiologyBench() {
                                 </button>
                             </div>
                             {activeHotspotInfo.description && (
-                                <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-3 leading-relaxed mb-2.5">
+                                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 line-clamp-4 leading-relaxed mb-2.5">
                                     {activeHotspotInfo.description}
                                 </p>
                             )}
-                            <button
-                                onClick={() => setMobileTab("info")}
-                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
-                            >
-                                Đọc chi tiết cấu tạo giải phẫu →
-                            </button>
+                            <div className="flex items-center justify-between pt-1 border-t border-gray-100 dark:border-gray-800">
+                                <button
+                                    onClick={() => {
+                                        if (isTheaterMode) {
+                                            setShowInfoDrawer(true);
+                                        } else {
+                                            setMobileTab("info");
+                                        }
+                                    }}
+                                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
+                                >
+                                    Đọc chi tiết cấu tạo giải phẫu →
+                                </button>
+                                <span className="text-[10px] text-gray-400 italic">Nhấp lại vào điểm để ẩn</span>
+                            </div>
                         </div>
                     )}
                 </div>
 
-                {/* Info Panel Container */}
+                {/* Info Panel Container (Standard Mode on Desktop) */}
                 <div 
                     id="tour-bio-info" 
-                    className={`w-full lg:w-80 flex-shrink-0 flex flex-col gap-4 overflow-y-auto ${
-                        mobileTab === "model" ? "hidden md:flex" : "flex flex-1 h-full"
+                    className={`w-full lg:w-80 flex-shrink-0 flex flex-col gap-4 overflow-y-auto transition-all duration-300 ${
+                        isTheaterMode ? "hidden" : mobileTab === "model" ? "hidden lg:flex" : "flex flex-1 h-full"
                     }`}
                 >
                     <div className="bg-white dark:bg-gray-900 rounded-2xl md:rounded-3xl p-4 sm:p-6 shadow-sm border border-gray-200 dark:border-gray-800 h-full flex flex-col overflow-hidden">
@@ -393,6 +480,45 @@ export default function BiologyBench() {
                         </div>
                     </div>
                 </div>
+
+                {/* Slide-over Info Drawer during Theater Mode */}
+                {isTheaterMode && showInfoDrawer && (
+                    <div className="absolute inset-0 z-30 flex justify-end bg-black/40 backdrop-blur-xs animate-fade-in">
+                        <div className="w-full max-w-md bg-white dark:bg-gray-900 h-full p-6 shadow-2xl border-l border-gray-200 dark:border-gray-800 flex flex-col animate-slide-left">
+                            <div className="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-800 mb-4">
+                                <h3 className="text-lg font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
+                                    <span>📖 {selectedOrgan.name}</span>
+                                </h3>
+                                <button
+                                    onClick={() => setShowInfoDrawer(false)}
+                                    className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-sm font-bold"
+                                >
+                                    ✕ Đóng
+                                </button>
+                            </div>
+                            <div className="space-y-4 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                                <div>
+                                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Hệ cơ quan</h4>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {selectedOrgan.systems.map(s => (
+                                            <span key={s} className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded text-xs font-semibold">
+                                                {s}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div>
+                                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Mô tả giải phẫu</h4>
+                                    <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-line">{selectedOrgan.description}</p>
+                                </div>
+                                <div>
+                                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Chức năng</h4>
+                                    <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-line">{selectedOrgan.function}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -90,6 +90,10 @@ export default function LabBench() {
     const [labStatus, setLabStatus] = useState<"idle" | "reacting" | "complete">("idle");
     const [dragOver, setDragOver] = useState(false);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+    const [touchDraggingChem, setTouchDraggingChem] = useState<Chemical | null>(null);
+    const [touchGhostPos, setTouchGhostPos] = useState<{ x: number; y: number } | null>(null);
+    const [isTheaterMode, setIsTheaterMode] = useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
     // Gamification: walkthrough 90s + badge feedback
     const [showWalkthrough, setShowWalkthrough] = useState(false);
@@ -327,6 +331,39 @@ export default function LabBench() {
             setDragOver(false);
         }
     }, []);
+
+    // ─── Touch Drag & Drop for Mobile & Tablet ───
+    const handleTouchDragStart = useCallback((chemical: Chemical, x: number, y: number) => {
+        if (activeReaction) return;
+        if (chemical1?.id === chemical.id || chemical2?.id === chemical.id) return;
+        setTouchDraggingChem(chemical);
+        setTouchGhostPos({ x, y });
+    }, [activeReaction, chemical1, chemical2]);
+
+    const handleTouchDragMove = useCallback((x: number, y: number) => {
+        setTouchGhostPos({ x, y });
+        const el = document.elementFromPoint(x, y);
+        const isOverDropZone = !!el?.closest('[data-drop-zone="beaker"]');
+        setDragOver(isOverDropZone);
+    }, []);
+
+    const handleTouchDragEnd = useCallback(() => {
+        if (touchDraggingChem && dragOver) {
+            if (!chemical1) {
+                placeChemical(1, touchDraggingChem);
+            } else if (!chemical2 && chemical1.id !== touchDraggingChem.id) {
+                placeChemical(2, touchDraggingChem);
+                // When both chemicals are chosen, auto close drawer on phone
+                setMobileSidebarOpen(false);
+            }
+            if (typeof window !== "undefined" && navigator.vibrate) {
+                navigator.vibrate([40, 30, 40]);
+            }
+        }
+        setTouchDraggingChem(null);
+        setTouchGhostPos(null);
+        setDragOver(false);
+    }, [touchDraggingChem, dragOver, chemical1, chemical2, placeChemical]);
 
     // ─── Trigger reaction ───
     const triggerReaction = useCallback((chem1: Chemical, chem2: Chemical) => {
@@ -697,14 +734,14 @@ export default function LabBench() {
                 </div>
             )}
 
-            {/* Mobile Chemical Drawer Toggle Button & Bar (visible only on mobile) */}
+            {/* Mobile Chemical Drawer Toggle Button & Bar (visible only on mobile phones < md) */}
             <div className="md:hidden flex items-center justify-between gap-2 px-3 py-2 bg-gray-50 dark:bg-slate-800/80 border-b border-gray-200 dark:border-slate-700">
                 <button
                     onClick={() => setMobileSidebarOpen(true)}
                     className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-xs active:scale-95 transition-all"
                 >
                     <span>🧪 Mở kho hóa chất</span>
-                    <span className="text-[10px] bg-blue-700 px-1.5 py-0.5 rounded-full font-mono">
+                    <span className="text-[10px] bg-blue-700 px-2 py-0.5 rounded-full font-mono font-bold">
                         {[chemical1, chemical2].filter(Boolean).length}/2 đã chọn
                     </span>
                 </button>
@@ -721,8 +758,11 @@ export default function LabBench() {
 
             {/* Main Content */}
             <div className="flex-1 flex overflow-hidden relative">
-                {/* Desktop: Chemical Selector (Visible md and up) */}
-                <div id="tour-chemical-selector" className="hidden md:block w-72 flex-shrink-0 h-full border-r border-gray-200 dark:border-gray-700">
+                {/* Chemical Selector Sidebar: Visible side-by-side on iPad (md: 768px+) & Desktop, collapsible in Theater/Focus mode */}
+                <div 
+                    id="tour-chemical-selector" 
+                    className={`${(isTheaterMode || sidebarCollapsed) ? "hidden" : "hidden md:block"} w-64 lg:w-72 xl:w-80 flex-shrink-0 h-full border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 transition-all duration-300`}
+                >
                     <ChemicalSelector
                         onSelect={handleSelectChemical}
                         disabled={!!activeReaction}
@@ -731,18 +771,21 @@ export default function LabBench() {
                         slot2={chemical2}
                         onReplace={handleReplaceChemical}
                         onReset={handleClearAll}
+                        onTouchDragStart={handleTouchDragStart}
+                        onTouchDragMove={handleTouchDragMove}
+                        onTouchDragEnd={handleTouchDragEnd}
                     />
                 </div>
 
-                {/* Mobile Drawer (visible when mobileSidebarOpen is true) */}
+                {/* Drawer (visible on mobile phones OR when sidebar is collapsed/in theater mode on iPad/Desktop) */}
                 {mobileSidebarOpen && (
-                    <div className="fixed inset-0 z-50 md:hidden flex">
+                    <div className="fixed inset-0 z-50 flex">
                         <div
                             className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
                             onClick={() => setMobileSidebarOpen(false)}
                             aria-hidden="true"
                         />
-                        <div className="relative z-10 w-[85%] max-w-xs h-full bg-white dark:bg-gray-800 shadow-2xl flex flex-col border-r border-gray-200 dark:border-gray-700 animate-in slide-in-from-left duration-200">
+                        <div className="relative z-10 w-[85%] max-w-xs sm:max-w-sm h-full bg-white dark:bg-gray-800 shadow-2xl flex flex-col border-r border-gray-200 dark:border-gray-700 animate-in slide-in-from-left duration-200">
                             <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-slate-800">
                                 <span className="text-xs font-bold text-gray-800 dark:text-gray-100 flex items-center gap-1.5">
                                     🧪 Kho hóa chất
@@ -755,6 +798,29 @@ export default function LabBench() {
                                     ✕ Đóng
                                 </button>
                             </div>
+
+                            {/* Mobile Drawer Slot Status & Quick Action */}
+                            <div className="px-3 py-2 bg-slate-50 dark:bg-slate-900/80 border-b border-gray-200 dark:border-gray-700 flex flex-col gap-1.5">
+                                <div className="flex items-center justify-between text-[11px]">
+                                    <div className="flex items-center gap-1 truncate max-w-[48%]">
+                                        <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                                        <span className="text-gray-400 truncate">{chemical1 ? chemical1.name : "Chất 1: Trống"}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1 truncate max-w-[48%]">
+                                        <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0" />
+                                        <span className="text-gray-400 truncate">{chemical2 ? chemical2.name : "Chất 2: Trống"}</span>
+                                    </div>
+                                </div>
+                                {chemical1 && (
+                                    <button
+                                        onClick={() => setMobileSidebarOpen(false)}
+                                        className="w-full py-1.5 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center justify-center gap-1 shadow-sm active:scale-95 transition-all"
+                                    >
+                                        {chemical1 && chemical2 ? "✨ Đóng kho để xem phản ứng ngay!" : "👀 Trở về xem ống nghiệm"}
+                                    </button>
+                                )}
+                            </div>
+
                             <div className="flex-1 overflow-hidden">
                                 <ChemicalSelector
                                     onSelect={(chem) => {
@@ -770,6 +836,9 @@ export default function LabBench() {
                                     slot2={chemical2}
                                     onReplace={handleReplaceChemical}
                                     onReset={handleClearAll}
+                                    onTouchDragStart={handleTouchDragStart}
+                                    onTouchDragMove={handleTouchDragMove}
+                                    onTouchDragEnd={handleTouchDragEnd}
                                 />
                             </div>
                         </div>
@@ -777,12 +846,39 @@ export default function LabBench() {
                 )}
 
                 {/* Center: Lab Area */}
-                <div id="tour-beaker-area" className="flex-1 flex flex-col items-center gap-3 sm:gap-4 overflow-y-auto p-2 sm:p-6">
-                    {/* Lab Bench */}
-                    <div className={`relative w-full ${activeReaction?.result?.realVideo ? "max-w-5xl" : "max-w-3xl"} transition-all duration-300`}>
+                <div id="tour-beaker-area" data-drop-zone="beaker" className="flex-1 flex flex-col items-center gap-4 sm:gap-6 overflow-y-auto p-2 sm:p-5 md:p-6 pb-28 custom-scrollbar w-full">
+                    {/* Floating Open Chemical Drawer Pill when sidebar is collapsed or in Theater mode */}
+                    {(isTheaterMode || sidebarCollapsed) && (
+                        <div className="sticky top-1 z-20 flex items-center gap-2 mb-1 animate-in fade-in slide-in-from-top duration-200">
+                            <button
+                                onClick={() => setMobileSidebarOpen(true)}
+                                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg hover:shadow-xl active:scale-95 transition-all"
+                            >
+                                <span>🧪 Mở kho hóa chất</span>
+                                <span className="text-[10px] bg-blue-700 px-2 py-0.5 rounded-full font-mono">
+                                    {[chemical1, chemical2].filter(Boolean).length}/2 đã chọn
+                                </span>
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setIsTheaterMode(false);
+                                    setSidebarCollapsed(false);
+                                }}
+                                className="px-3 py-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium flex items-center gap-1.5 shadow-md backdrop-blur transition-all"
+                                title="Hiện lại bảng kho bên cạnh"
+                            >
+                                <span>📂 Hiện bảng kho bên cạnh</span>
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Lab Bench — Full Width & Spacious for iPad and Desktop */}
+                    <div className={`relative w-full transition-all duration-300 ${isTheaterMode ? "max-w-none px-0 sm:px-2" : "max-w-6xl xl:max-w-7xl"}`}>
                         <div
-                            className="bg-white dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden p-3 sm:p-6 transition-colors duration-200"
-                            style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
+                            data-drop-zone="beaker"
+                            className={`bg-white dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden p-3 sm:p-6 md:p-8 transition-all duration-300 shadow-sm flex flex-col justify-between ${
+                                isTheaterMode ? "min-h-[80vh] sm:min-h-[85vh]" : "min-h-[560px] sm:min-h-[640px] md:min-h-[700px] lg:min-h-[760px]"
+                            }`}
                         >
                             {/* Grid background */}
                             <div
@@ -796,9 +892,54 @@ export default function LabBench() {
                             {/* Lab table texture (subtle dark wood grain) */}
                             <div className="absolute inset-0 opacity-[0.08] dark:opacity-[0.12] pointer-events-none lab-bench-texture" aria-hidden="true" />
 
+                            {/* Bench Header Toolbar */}
+                            <div className="relative z-10 flex items-center justify-between gap-2 pb-3 mb-2 border-b border-gray-100 dark:border-gray-700/60">
+                                <div className="flex items-center gap-2">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
+                                    <span className="text-xs sm:text-sm font-bold text-gray-800 dark:text-gray-100 flex items-center gap-1.5">
+                                        Bàn thí nghiệm Hóa học
+                                        {isTheaterMode && (
+                                            <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 text-[10px] font-bold border border-amber-500/30">
+                                                🖥️ Chế độ Trình chiếu
+                                            </span>
+                                        )}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-1.5 sm:gap-2">
+                                    <button
+                                        onClick={() => setIsTheaterMode(!isTheaterMode)}
+                                        className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs active:scale-95 ${
+                                            isTheaterMode
+                                                ? "bg-amber-500 text-white hover:bg-amber-600 ring-2 ring-amber-400/50"
+                                                : "bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800"
+                                        }`}
+                                        title={isTheaterMode ? "Thu nhỏ về kích thước chuẩn" : "Phóng to toàn màn hình cho học sinh/khán giả quan sát"}
+                                    >
+                                        <span>{isTheaterMode ? "🔍 Thu nhỏ lại" : "🖥️ Phóng to Trình chiếu"}</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                                        className="hidden md:flex px-2.5 py-1.5 rounded-xl text-xs font-medium bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-200 items-center gap-1.5 transition-all"
+                                        title={sidebarCollapsed ? "Mở kho hóa chất bên cạnh" : "Thu gọn kho hóa chất"}
+                                    >
+                                        <span>{sidebarCollapsed ? "📂 Mở kho bên" : "📁 Ẩn kho bên"}</span>
+                                    </button>
+                                    {hasAnyChemical && (
+                                        <button
+                                            onClick={handleClearAll}
+                                            className="px-2.5 py-1.5 rounded-xl text-xs font-medium bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/40 flex items-center gap-1 transition-all"
+                                            title="Dọn sạch ống nghiệm"
+                                        >
+                                            🧹 Dọn bàn
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
                             {/* Drop zone — Single test tube area */}
                             <div
-                                className={`relative z-10 flex flex-col items-center justify-center py-6 px-4 min-h-[300px] transition-all duration-200 rounded-xl ${dragOver && !hasAnyChemical
+                                data-drop-zone="beaker"
+                                className={`relative z-10 flex-1 flex flex-col items-center justify-center py-6 sm:py-8 px-4 transition-all duration-200 rounded-xl ${dragOver && !hasAnyChemical
                                     ? "bg-blue-50/50 dark:bg-blue-900/20 border-2 border-dashed border-blue-300 dark:border-blue-700"
                                     : ""
                                     }`}
@@ -808,9 +949,9 @@ export default function LabBench() {
                             >
                                 {/* Empty state with drop hint */}
                                 {!hasAnyChemical && !dragOver && (
-                                    <div className="flex flex-col items-center gap-3 py-8">
-                                        <div className="w-20 h-20 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center mb-1 transition-colors duration-200" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-                                            <svg viewBox="0 0 40 60" className="w-10 h-14 text-blue-400/70" fill="none" stroke="currentColor" strokeWidth="1.2">
+                                    <div className="flex flex-col items-center justify-center gap-4 py-12 sm:py-16 my-auto">
+                                        <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl bg-white dark:bg-gray-800 border-2 border-dashed border-blue-400/50 dark:border-blue-500/40 flex items-center justify-center mb-1 transition-colors duration-200 shadow-sm animate-pulse">
+                                            <svg viewBox="0 0 40 60" className="w-16 h-20 text-blue-500" fill="none" stroke="currentColor" strokeWidth={1.4}>
                                                 <path d="M14 4 L14 40 Q14 52 20 54 Q26 52 26 40 L26 4" />
                                                 <rect x="12" y="1" width="16" height="5" rx="1.5" />
                                                 <path d="M16 4 L16 38 Q16 48 20 50 Q24 48 24 38 L24 4" opacity="0.3" />
@@ -819,49 +960,53 @@ export default function LabBench() {
                                                 <line x1="15" y1="28" x2="19" y2="28" opacity="0.2" />
                                             </svg>
                                         </div>
-                                        <h3 className="text-base font-bold text-gray-700 dark:text-gray-300">Chào mừng đến với Simlab</h3>
-                                        <p className="text-sm text-gray-400 dark:text-gray-500 max-w-md text-center leading-relaxed">
-                                            Kéo thả hóa chất từ kho bên trái vào đây để khám phá các phản ứng hóa học thú vị!
+                                        <h3 className="text-xl sm:text-2xl font-extrabold text-gray-800 dark:text-gray-100">Bàn Thí Nghiệm Hóa Học</h3>
+                                        <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 max-w-lg text-center leading-relaxed">
+                                            Chọn 2 hóa chất từ kho bên cạnh để hòa trộn vào ống nghiệm và quan sát các hiện tượng phản ứng thực tế!
                                         </p>
-                                        <div className="flex items-center justify-center gap-4 mt-1 text-xs text-gray-400 dark:text-gray-500">
-                                            <span className="flex items-center gap-1">
-                                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="m3 17 6-6-6-6m9 12h9" />
-                                                </svg>
-                                                Kéo thả
-                                            </span>
-                                            <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
-                                            <span className="flex items-center gap-1">
-                                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.042 21.672 13.684 16.6m0 0-2.51 2.225.569-9.47 5.227 7.917-3.286-.672Zm-7.518-.267A8.25 8.25 0 1 1 20.25 10.5M8.288 14.212A5.25 5.25 0 1 1 17.25 10.5" />
-                                                </svg>
-                                                Click chọn
-                                            </span>
-                                            <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
-                                            <span className="flex items-center gap-1">
-                                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                                                </svg>
-                                                Quan sát
-                                            </span>
+                                        <div className="flex flex-wrap items-center justify-center gap-3 mt-3">
+                                            <button
+                                                onClick={() => setMobileSidebarOpen(true)}
+                                                className="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-bold flex items-center gap-2 shadow-lg active:scale-95 transition-all"
+                                            >
+                                                <span>🧪 Mở kho chọn hóa chất</span>
+                                            </button>
+                                            <button
+                                                onClick={() => setShowExperiments(true)}
+                                                className="px-5 py-3 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 dark:hover:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-xs active:scale-95 transition-all"
+                                            >
+                                                <span>📚 Xem thí nghiệm mẫu</span>
+                                            </button>
+                                            <button
+                                                onClick={() => setIsTheaterMode(!isTheaterMode)}
+                                                className="px-4 py-3 rounded-xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-xs active:scale-95 transition-all"
+                                            >
+                                                <span>🖥️ {isTheaterMode ? "Thu nhỏ lại" : "Chế độ Trình chiếu"}</span>
+                                            </button>
                                         </div>
                                     </div>
                                 )}
 
                                 {/* Drag over empty hint */}
                                 {!hasAnyChemical && dragOver && (
-                                    <div className="flex flex-col items-center gap-2 py-12">
-                                        <svg className="w-12 h-12 text-blue-400 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                                    <div className="flex flex-col items-center gap-2 py-20">
+                                        <svg className="w-16 h-16 text-blue-500 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m0 0l-3-3m3 3l3-3" />
                                         </svg>
-                                        <p className="text-sm font-medium text-blue-500 dark:text-blue-400">Thả hóa chất vào đây</p>
+                                        <p className="text-lg font-bold text-blue-600 dark:text-blue-400">Thả hóa chất vào đây</p>
                                     </div>
                                 )}
 
-                                {/* Test tube area — shown when chemical is added */}
+                                {/* Test tube area — Zoomed and prominent for audience and presentations */}
                                 {showTube && (
-                                    <div ref={beakerAreaRef} className="flex flex-col items-center gap-3 animate-tube-appear">
+                                    <div
+                                        ref={beakerAreaRef}
+                                        className={`flex flex-col items-center gap-4 animate-tube-appear transform origin-center my-6 sm:my-10 transition-transform duration-300 ${
+                                            isTheaterMode
+                                                ? "scale-150 sm:scale-175 md:scale-190 lg:scale-210"
+                                                : "scale-130 sm:scale-140 md:scale-155 lg:scale-170"
+                                        }`}
+                                    >
                                         <Beaker
                                             chemical={displayChemical}
                                             reaction={activeReaction?.result ?? null}
@@ -879,19 +1024,19 @@ export default function LabBench() {
 
                                 {/* Chemical labels & Action buttons under the tube */}
                                 {hasAnyChemical && (
-                                    <div className="flex flex-col items-center gap-3 mt-4">
-                                        <div className="flex items-center gap-3">
+                                    <div className="flex flex-col items-center gap-3.5 mt-6 w-full">
+                                        <div className="flex items-center gap-3 flex-wrap justify-center">
                                             {chemical1 && (
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 shadow-sm">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 shadow-xs">
+                                                    <span className="w-2 h-2 rounded-full bg-blue-500" />
                                                     {chemical1.name}
                                                 </span>
                                             )}
                                             {chemical2 && (
                                                 <>
-                                                    <span className="text-gray-300 dark:text-gray-600 text-xs font-bold">+</span>
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-50 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-700 shadow-sm">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                                                    <span className="text-gray-300 dark:text-gray-600 text-xs font-black">+</span>
+                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-50 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-700 shadow-xs">
+                                                        <span className="w-2 h-2 rounded-full bg-purple-500" />
                                                         {chemical2.name}
                                                     </span>
                                                 </>
@@ -899,10 +1044,10 @@ export default function LabBench() {
                                         </div>
 
                                         {/* Thanh điều hướng thao tác: Làm thí nghiệm khác / Làm lại ngay trên bàn */}
-                                        <div className="flex items-center gap-2 mt-1 flex-wrap justify-center">
+                                        <div className="flex items-center gap-2.5 mt-1 flex-wrap justify-center">
                                             <button
                                                 onClick={handleClearAll}
-                                                className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold flex items-center gap-2 shadow-md hover:shadow-lg hover:shadow-blue-500/25 active:scale-95 transition-all"
+                                                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold flex items-center gap-2 shadow-md hover:shadow-lg hover:shadow-blue-500/25 active:scale-95 transition-all"
                                                 title="Dọn sạch bàn thí nghiệm để bắt đầu làm bài thí nghiệm mới"
                                             >
                                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -914,7 +1059,7 @@ export default function LabBench() {
                                             {activeReaction && (
                                                 <button
                                                     onClick={handleReplayReaction}
-                                                    className="px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 border border-gray-200 dark:border-gray-600 shadow-sm"
+                                                    className="px-3.5 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 border border-gray-200 dark:border-gray-600 shadow-xs"
                                                     title="Chạy lại phản ứng này"
                                                 >
                                                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -926,12 +1071,23 @@ export default function LabBench() {
 
                                             <button
                                                 onClick={() => setShowExperiments(true)}
-                                                className="px-3.5 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 dark:hover:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 border border-purple-200 dark:border-purple-800 shadow-sm"
+                                                className="px-3.5 py-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 dark:hover:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 border border-purple-200 dark:border-purple-800 shadow-xs"
                                                 title="Khám phá các bài thí nghiệm mẫu"
                                             >
                                                 <span>📚 Đổi bài mẫu</span>
                                             </button>
                                         </div>
+
+                                        {/* Scroll hint to video when available */}
+                                        {activeReaction?.result?.realVideo && labStatus === "complete" && (
+                                            <a
+                                                href="#reaction-details-area"
+                                                className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-50 hover:bg-red-100 dark:bg-red-950/50 dark:hover:bg-red-900/60 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 text-xs font-bold shadow-sm transition-all animate-bounce"
+                                            >
+                                                <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                                                <span>🎬 Kéo xuống dưới để xem Video thí nghiệm thực tế ↓</span>
+                                            </a>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -1160,6 +1316,20 @@ export default function LabBench() {
                                 {walkthroughStep < 2 ? "Tiếp tục" : "Bắt đầu thí nghiệm"}
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Floating Ghost Badge while dragging chemical with finger */}
+            {touchDraggingChem && touchGhostPos && (
+                <div 
+                    className="fixed z-[9999] pointer-events-none -translate-x-1/2 -translate-y-1/2 flex items-center gap-2.5 px-3 py-2 rounded-xl bg-slate-900/95 text-white border-2 border-emerald-400 shadow-2xl backdrop-blur-md animate-pulse"
+                    style={{ left: touchGhostPos.x, top: touchGhostPos.y }}
+                >
+                    <span className="text-xl">🧪</span>
+                    <div className="text-left">
+                        <div className="font-bold text-xs text-emerald-300">{touchDraggingChem.name}</div>
+                        <div className="text-[10px] text-slate-300 font-mono">{touchDraggingChem.formula}</div>
                     </div>
                 </div>
             )}

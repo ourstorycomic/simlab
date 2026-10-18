@@ -56,15 +56,15 @@ export default function ReactionInfo({
                 : "text-gray-500 dark:text-gray-400";
 
     return (
-        <div className={`w-full ${hasVideo ? "max-w-5xl" : "max-w-lg"} mx-auto animate-slide-up transition-all duration-300`}>
+        <div id="reaction-details-area" className={`w-full ${hasVideo ? "max-w-5xl" : "max-w-lg"} mx-auto animate-slide-up transition-all duration-300`}>
             <div
                 className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 border-l-4 ${REACTION_TYPE_BORDER[reaction.type] || "border-l-blue-400 dark:border-l-blue-500"} rounded-2xl overflow-hidden transition-colors duration-200 shadow-xl`}
             >
                 {hasVideo && reaction.realVideo ? (
                     /* ══════════════════════════════════════════════════════════════════════
-                       LAYOUT DÀN NGANG 2 BÊN: 1 BÊN PHẢN ỨNG - 1 BÊN VIDEO PHẢN ỨNG
+                       LAYOUT TRỰC QUAN: KẾT QUẢ PHẢN ỨNG Ở TRÊN - VIDEO THỰC NGHIỆM Ở DƯỚI (IPAD/TABLET) / 2 CỘT (DESKTOP XL)
                        ══════════════════════════════════════════════════════════════════════ */
-                    <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-gray-100 dark:divide-gray-700/80">
+                    <div className="flex flex-col xl:grid xl:grid-cols-2 divide-y xl:divide-y-0 xl:divide-x divide-gray-100 dark:divide-gray-700/80">
                         {/* CỘT TRÁI: KẾT QUẢ PHẢN ỨNG */}
                         <div className="flex flex-col justify-between">
                             <div>

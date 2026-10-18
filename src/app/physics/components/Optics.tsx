@@ -7,7 +7,102 @@ export default function Optics() {
     const [objectDistance, setObjectDistance] = useState(100); // d in cm
     const [objectHeight, setObjectHeight] = useState(30); // h in cm
     const [mobileTab, setMobileTab] = useState<"sim" | "controls">("sim");
+    const [isTheaterMode, setIsTheaterMode] = useState(false);
+    const [isDraggingObj, setIsDraggingObj] = useState(false);
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const isDraggingRef = useRef(false);
+
+    // Coordinate conversion helper
+    const getCanvasCoords = (clientX: number, clientY: number) => {
+        const rect = canvasRef.current?.getBoundingClientRect();
+        if (!rect) return null;
+        const scaleX = 800 / rect.width;
+        const scaleY = 600 / rect.height;
+        return {
+            x: (clientX - rect.left) * scaleX,
+            y: (clientY - rect.top) * scaleY,
+        };
+    };
+
+    const handleStartDrag = (clientX: number, clientY: number) => {
+        const coords = getCanvasCoords(clientX, clientY);
+        if (!coords) return;
+        const cx = 400;
+        const cy = 300;
+        const scale = 2;
+        const objX = cx - objectDistance * scale;
+        const objY = cy - objectHeight * scale;
+
+        // Check distance to object arrow
+        const dx = Math.abs(coords.x - objX);
+        const isNearHeight = coords.y >= Math.min(cy, objY) - 30 && coords.y <= Math.max(cy, objY) + 30;
+
+        if (dx <= 50 && isNearHeight) {
+            isDraggingRef.current = true;
+            setIsDraggingObj(true);
+            if (typeof window !== "undefined" && navigator.vibrate) {
+                navigator.vibrate(25);
+            }
+        }
+    };
+
+    const handleMoveDrag = (clientX: number, clientY: number) => {
+        if (!isDraggingRef.current) return;
+        const coords = getCanvasCoords(clientX, clientY);
+        if (!coords) return;
+        const cx = 400;
+        const cy = 300;
+        const scale = 2;
+
+        // Calculate new object distance d
+        const newDist = Math.round((cx - coords.x) / scale);
+        setObjectDistance(Math.max(20, Math.min(180, newDist)));
+
+        // Calculate new object height h
+        const newHeight = Math.round((cy - coords.y) / scale);
+        setObjectHeight(Math.max(10, Math.min(60, newHeight)));
+    };
+
+    const handleEndDrag = () => {
+        if (isDraggingRef.current) {
+            isDraggingRef.current = false;
+            setIsDraggingObj(false);
+        }
+    };
+
+    // Window listeners while dragging
+    useEffect(() => {
+        if (!isDraggingObj) return;
+
+        const onWinTouchMove = (e: TouchEvent) => {
+            if (!isDraggingRef.current || e.touches.length === 0) return;
+            if (e.cancelable) e.preventDefault();
+            handleMoveDrag(e.touches[0].clientX, e.touches[0].clientY);
+        };
+
+        const onWinTouchEnd = () => handleEndDrag();
+
+        const onWinMouseMove = (e: MouseEvent) => {
+            if (!isDraggingRef.current) return;
+            handleMoveDrag(e.clientX, e.clientY);
+        };
+
+        const onWinMouseUp = () => handleEndDrag();
+
+        window.addEventListener("touchmove", onWinTouchMove, { passive: false });
+        window.addEventListener("touchend", onWinTouchEnd);
+        window.addEventListener("touchcancel", onWinTouchEnd);
+        window.addEventListener("mousemove", onWinMouseMove);
+        window.addEventListener("mouseup", onWinMouseUp);
+
+        return () => {
+            window.removeEventListener("touchmove", onWinTouchMove);
+            window.removeEventListener("touchend", onWinTouchEnd);
+            window.removeEventListener("touchcancel", onWinTouchEnd);
+            window.removeEventListener("mousemove", onWinMouseMove);
+            window.removeEventListener("mouseup", onWinMouseUp);
+        };
+    }, [isDraggingObj]);
 
     // Lens formula: 1/f = 1/d + 1/d' => d' = (d*f)/(d-f)
     // If d = f, lines are parallel
@@ -86,6 +181,19 @@ export default function Optics() {
         ctx.lineTo(objX + 5, objY + (objectHeight > 0 ? 5 : -5));
         ctx.fillStyle = "#34d399";
         ctx.fill();
+
+        // Grab handle at top of object arrow for touch & drag
+        ctx.beginPath();
+        ctx.arc(objX, objY, 7, 0, 2 * Math.PI);
+        ctx.fillStyle = isDraggingObj ? "#10b981" : "#34d399";
+        ctx.fill();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.font = "bold 11px sans-serif";
+        ctx.fillStyle = "#34d399";
+        ctx.fillText("Vật AB (Kéo)", objX - 30, objY - 12);
 
         if (Math.abs(objectDistance - focalLength) > 0.1) {
             // Draw Rays
@@ -203,8 +311,8 @@ export default function Optics() {
 
             {/* Control Panel (Left on Desktop, Tab on Mobile) */}
             <div
-                className={`w-full lg:w-96 bg-slate-800/50 border-r border-slate-700 p-4 sm:p-6 flex flex-col gap-5 overflow-y-auto z-10 shadow-2xl ${
-                    mobileTab === "controls" ? "flex flex-1" : "hidden lg:flex"
+                className={`w-full lg:w-96 bg-slate-800/50 border-r border-slate-700 p-4 sm:p-6 flex flex-col gap-5 overflow-y-auto z-10 shadow-2xl transition-all duration-300 ${
+                    mobileTab === "controls" ? "flex flex-1" : isTheaterMode ? "hidden" : "hidden lg:flex"
                 }`}
             >
                 <h2 className="font-bold text-base sm:text-lg text-white flex items-center gap-2">
@@ -280,6 +388,42 @@ export default function Optics() {
                     mobileTab === "sim" ? "flex" : "hidden lg:flex"
                 }`}
             >
+                {/* Top Bar for Theater Mode & Quick Results */}
+                <div className="absolute top-2.5 right-2.5 sm:top-5 sm:right-5 z-20 flex items-center gap-2">
+                    <button
+                        onClick={() => setIsTheaterMode(!isTheaterMode)}
+                        className={`px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg backdrop-blur transition-all active:scale-95 border ${
+                            isTheaterMode 
+                                ? "bg-sky-600 border-sky-400 text-white shadow-sky-600/30 ring-2 ring-sky-400/30"
+                                : "bg-slate-800/90 hover:bg-slate-700 border-slate-700 text-sky-300"
+                        }`}
+                        title={isTheaterMode ? "Thu nhỏ lại chế độ tiêu chuẩn" : "Phóng to toàn màn hình thí nghiệm cho khán giả"}
+                    >
+                        <svg className="w-3.5 h-3.5 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isTheaterMode ? "M9 9L4 4m0 0l5 0m-5 0l0 5m11 0l5-5m0 0l-5 0m5 0l0 5m-5 11l5 5m0 0l-5 0m5 0l0-5m-11 0l-5 5m0 0l5 0m-5 0l0-5" : "M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"} />
+                        </svg>
+                        <span>{isTheaterMode ? "🔍 Thu nhỏ" : "🖥️ Phóng to Trình chiếu"}</span>
+                    </button>
+                </div>
+
+                {/* Theater Mode Settings Pill Trigger on Left */}
+                {isTheaterMode && (
+                    <div className="hidden lg:flex absolute top-5 left-5 z-20 items-center gap-2">
+                        <button
+                            onClick={() => setIsTheaterMode(false)}
+                            className="px-3 py-1.5 rounded-xl bg-slate-800/95 hover:bg-slate-700 border border-slate-600 text-sky-300 text-xs font-semibold flex items-center gap-1.5 shadow-xl backdrop-blur transition-all"
+                        >
+                            <svg className="w-4 h-4 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                            </svg>
+                            <span>📂 Hiện bảng chỉnh (f = {focalLength}cm)</span>
+                        </button>
+                        <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                            🖥️ Trình chiếu Quang học
+                        </span>
+                    </div>
+                )}
+
                 {/* Mobile Result Pill */}
                 <div className="lg:hidden p-2 bg-slate-900/90 border-b border-slate-800 w-full flex items-center justify-around text-center text-xs shrink-0">
                     <div>
@@ -304,12 +448,36 @@ export default function Optics() {
                     </div>
                 </div>
 
-                <div className="flex-1 flex items-center justify-center p-2 overflow-hidden w-full">
+                <div className="flex-1 flex flex-col items-center justify-center p-2 overflow-hidden w-full relative">
+                    {/* Interactive hint */}
+                    <div className="absolute top-2 left-1/2 -translate-x-1/2 pointer-events-none z-10">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-xs font-semibold bg-slate-900/80 backdrop-blur border border-slate-700 text-emerald-300 shadow-md">
+                            👆 Chạm & kéo mũi tên xanh (vật AB) để chỉnh d và h
+                        </span>
+                    </div>
+
                     <canvas 
                         ref={canvasRef} 
                         width={800} 
                         height={600} 
-                        className="w-full max-w-[500px] sm:max-w-none h-auto sm:h-full object-contain z-0"
+                        className="w-full max-w-[500px] sm:max-w-none h-auto sm:h-full object-contain z-0 cursor-grab active:cursor-grabbing touch-none select-none"
+                        onMouseDown={(e) => handleStartDrag(e.clientX, e.clientY)}
+                        onMouseMove={(e) => handleMoveDrag(e.clientX, e.clientY)}
+                        onMouseUp={handleEndDrag}
+                        onMouseLeave={handleEndDrag}
+                        onTouchStart={(e) => {
+                            if (e.touches.length > 0) {
+                                handleStartDrag(e.touches[0].clientX, e.touches[0].clientY);
+                            }
+                        }}
+                        onTouchMove={(e) => {
+                            if (isDraggingRef.current && e.touches.length > 0) {
+                                if (e.cancelable) e.preventDefault();
+                                handleMoveDrag(e.touches[0].clientX, e.touches[0].clientY);
+                            }
+                        }}
+                        onTouchEnd={handleEndDrag}
+                        onTouchCancel={handleEndDrag}
                     />
                 </div>
 
