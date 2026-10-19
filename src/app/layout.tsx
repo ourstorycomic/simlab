@@ -79,6 +79,8 @@ export const metadata: Metadata = {
     },
 };
 
+import GlobalAIChatWidget from "@/components/GlobalAIChatWidget";
+
 export default function RootLayout({
     children,
 }: {
@@ -111,9 +113,13 @@ export default function RootLayout({
                         }),
                     }}
                 />
-                <ToastProvider><StoreProvider>{children}</StoreProvider></ToastProvider>
+                <ToastProvider>
+                    <StoreProvider>
+                        {children}
+                        <GlobalAIChatWidget />
+                    </StoreProvider>
+                </ToastProvider>
             </body>
         </html>
     );
-
 }
