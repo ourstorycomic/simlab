@@ -111,3 +111,43 @@ values
   ('u_teacher_demo', 'Co Minh Anh', 'gv@simlab.vn', 'demo123', 'teacher', 'THPT Chuyen KHTN', '#2563eb', 'GV'),
   ('u_student_demo', 'Nguyen Van An', 'hs@simlab.vn', 'demo123', 'student', 'THPT Chuyen KHTN', '#16a34a', 'HS')
 on conflict (id) do nothing;
+
+-- ── 9. Minigame Leaderboard (Bảng Vàng Thi Đua Toàn Quốc) ────
+create table if not exists public.minigame_scores (
+  id            text primary key,
+  user_id       text references public.users(id) on delete set null,
+  user_name     text not null,
+  user_school   text,
+  avatar_color  text default '#3b82f6',
+  avatar_icon   text default '⚡',
+  score         int not null check (score > 0),
+  max_combo     int not null default 0,
+  accuracy      float not null default 100,
+  matches_count int not null default 0,
+  mode          text not null default 'blitz',
+  grade         int default 0,
+  played_at     bigint not null default extract(epoch from now())::bigint * 1000
+);
+
+create index if not exists idx_minigame_scores_score on public.minigame_scores (score desc, played_at desc);
+create index if not exists idx_minigame_scores_filter on public.minigame_scores (grade, mode);
+
+alter table public.minigame_scores disable row level security;
+
+-- ── Seed: Top Bảng Xếp Hạng Đấu Trường Hóa Học ──────────────
+insert into public.minigame_scores (id, user_name, user_school, avatar_color, avatar_icon, score, max_combo, accuracy, matches_count, mode, grade, played_at)
+values
+  ('score-top-01', 'Nguyễn Minh Anh', 'THPT Chuyên Hà Nội - Amsterdam', '#3b82f6', '⚡', 4350, 18, 98.5, 24, 'blitz', 0, extract(epoch from (now() - interval '2 hours'))::bigint * 1000),
+  ('score-top-02', 'Trần Bảo Ngọc', 'THPT Chuyên Lê Hồng Phong (TP.HCM)', '#ec4899', '🔮', 3980, 15, 96.0, 22, 'blitz', 0, extract(epoch from (now() - interval '5 hours'))::bigint * 1000),
+  ('score-top-03', 'Lê Hoàng Long', 'THPT Chuyên Lam Sơn (Thanh Hóa)', '#10b981', '👑', 3620, 14, 94.2, 20, 'blitz', 0, extract(epoch from (now() - interval '12 hours'))::bigint * 1000),
+  ('score-top-04', 'Phạm Đăng Khoa', 'THPT Chuyên Quốc Học Huế', '#f59e0b', '🔥', 3150, 12, 92.0, 18, 'blitz', 0, extract(epoch from (now() - interval '1 day'))::bigint * 1000),
+  ('score-top-05', 'Vũ Khánh Linh', 'THPT Chuyên Phan Bội Châu (Nghệ An)', '#8b5cf6', '🧪', 2890, 11, 90.5, 16, 'blitz', 0, extract(epoch from (now() - interval '1 day 4 hours'))::bigint * 1000),
+  ('score-top-06', 'Đỗ Hải Nam', 'THPT Chuyên Nguyễn Huệ (Hà Nội)', '#06b6d4', '🔬', 2540, 9, 88.0, 15, 'blitz', 10, extract(epoch from (now() - interval '2 days'))::bigint * 1000),
+  ('score-top-07', 'Bùi Thị Mai Anh', 'THPT Kim Liên (Hà Nội)', '#14b8a6', '⚗️', 2280, 8, 86.5, 14, 'blitz', 11, extract(epoch from (now() - interval '2 days 6 hours'))::bigint * 1000),
+  ('score-top-08', 'Hoàng Gia Bảo', 'THPT Chuyên Trần Phú (Hải Phòng)', '#f97316', '⚡', 2150, 8, 85.0, 13, 'blitz', 12, extract(epoch from (now() - interval '3 days'))::bigint * 1000),
+  ('score-top-09', 'Nguyễn Thảo Nguyên', 'THCS & THPT Lương Thế Vinh', '#84cc16', '🌟', 1980, 7, 84.0, 12, 'blitz', 9, extract(epoch from (now() - interval '3 days 10 hours'))::bigint * 1000),
+  ('score-top-10', 'Trịnh Quốc Tuấn', 'THPT Chu Văn An (Hà Nội)', '#6366f1', '🎯', 1820, 6, 82.0, 11, 'blitz', 10, extract(epoch from (now() - interval '4 days'))::bigint * 1000)
+on conflict (id) do update set
+  score = excluded.score,
+  max_combo = excluded.max_combo,
+  accuracy = excluded.accuracy;

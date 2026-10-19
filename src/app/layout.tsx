@@ -38,10 +38,10 @@ export const metadata: Metadata = {
     category: "education",
     icons: {
         icon: [
+            { url: "/logo/logo_catnen.png", sizes: "any" },
             { url: "/favicon.ico", sizes: "48x48" },
-            { url: "/icon.svg", type: "image/svg+xml" },
         ],
-        apple: [{ url: "/apple-icon.png", sizes: "180x180" }],
+        apple: [{ url: "/logo/logo_catnen.png", sizes: "180x180" }],
     },
     openGraph: {
         title: "Simlab — Nền tảng thực hành khoa học ảo",

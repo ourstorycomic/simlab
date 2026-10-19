@@ -43,3 +43,7 @@ next-env.d.ts
 # office temp files
 ~$*.docx
 *.tmp
+
+# sqlite temporary wal/shm
+*.db-shm
+*.db-wal

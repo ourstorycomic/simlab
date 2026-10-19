@@ -1,25 +1,23 @@
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 
-export function LogoMark({ className = "w-7 h-7" }: { className?: string }) {
+export function LogoMark({
+    className = "w-7 h-7",
+    useWhiteBg = false,
+}: {
+    className?: string;
+    useWhiteBg?: boolean;
+}) {
     return (
-        <svg
-            viewBox="0 0 28 28"
-            width="28"
-            height="28"
-            className={`${className} text-blue-600 dark:text-blue-400 shrink-0`}
-            style={{ maxWidth: "100%", height: "auto" }}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            aria-hidden="true"
-        >
-            <path d="M12 3v5M16 3v5" strokeLinecap="round" />
-            <path d="M10 10h8M8 14h12M6 18h16" />
-            <path d="M8 10l-2 14h16L20 10H8Z" />
-            <path d="M10 10l-2 14" strokeWidth="0.8" />
-            <path d="M18 10l2 14" strokeWidth="0.8" />
-        </svg>
+        <Image
+            src={useWhiteBg ? "/logo/logo.png" : "/logo/logo_catnen.png"}
+            alt="Simlab Edu"
+            width={36}
+            height={36}
+            className={`${className} object-contain shrink-0`}
+            priority
+        />
     );
 }
 

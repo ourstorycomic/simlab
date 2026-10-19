@@ -15,7 +15,7 @@ import {
     syncUser,
 } from "@/lib/storage";
 import { useToast } from "@/components/toast";
-import Footer from "@/components/Footer";
+import Footer, { LogoMark } from "@/components/Footer";
 
 type AuthMode = "login" | "register";
 
@@ -23,28 +23,6 @@ const DEMO_ACCOUNTS: { role: Role; label: string; email: string; password: strin
     { role: "teacher", label: "Giáo viên", email: "gv@simlab.vn", password: "demo123" },
     { role: "student", label: "Học sinh", email: "hs@simlab.vn", password: "demo123" },
 ];
-
-function LogoMark({ className = "w-7 h-7" }: { className?: string }) {
-    return (
-        <svg
-            viewBox="0 0 28 28"
-            width="28"
-            height="28"
-            className={`${className} text-blue-600 dark:text-blue-400 shrink-0`}
-            style={{ maxWidth: "100%", height: "auto" }}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            aria-hidden="true"
-        >
-            <path d="M12 3v5M16 3v5" strokeLinecap="round" />
-            <path d="M10 10h8M8 14h12M6 18h16" />
-            <path d="M8 10l-2 14h16L20 10H8Z" />
-            <path d="M10 10l-2 14" strokeWidth="0.8" />
-            <path d="M18 10l2 14" strokeWidth="0.8" />
-        </svg>
-    );
-}
 
 function Spinner({ className = "w-4 h-4" }: { className?: string }) {
     return (
@@ -222,6 +200,9 @@ export default function Home() {
                         <button onClick={() => router.push("/physics")} className="lab-btn px-4 py-2 text-sm rounded-full bg-indigo-500 text-white border-transparent hover:bg-indigo-600 dark:bg-indigo-600 dark:hover:bg-indigo-700">
                             Lab Vật lý
                         </button>
+                        <button onClick={() => router.push("/minigame")} className="lab-btn px-4 py-2 text-sm rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold border-transparent hover:from-amber-600 hover:to-orange-600 shadow-sm">
+                            ⚡ Minigame
+                        </button>
                     </div>
                     {/* Mobile Navigation */}
                     <div className="flex md:hidden items-center gap-1.5">
@@ -233,6 +214,9 @@ export default function Home() {
                         </button>
                         <button onClick={() => router.push("/physics")} className="lab-btn px-2.5 py-1.5 text-xs rounded-full bg-indigo-500 text-white border-transparent font-semibold">
                             Lý
+                        </button>
+                        <button onClick={() => router.push("/minigame")} className="lab-btn px-2.5 py-1.5 text-xs rounded-full bg-amber-500 text-white font-bold border-transparent">
+                            Game ⚡
                         </button>
                     </div>
                 </div>
@@ -270,6 +254,10 @@ export default function Home() {
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.75v4.5m0 4.5v4.5m0-13.5h4.5m-4.5 0H5.25m4.5 13.5h4.5m-4.5 0H5.25" />
                             </svg>
                             Trải nghiệm Demo Hóa học
+                        </button>
+                        <button onClick={() => router.push("/minigame")} className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-yellow-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-400/40 px-6 py-3.5 text-sm font-bold rounded-full inline-flex items-center gap-2 shadow-sm transition-all duration-300 hover:-translate-y-0.5">
+                            <span className="text-base">🏆</span>
+                            Đấu Trường Nối Phương Trình
                         </button>
                     </div>
 

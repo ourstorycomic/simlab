@@ -269,6 +269,8 @@ export function getUserById(id: string): User | null {
   return store.users.find((u) => u.id === id) ?? null;
 }
 
+const K_CURRENT_USER = "simlab_current_user";
+
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 // Keep old function names for backward compat
 export function loginUser(email: string, password: string, rememberMe: boolean = true): User {
@@ -276,9 +278,9 @@ export function loginUser(email: string, password: string, rememberMe: boolean =
   if (!user || user.password !== password) throw new Error("Email hoặc mật khẩu không đúng");
   store.session = user.id;
   lsWrite(K_SESSION, user.id, rememberMe);
+  lsWrite(K_CURRENT_USER, user, rememberMe);
   return user;
 }
-
 
 export function syncUser(apiUser: User) {
   const existingIndex = store.users.findIndex(u => u.id === apiUser.id || u.email.toLowerCase() === apiUser.email.toLowerCase());
@@ -287,6 +289,7 @@ export function syncUser(apiUser: User) {
   } else {
       store.users.push(apiUser);
   }
+  lsWrite(K_CURRENT_USER, apiUser, true);
 }
 
 export function setSession(userId: string, rememberMe: boolean = true): void {
@@ -297,11 +300,27 @@ export function setSession(userId: string, rememberMe: boolean = true): void {
 export function logout(): void {
   store.session = null;
   lsWrite(K_SESSION, null);
+  lsWrite(K_CURRENT_USER, null);
 }
 
 export function getCurrentUser(): User | null {
-  if (!store.session) return null;
-  return getUserById(store.session);
+  const sessionId = store.session || lsRead<string | null>(K_SESSION, null);
+  if (!sessionId) return null;
+
+  // 1. Kiểm tra cache trong store.users
+  const userInStore = getUserById(sessionId);
+  if (userInStore) return userInStore;
+
+  // 2. Dự phòng: Đọc trực tiếp từ localStorage đã lưu khi đăng nhập
+  const cachedUser = lsRead<User | null>(K_CURRENT_USER, null);
+  if (cachedUser && cachedUser.id === sessionId) {
+    if (!store.users.some(u => u.id === cachedUser.id)) {
+      store.users.push(cachedUser);
+    }
+    return cachedUser;
+  }
+
+  return null;
 }
 
 // ─── Classes ─────────────────────────────────────────────────────────────────

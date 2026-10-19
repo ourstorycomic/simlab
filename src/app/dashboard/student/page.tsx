@@ -307,6 +307,36 @@ export default function StudentDashboard() {
                     </div>
                 </div>
 
+                {/* Minigame Equation Arena Banner */}
+                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-amber-500/30 p-5 sm:p-6 text-white shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-3xl shadow-lg shadow-amber-500/30 shrink-0">
+                            ⚡
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-black uppercase tracking-wider border border-amber-500/30">
+                                    Mới Ra Mắt • Đua Top
+                                </span>
+                                <span className="text-xs text-slate-400">Chuẩn GDPT 2018</span>
+                            </div>
+                            <h3 className="text-lg font-black tracking-tight text-white">
+                                Đấu Trường Nối Phương Trình Hóa Học
+                            </h3>
+                            <p className="text-xs text-slate-300 max-w-xl mt-0.5">
+                                Thi đua ghép nối công thức phản ứng, rèn luyện tốc độ cân bằng và thăng hạng trên Bảng Vàng Toàn Quốc! Nhận thêm XP cho mỗi vòng đấu!
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => router.push("/minigame")}
+                        className="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-sm shadow-xl shadow-amber-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 shrink-0"
+                    >
+                        <span>VÀO THI ĐẤU NGAY</span>
+                        <span>➔</span>
+                    </button>
+                </div>
+
                 <div className="grid md:grid-cols-3 gap-6 items-start">
                     {/* Left column: Join class + curriculum */}
                     <div className="space-y-6">

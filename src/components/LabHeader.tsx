@@ -112,6 +112,19 @@ export default function LabHeader({
                         );
                     })}
                 </nav>
+
+                {/* Minigame Shortcut */}
+                <Link
+                    href="/minigame"
+                    className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-yellow-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 hover:border-amber-500/60 hover:bg-amber-500/20 transition-all shadow-xs shrink-0"
+                    title="Đấu trường Nối Phương Trình Hóa Học — Đua Top Nhận Quà"
+                >
+                    <span className="text-sm">⚡</span>
+                    <span className="hidden sm:inline">Minigame Nối PT</span>
+                    <span className="px-1.5 py-0.5 text-[9px] bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 rounded-full font-black uppercase tracking-wider shadow-xs">
+                        HOT
+                    </span>
+                </Link>
             </div>
 
             {/* Center: Subject specific controls */}
