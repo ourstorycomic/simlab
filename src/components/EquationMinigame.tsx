@@ -1383,13 +1383,8 @@ export default function EquationMinigame() {
                         >
                           {isMatched ? <IconCheck className="w-3.5 h-3.5" /> : `A${idx + 1}`}
                         </div>
-                        <div className="flex flex-col">
+                        <div className="flex flex-col py-0.5">
                           <FormulaDisplay formula={item.formula} className="text-base sm:text-lg font-semibold" />
-                          {equationsMap[item.id]?.categoryLabel && (
-                            <span className="text-[10px] text-slate-400 font-normal">
-                              {equationsMap[item.id].categoryLabel}
-                            </span>
-                          )}
                         </div>
                       </div>
 
@@ -1455,13 +1450,8 @@ export default function EquationMinigame() {
                       />
 
                       <div className="flex items-center gap-3">
-                        <div className="flex flex-col items-end">
+                        <div className="flex flex-col items-end py-0.5">
                           <FormulaDisplay formula={item.formula} className="text-base sm:text-lg font-semibold text-right" />
-                          {equationsMap[item.id]?.categoryLabel && (
-                            <span className="text-[10px] text-slate-400 font-normal">
-                              {equationsMap[item.id].categoryLabel}
-                            </span>
-                          )}
                         </div>
                         <div
                           className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 transition-colors ${
@@ -1492,6 +1482,11 @@ export default function EquationMinigame() {
                     <div className="flex items-center gap-2 mb-0.5 truncate">
                       <span className="font-medium text-slate-400">Phương trình:</span>
                       <FormulaDisplay formula={justMatchedItem.fullEquation} className="text-emerald-300 font-bold text-sm" />
+                      {justMatchedItem.categoryLabel && (
+                        <span className="px-1.5 py-0.2 rounded bg-blue-500/10 text-blue-300 text-[10px] font-medium border border-blue-500/20">
+                          {justMatchedItem.categoryLabel}
+                        </span>
+                      )}
                       {justMatchedItem.condition && (
                         <span className="px-1.5 py-0.2 rounded bg-slate-800 text-amber-300 text-[10px] font-medium border border-slate-700">
                           {justMatchedItem.condition}
