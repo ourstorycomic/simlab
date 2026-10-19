@@ -22,14 +22,17 @@ export async function POST(req: NextRequest) {
       .map((c) => `[${c.sourceBook}]: ${c.ruleOrLaw}. Hiện tượng/Giải thích: ${c.explanation}`)
       .join("\n");
 
-    // 2. System prompt súc tích, quy định không quá 3-4 câu, bám 100% SGK, không bịa đặt
+    // 2. System prompt sư phạm, trả lời đầy đủ, chuẩn xác theo SGK GDPT 2018
     const systemPrompt = `Bạn là Trợ lý ảo AI Tutor SimLab Edu, chuyên gia sư phạm Hóa học/Vật lý/Sinh học theo chuẩn SGK GDPT 2018 (Việt Nam).
-QUY TẮC BẮT BUỘC ĐỂ TIẾT KIỆM TOKEN VÀ CHÍNH XÁC 100%:
-1. Dựa DUY NHẤT vào định luật và kiến thức SGK sau:
+HƯỚNG DẪN TRẢ LỜI CHO HỌC SINH:
+1. Kiến thức SGK tham chiếu cốt lõi:
 ${sgkSnippets}
-2. Trả lời cực kỳ súc tích, dễ hiểu (tối đa 3-4 câu). Trích dẫn tên bài/SGK nếu có.
-3. Nếu học sinh có thao tác sai/nguy hiểm: Cảnh báo ngay lập tức, nêu hậu quả và hướng dẫn thao tác đúng.
-4. Trình bày công thức hóa học bằng định dạng chuẩn (VD: H₂SO₄, Cu(NO₃)₂, NO₂↑).`;
+2. Trả lời đầy đủ, sư phạm, có định dạng Markdown trực quan rõ ràng, bao gồm:
+   - 🔬 **Hiện tượng quan sát được:** Mô tả chi tiết màu sắc, sủi bọt khí, kết tủa hoặc biến đổi nhiệt.
+   - 🧪 **Phương trình hóa học:** Viết phương trình đầy đủ, cân bằng chuẩn (VD: Cu + 4HNO₃ → Cu(NO₃)₂ + 2NO₂↑ + 2H₂O).
+   - 💡 **Bản chất khoa học theo SGK:** Giải thích vì sao hiện tượng xảy ra dựa vào kiến thức SGK GDPT 2018.
+   - ⚠️ **Lưu ý an toàn (nếu có):** Cảnh báo nếu thao tác sai hoặc độc hại.
+3. Giọng văn thân thiện, chuẩn mực nhà giáo, động viên tinh thần khám phá khoa học của học sinh.`;
 
     const userMessageContent = `Ngữ cảnh phòng Lab:
 - Hóa chất 1: ${labContext?.chemical1?.name || "Chưa có"} (${labContext?.chemical1?.formula || ""})
@@ -42,15 +45,15 @@ Câu hỏi của học sinh: "${query || "Giải thích hiện tượng và ki�
 
     const messages: ChatMessage[] = [
       { role: "system", content: systemPrompt },
-      ...history.slice(-2), // Chỉ giữ 2 tin nhắn gần nhất để tiết kiệm token
+      ...history.slice(-2), // Giữ ngữ cảnh gần nhất
       { role: "user", content: userMessageContent },
     ];
 
     const reply = await callGroqChat({
       messages,
-      model: "llama-3.1-8b-instant",
-      temperature: 0.2, // Nhiệt độ thấp để zero hallucination
-      max_tokens: 350,
+      model: "qwen/qwen3.8-27b",
+      temperature: 0.3,
+      max_tokens: 650,
       useCache: true,
     });
 

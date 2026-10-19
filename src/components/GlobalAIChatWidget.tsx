@@ -44,11 +44,12 @@ export default function GlobalAIChatWidget() {
       minute: "2-digit",
     });
 
+    // Luôn hiển thị bong bóng tin nhắn của học sinh (cả khi gõ và khi bấm câu gợi ý)
+    setMessages((prev) => [
+      ...prev,
+      { sender: "user", text: q, time: currentTime },
+    ]);
     if (!customText) {
-      setMessages((prev) => [
-        ...prev,
-        { sender: "user", text: q, time: currentTime },
-      ]);
       setInputQuery("");
     }
 

@@ -62,8 +62,9 @@ export default function LabAITutorWidget({
     const q = customQuery || inputQuery.trim();
     if (!q || isLoading) return;
 
+    // Luôn hiển thị câu hỏi của học sinh trên giao diện chat
+    setMessages((prev) => [...prev, { sender: "user", text: q }]);
     if (!customQuery) {
-      setMessages((prev) => [...prev, { sender: "user", text: q }]);
       setInputQuery("");
     }
 
