@@ -473,8 +473,19 @@ export default function TeacherDashboard() {
                     <div className="flex items-center gap-3">
                         <Avatar user={user} size="md" />
                         <div>
-                            <h1 className="text-base font-bold text-gray-800 dark:text-gray-100">Bảng điều khiển giáo viên</h1>
-                            <p className="text-[11px] text-gray-400 dark:text-gray-500">{user.name} · {user.school || "Chưa có trường"}</p>
+                            <div className="flex items-center gap-2">
+                                <h1 className="text-base font-bold text-gray-900 dark:text-white">
+                                    {user.name}
+                                </h1>
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                                    Giáo viên
+                                </span>
+                            </div>
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1.5">
+                                <span>🏫 {user.school || "SimLab Edu"}</span>
+                                <span className="text-gray-300 dark:text-gray-600">•</span>
+                                <span className="font-mono text-gray-400 dark:text-gray-400">{user.email}</span>
+                            </p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">

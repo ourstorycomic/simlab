@@ -244,9 +244,18 @@ export default function StudentDashboard() {
                     <div className="flex items-center gap-3">
                         <Avatar user={user} size="md" />
                         <div>
-                            <h1 className="text-base font-bold text-gray-800 dark:text-gray-100">Không gian học tập</h1>
-                            <p className="text-[10px] text-gray-400 dark:text-gray-500">
-                                {user.name} · {user.school || "Chưa có trường"}
+                            <div className="flex items-center gap-2">
+                                <h1 className="text-base font-bold text-gray-900 dark:text-white">
+                                    {user.name}
+                                </h1>
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30">
+                                    Học sinh
+                                </span>
+                            </div>
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1.5">
+                                <span>🏫 {user.school || "SimLab Edu"}</span>
+                                <span className="text-gray-300 dark:text-gray-600">•</span>
+                                <span className="font-mono text-gray-400 dark:text-gray-400">{user.email}</span>
                             </p>
                         </div>
                     </div>
@@ -255,7 +264,6 @@ export default function StudentDashboard() {
                             onClick={() => setProfileOpen(true)}
                             className="lab-btn px-3 py-1.5 text-xs rounded-lg inline-flex items-center gap-1.5"
                         >
-                            
                             Hồ sơ
                         </button>
                         <button
@@ -281,6 +289,29 @@ export default function StudentDashboard() {
             </header>
 
             <main className="max-w-6xl mx-auto px-5 py-6 space-y-6">
+                {/* Lời chào & Định danh tài khoản cá nhân */}
+                <div className="bg-gradient-to-r from-blue-600/10 via-indigo-600/10 to-transparent border border-blue-500/20 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+                    <div className="flex items-center gap-3.5">
+                        <div className="w-11 h-11 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-md shadow-blue-500/20 shrink-0">
+                            {user.name ? user.name.split(" ").slice(-1)[0][0] : "HS"}
+                        </div>
+                        <div>
+                            <h2 className="text-base sm:text-lg font-extrabold text-gray-900 dark:text-white">
+                                Không gian học tập của <span className="text-blue-600 dark:text-blue-400">{user.name}</span>! 👋
+                            </h2>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                Tài khoản: <strong className="text-gray-700 dark:text-gray-200">{user.email}</strong> • Trường: <strong className="text-gray-700 dark:text-gray-200">{user.school || "SimLab Edu"}</strong>
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            Đang hoạt động
+                        </span>
+                    </div>
+                </div>
+
                 {/* Gamification: XP + streak + badges */}
                 <div id="tour-gamification" className="grid md:grid-cols-3 gap-6 items-start">
                     <XPBar xp={progress?.xp ?? 0} streak={progress?.streak ?? 0} />
