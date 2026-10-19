@@ -55,6 +55,7 @@ QUY TẮC TRÌNH BÀY (ĐẢM BẢO CHỮ ĐẬM NHẠT HỢP LÝ & RÕ RÀNG):
 - Sử dụng độ tương phản hợp lý: In đậm (**từ khóa quan trọng, tên chất, định lý, kết quả then chốt**) để nổi bật; phần giải thích để chữ thường êm mắt.
 - Sử dụng các đề mục nhỏ (ví dụ: ### 🔬 Hiện tượng quan sát, ### 🧪 Phương trình, ### 💡 Phân tích bản chất, ### 📐 Hướng dẫn giải, ### 📖 Giá trị nghệ thuật...).
 - Dùng gạch đầu dòng (-) hoặc số thứ tự (1, 2, 3) để người đọc dễ theo dõi, không viết một đoạn văn dồn cục quá dài.
+- CÔNG THỨC TOÁN VÀ KHOA HỌC: Ưu tiên dùng ký tự số mũ và chỉ số dưới Unicode tự nhiên (VD: a² + b² = c², H₂SO₄, Cu + 4HNO₃ → Cu(NO₃)₂ + 2NO₂↑ + 2H₂O), tránh dùng các thẻ LaTeX thô như \\[, \\], \\(, \\) không cần thiết để học sinh dễ đọc nhất.
 - Giọng điệu thân thiện, mô phạm, truyền cảm hứng và khích lệ tinh thần học tập của học sinh.`;
 
     // 3. Chuẩn bị nội dung câu hỏi
@@ -82,7 +83,7 @@ Câu hỏi của học sinh: "${trimmedQuery || "Giải thích hiện tượng v
       messages,
       model: "qwen/qwen3.8-27b",
       temperature: 0.35,
-      max_tokens: 700,
+      max_tokens: 1200,
       useCache: true,
     });
 
