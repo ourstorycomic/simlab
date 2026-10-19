@@ -30,7 +30,9 @@ import {
   getLevelTitle,
   UserProgress,
   getUsers,
+  logout,
 } from "@/lib/storage";
+import AuthModal from "@/components/AuthModal";
 
 export type GameMode = "blitz" | "campaign" | "survival";
 export type LeaderboardTab = GameMode | "xp";
@@ -105,6 +107,15 @@ function IconShield({ className = "w-4 h-4" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+  );
+}
+
+function IconUser({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
     </svg>
   );
 }
@@ -288,6 +299,7 @@ export default function EquationMinigame() {
   const [leaderboardGradeFilter, setLeaderboardGradeFilter] = useState<number>(0);
   const [playerRank, setPlayerRank] = useState<number | null>(null);
   const [copySuccess, setCopySuccess] = useState<boolean>(false);
+  const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
 
   const arenaRef = useRef<HTMLDivElement>(null);
   const leftPortRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -320,7 +332,7 @@ export default function EquationMinigame() {
           setUserProgress(getProgress(u.id));
         } else {
           setCurrentUser(null);
-          setPlayerName("Khách chơi thử");
+          setPlayerName("");
           setPlayerSchool("");
           setUserProgress(null);
         }
@@ -446,7 +458,24 @@ export default function EquationMinigame() {
     [updatePortPositions]
   );
 
+  const handleLogout = () => {
+    logout();
+    setCurrentUser(null);
+    setPlayerName("");
+    setPlayerSchool("");
+    setUserProgress(null);
+    if (gameState === "playing") {
+      setGameState("lobby");
+    }
+  };
+
   const handleStartGame = (chosenMode: GameMode = mode) => {
+    // Yêu cầu bắt buộc phải đăng nhập tài khoản SimLab mới được thi đấu
+    if (!currentUser) {
+      setAuthModalOpen(true);
+      return;
+    }
+
     // Reset bộ nhớ câu hỏi cho ván chơi mới
     sessionUsedIdsRef.current = new Set();
 
@@ -972,41 +1001,51 @@ export default function EquationMinigame() {
 
           {/* User profile chip ở góc trên */}
           {currentUser ? (
-            <Link
-              href={currentUser.role === "teacher" ? "/dashboard/teacher" : "/dashboard/student"}
-              title="Xem hồ sơ học bạ và điểm tích lũy"
-              className="hidden sm:flex items-center gap-2 pl-2 border-l border-slate-800 hover:opacity-85 transition-opacity"
-            >
-              <div
-                className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs text-white shadow-sm shrink-0"
-                style={{ backgroundColor: currentUser.avatarColor || "#2563eb" }}
+            <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-slate-800">
+              <Link
+                href={currentUser.role === "teacher" ? "/dashboard/teacher" : "/dashboard/student"}
+                title="Xem hồ sơ học bạ và điểm tích lũy"
+                className="flex items-center gap-2 hover:opacity-85 transition-opacity"
               >
-                {currentUser.name ? currentUser.name.split(" ").slice(-1)[0][0] : "U"}
-              </div>
-              <div className="flex flex-col text-left">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-medium text-white leading-tight">{currentUser.name}</span>
-                  {userProgress && (
-                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                      <IconZap className="w-2.5 h-2.5 text-amber-400" />
-                      {userProgress.xp} XP
-                    </span>
-                  )}
+                <div
+                  className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs text-white shadow-sm shrink-0"
+                  style={{ backgroundColor: currentUser.avatarColor || "#2563eb" }}
+                >
+                  {currentUser.name ? currentUser.name.split(" ").slice(-1)[0][0] : "U"}
                 </div>
-                <span className="text-[10px] text-slate-400 leading-none">
-                  {currentUser.role === "teacher"
-                    ? "Giáo viên"
-                    : `Cấp ${userProgress ? getLevel(userProgress.xp).level : 1} • Học sinh`}
-                </span>
-              </div>
-            </Link>
+                <div className="flex flex-col text-left">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-medium text-white leading-tight">{currentUser.name}</span>
+                    {userProgress && (
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                        <IconZap className="w-2.5 h-2.5 text-amber-400" />
+                        {userProgress.xp} XP
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-slate-400 leading-none">
+                    {currentUser.role === "teacher"
+                      ? "Giáo viên"
+                      : `Cấp ${userProgress ? getLevel(userProgress.xp).level : 1} • Học sinh`}
+                  </span>
+                </div>
+              </Link>
+              <button
+                onClick={handleLogout}
+                title="Đăng xuất / Đổi tài khoản"
+                className="ml-1 p-1 rounded hover:bg-slate-800 text-slate-500 hover:text-rose-400 transition-colors text-[11px]"
+              >
+                Đăng xuất
+              </button>
+            </div>
           ) : (
-            <Link
-              href="/"
-              className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium transition-colors"
+            <button
+              onClick={() => setAuthModalOpen(true)}
+              className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-sm transition-colors flex items-center gap-1"
             >
-              Đăng nhập
-            </Link>
+              <IconUser className="w-3.5 h-3.5" />
+              <span>Đăng nhập</span>
+            </button>
           )}
         </div>
       </header>
@@ -1090,44 +1129,39 @@ export default function EquationMinigame() {
                       <span>Hồ sơ & Học bạ</span>
                       <IconArrowRight className="w-3 h-3" />
                     </Link>
-                    <Link
-                      href="/"
-                      className="text-[11px] text-slate-500 hover:text-slate-400 underline transition-colors mt-1"
+                    <button
+                      onClick={handleLogout}
+                      className="text-[11px] text-slate-400 hover:text-rose-400 transition-colors mt-1 underline"
                     >
-                      Đổi tài khoản
-                    </Link>
+                      Đổi tài khoản khác
+                    </button>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="w-full bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 mb-6 text-left flex flex-col sm:flex-row gap-4 items-center justify-between shadow-lg">
+              <div className="w-full bg-slate-900/90 border border-amber-500/30 rounded-2xl p-4 sm:p-5 mb-6 text-left flex flex-col sm:flex-row gap-4 items-center justify-between shadow-lg">
                 <div className="flex items-center gap-3.5">
                   <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30">
                     <IconInfo className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-semibold text-slate-200">Bạn chưa đăng nhập tài khoản SimLab</h4>
-                    <p className="text-xs text-slate-400 mt-0.5 max-w-xl">
-                      Đăng nhập để kết quả thực hành được ghi nhận vào học bạ số và tích lũy XP thăng cấp.
+                    <h4 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
+                      <span>Yêu cầu đăng nhập tài khoản SimLab</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-semibold">Bắt buộc</span>
+                    </h4>
+                    <p className="text-xs text-slate-400 mt-1 max-w-xl leading-relaxed">
+                      Bạn cần đăng nhập tài khoản học sinh / giáo viên để được ghi nhận vào học bạ số, tích lũy XP thăng cấp và thi đấu công bằng trên Bảng Xếp Hạng.
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0">
-                  <Link
-                    href="/"
-                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs shadow-md transition-all flex items-center gap-1.5"
-                  >
-                    <span>Đăng nhập</span>
-                  </Link>
                   <button
-                    onClick={() => {
-                      setPlayerName("Khách chơi thử");
-                      setPlayerSchool("Chơi thử");
-                    }}
-                    className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition-all"
+                    onClick={() => setAuthModalOpen(true)}
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs shadow-md transition-all flex items-center justify-center gap-1.5"
                   >
-                    Làm bài thử (Khách)
+                    <IconUser className="w-3.5 h-3.5" />
+                    <span>Đăng nhập ngay</span>
                   </button>
                 </div>
               </div>
@@ -1261,35 +1295,52 @@ export default function EquationMinigame() {
             </div>
 
             {/* Nút Bắt đầu */}
-            <button
-              onClick={() => handleStartGame()}
-              className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm tracking-wide shadow-lg shadow-blue-600/25 transition-all flex items-center justify-center gap-2 group"
-            >
-              <span>Bắt đầu luyện tập</span>
-              <IconArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </button>
+            {currentUser ? (
+              <button
+                onClick={() => handleStartGame()}
+                className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm tracking-wide shadow-lg shadow-blue-600/25 transition-all flex items-center justify-center gap-2 group"
+              >
+                <span>Bắt đầu luyện tập</span>
+                <IconArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </button>
+            ) : (
+              <button
+                onClick={() => setAuthModalOpen(true)}
+                className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-sm tracking-wide shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-2 group"
+              >
+                <IconUser className="w-4 h-4" />
+                <span>Đăng nhập để bắt đầu thi đấu</span>
+                <IconArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </button>
+            )}
           </div>
         )}
 
         {/* MÀN HÌNH 2: ĐANG THI ĐẤU (EXPANSIVE ARENA) */}
         {gameState === "playing" && (
           <div className="flex-1 w-full h-full flex flex-col justify-between py-1">
-            {/* Thanh thanh tiến độ đấu trường & bám đuổi Top 1 */}
+            {/* Thanh tiến độ đấu trường & bám đuổi Top 1 */}
             <div className="w-full flex items-center justify-between gap-4 px-3.5 py-2 rounded-xl bg-slate-900/80 border border-slate-800 mb-2">
-              <div className="flex items-center gap-2 text-xs">
-                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <div className="flex items-center gap-2.5 text-xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 <span className="text-slate-300 font-medium">
                   Vòng {currentRoundIdx} • Đã ghép đúng {matchedIds.size}/5 phương trình
                 </span>
+                {currentUser && (
+                  <span className="hidden md:inline-flex items-center gap-1.5 ml-2 px-2.5 py-0.5 rounded-md bg-blue-500/10 text-blue-300 border border-blue-500/30 text-[11px] font-semibold">
+                    <span className="text-slate-400">Thí sinh:</span>
+                    <span className="text-white font-bold">{currentUser.name}</span>
+                  </span>
+                )}
               </div>
 
-              {/* Bám đuổi Top 1 Leader */}
-              <div className="hidden sm:flex items-center gap-3 text-xs">
-                <span className="text-slate-400">Dẫn đầu bảng:</span>
+              {/* Bám đuổi Top 1 Leaderboard Đối thủ */}
+              <div className="hidden sm:flex items-center gap-2.5 text-xs bg-slate-950/60 px-3 py-1 rounded-lg border border-slate-800">
+                <span className="text-amber-400/90 font-medium">🎯 Kỷ lục Top 1 đối thủ:</span>
                 <span className="font-semibold text-amber-300">
                   {topLeader.userName} ({targetLeaderScore} điểm)
                 </span>
-                <div className="w-28 h-1.5 rounded-full bg-slate-800 overflow-hidden border border-slate-700">
+                <div className="w-24 h-1.5 rounded-full bg-slate-800 overflow-hidden border border-slate-700">
                   <div
                     className="h-full bg-gradient-to-r from-amber-500 to-emerald-500 rounded-full transition-all duration-300"
                     style={{ width: `${progressToTop}%` }}
@@ -1890,6 +1941,20 @@ export default function EquationMinigame() {
           </div>
         </div>
       )}
+
+      {/* ─── MODAL ĐĂNG NHẬP / ĐĂNG KÝ SIMLAB ─── */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        onSuccess={(u) => {
+          setCurrentUser(u);
+          setPlayerName(u.name);
+          setPlayerSchool(u.school || "SimLab Edu");
+          setUserProgress(getProgress(u.id));
+        }}
+        title="Đăng nhập Đấu Trường SimLab"
+        subtitle="Vui lòng đăng nhập tài khoản học sinh / giáo viên để tham gia thi đấu, lưu học bạ và tích lũy XP."
+      />
     </div>
   );
 }
