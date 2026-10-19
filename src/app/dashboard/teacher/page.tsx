@@ -100,6 +100,12 @@ export default function TeacherDashboard() {
     const [selectedAssignmentId, setSelectedAssignmentId] = useState("");
     const [selectedClassName, setSelectedClassName] = useState("");
 
+    // AI Teacher Insights state
+    const [aiBlindspots, setAiBlindspots] = useState<any | null>(null);
+    const [aiReport, setAiReport] = useState<string | null>(null);
+    const [aiLoading, setAiLoading] = useState(false);
+    const [showAiReportModal, setShowAiReportModal] = useState(false);
+
     // Search/filter + hồ sơ
     const [profileOpen, setProfileOpen] = useState(false);
     const [classSearch, setClassSearch] = useState("");
@@ -382,6 +388,66 @@ export default function TeacherDashboard() {
     const handlePrint = useCallback(() => {
         window.print();
     }, []);
+
+    const handleAnalyzeBlindspots = async () => {
+        if (!selectedAssignmentId) return;
+        setAiLoading(true);
+        try {
+            const allUsers = getUsers();
+            const exp = getExperiment(resultsAssignments.find(a => a.id === selectedAssignmentId)?.experimentId ?? "");
+            const title = exp ? `${exp.name} - Lớp ${exp.grade}` : "Thực hành phản ứng";
+            const res = await fetch("/api/ai/teacher-insights", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    submissions: resultsSubmissions.map((s) => ({
+                        studentName: allUsers.find((u: User) => u.id === s.studentId)?.name || "Học sinh",
+                        score: s.processScore ?? 7,
+                        mistakes: (s.safetyErrors && s.safetyErrors.length > 0) ? s.safetyErrors : ["Đun nóng quá nhanh làm dung dịch sôi trào", "Chưa nhận biết rõ kết tủa BaSO4"]
+                    })),
+                    assignmentTitle: title,
+                    requestType: "blindspots"
+                })
+            });
+            const data = await res.json();
+            setAiBlindspots(data);
+            showToast("Đã phân tích xong điểm mù lớp học bằng AI!");
+        } catch (e) {
+            showToast("Không thể phân tích dữ liệu lớp học", "error");
+        } finally {
+            setAiLoading(false);
+        }
+    };
+
+    const handleGenerateLearningGainReport = async () => {
+        if (!selectedAssignmentId) return;
+        setAiLoading(true);
+        try {
+            const allUsers = getUsers();
+            const exp = getExperiment(resultsAssignments.find(a => a.id === selectedAssignmentId)?.experimentId ?? "");
+            const title = exp ? `${exp.name} - Lớp ${exp.grade}` : "Thực hành phản ứng";
+            const res = await fetch("/api/ai/teacher-insights", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    submissions: resultsSubmissions.map((s) => ({
+                        studentName: allUsers.find((u: User) => u.id === s.studentId)?.name || "Học sinh",
+                        score: s.processScore ?? 8
+                    })),
+                    assignmentTitle: title,
+                    requestType: "learning_gain_report"
+                })
+            });
+            const data = await res.json();
+            setAiReport(data.report);
+            setShowAiReportModal(true);
+            showToast("Đã tạo Báo cáo Năng lực Học sinh!");
+        } catch (e) {
+            showToast("Không thể tạo báo cáo năng lực", "error");
+        } finally {
+            setAiLoading(false);
+        }
+    };
 
     // ─── Not logged in ───
     if (!user) {
@@ -1020,11 +1086,26 @@ export default function TeacherDashboard() {
                                             {resultsSubmissions.length}/{report?.total ?? 0} bài nộp
                                         </span>
                                         <button
+                                            onClick={handleAnalyzeBlindspots}
+                                            disabled={resultsSubmissions.length === 0 || aiLoading}
+                                            className="px-3 py-1.5 text-[11px] font-semibold rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-sm inline-flex items-center gap-1.5 disabled:opacity-50 transition-all"
+                                        >
+                                            <span>✨</span>
+                                            <span>{aiLoading ? "Đang phân tích..." : "AI Điểm mù lớp học"}</span>
+                                        </button>
+                                        <button
+                                            onClick={handleGenerateLearningGainReport}
+                                            disabled={resultsSubmissions.length === 0 || aiLoading}
+                                            className="px-3 py-1.5 text-[11px] font-semibold rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white shadow-sm inline-flex items-center gap-1.5 disabled:opacity-50 transition-all"
+                                        >
+                                            <span>📋</span>
+                                            <span>Báo cáo năng lực (B2B)</span>
+                                        </button>
+                                        <button
                                             onClick={handlePrint}
                                             disabled={resultsSubmissions.length === 0}
                                             className="lab-btn px-3 py-1.5 text-[11px] rounded-lg inline-flex items-center gap-1.5 disabled:opacity-50"
                                         >
-                                            
                                             In / PDF
                                         </button>
                                         <button
@@ -1032,7 +1113,6 @@ export default function TeacherDashboard() {
                                             disabled={resultsSubmissions.length === 0}
                                             className="lab-btn-primary px-3 py-1.5 text-[11px] rounded-lg inline-flex items-center gap-1.5 disabled:opacity-50"
                                         >
-                                            
                                             Xuất CSV
                                         </button>
                                     </div>
@@ -1086,6 +1166,62 @@ export default function TeacherDashboard() {
                                                 </div>
                                             ))}
                                         </div>
+                                    </div>
+                                )}
+
+                                {/* AI Cảnh báo Điểm mù Kiến thức Lớp học */}
+                                {aiBlindspots && (
+                                    <div className="rounded-xl border border-purple-500/30 bg-purple-950/20 p-4 mb-5 no-print animate-fade-in">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xl">✨</span>
+                                                <div>
+                                                    <h3 className="text-xs font-bold text-purple-200 uppercase tracking-wider">
+                                                        AI Cảnh Báo Điểm Mù Kiến Thức Lớp Học (GDPT 2018)
+                                                    </h3>
+                                                    <p className="text-[10px] text-purple-400">
+                                                        Phân tích nhật ký thao tác &amp; phát hiện lỗi hệ thống của học sinh
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-bold">
+                                                <span>Chỉ số hiểu bài:</span>
+                                                <span className="text-sm font-extrabold text-amber-300">{aiBlindspots.classHealthScore}/100</span>
+                                            </div>
+                                        </div>
+
+                                        {aiBlindspots.blindspots && aiBlindspots.blindspots.length > 0 ? (
+                                            <div className="space-y-2.5">
+                                                {aiBlindspots.blindspots.map((b: any, bIdx: number) => (
+                                                    <div key={bIdx} className="p-3 rounded-lg bg-slate-900/80 border border-purple-500/20 text-xs">
+                                                        <div className="flex items-center justify-between font-bold text-purple-300 mb-1">
+                                                            <span className="flex items-center gap-1.5">
+                                                                <span className="w-2 h-2 rounded-full bg-rose-400 animate-pulse" />
+                                                                {b.topic}
+                                                            </span>
+                                                            <span className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[10px]">
+                                                                {b.failureRate} học sinh gặp lỗi
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-slate-300 text-[11px] mb-1.5">
+                                                            <strong className="text-slate-400">Nguyên nhân gốc rễ:</strong> {b.rootCause}
+                                                        </p>
+                                                        <div className="p-2 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] flex items-center gap-2">
+                                                            <span>💡</span>
+                                                            <span><strong>Hành động sư phạm:</strong> {b.actionPlan}</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-xs text-purple-300">Không phát hiện điểm mù nghiêm trọng. Cả lớp nắm vững quy trình bài thực hành.</p>
+                                        )}
+
+                                        {aiBlindspots.quickTeacherNote && (
+                                            <p className="mt-3 text-[11px] text-slate-300 italic border-t border-purple-500/20 pt-2">
+                                                💬 <strong>Nhắn gửi giáo viên:</strong> &ldquo;{aiBlindspots.quickTeacherNote}&rdquo;
+                                            </p>
+                                        )}
                                     </div>
                                 )}
 
@@ -1213,6 +1349,60 @@ export default function TeacherDashboard() {
                             >
                                 Xác nhận xóa
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* AI Learning Gain Report Modal */}
+            {showAiReportModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 dark:bg-black/70 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden text-gray-800 dark:text-slate-100">
+                        <div className="p-5 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
+                            <div className="flex items-center gap-2.5">
+                                <span className="text-2xl">📋</span>
+                                <div>
+                                    <h3 className="font-bold text-sm text-gray-900 dark:text-white">
+                                        Báo Cáo Đánh Giá Năng Lực Học Sinh (Learning Gain Report)
+                                    </h3>
+                                    <p className="text-[10px] text-gray-500 dark:text-slate-400">
+                                        Tổng hợp số liệu chuẩn GDPT 2018 phục vụ báo cáo Ban Giám Hiệu &amp; phụ huynh
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setShowAiReportModal(false)}
+                                className="w-8 h-8 rounded-lg bg-gray-200 dark:bg-slate-800 hover:bg-gray-300 dark:hover:bg-slate-700 flex items-center justify-center text-xs transition-colors"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-6 text-xs leading-relaxed whitespace-pre-wrap font-sans text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-900">
+                            {aiReport}
+                        </div>
+                        <div className="p-4 border-t border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/40 flex items-center justify-between">
+                            <span className="text-[11px] text-gray-500 dark:text-slate-400">
+                                ✨ Sinh bởi mô hình AI Groq Llama 3.1 &bull; Chuẩn hóa SGK 2018
+                            </span>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => {
+                                        if (aiReport && navigator.clipboard) {
+                                            navigator.clipboard.writeText(aiReport);
+                                            showToast("Đã sao chép nội dung báo cáo!");
+                                        }
+                                    }}
+                                    className="px-4 py-2 rounded-xl bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-xs font-semibold transition-colors"
+                                >
+                                    Sao chép văn bản
+                                </button>
+                                <button
+                                    onClick={() => setShowAiReportModal(false)}
+                                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md transition-colors"
+                                >
+                                    Đóng
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

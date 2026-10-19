@@ -30,6 +30,7 @@ import AssignmentQuiz from "./AssignmentQuiz";
 import ScienceLab from "./ScienceLab";
 import { Tour, TourStep } from "./Tour";
 import LabHeader from "./LabHeader";
+import LabAITutorWidget from "./LabAITutorWidget";
 
 export type ActiveReaction = {
     result: ReactionResult;
@@ -1333,6 +1334,13 @@ export default function LabBench() {
                     </div>
                 </div>
             )}
+
+            {/* Trợ lý ảo AI Tutor RAG SGK GDPT 2018 */}
+            <LabAITutorWidget
+                chemical1={chemical1}
+                chemical2={chemical2}
+                activeReaction={activeReaction}
+            />
         </div>
     );
 }
