@@ -89,34 +89,6 @@ export default function AuthModal({
     [mode, email, password, name, school, role, onSuccess, onClose]
   );
 
-  const handleQuickDemo = useCallback(
-    async (demoEmail: string, demoPass: string) => {
-      setError("");
-      setLoading(true);
-      try {
-        const res = await fetch("/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: demoEmail, password: demoPass }),
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.error || "Không thể đăng nhập tài khoản mẫu");
-        }
-        const loggedIn = data as User;
-        syncUser(loggedIn);
-        setSession(loggedIn.id, true);
-        onSuccess(loggedIn);
-        onClose();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Đã xảy ra lỗi kết nối");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [onSuccess, onClose]
-  );
-
   if (!isOpen) return null;
 
   return (
@@ -179,33 +151,6 @@ export default function AuthModal({
           >
             Đăng ký mới
           </button>
-        </div>
-
-        {/* Quick Demo Login */}
-        <div className="mb-4 p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-          <div className="text-[11px] font-medium text-slate-400 mb-2 flex items-center justify-between">
-            <span>⚡ Đăng nhập nhanh tài khoản mẫu:</span>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              disabled={loading}
-              onClick={() => handleQuickDemo("hs@simlab.vn", "123456")}
-              className="px-2.5 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-300 text-xs font-medium transition-all text-left flex items-center gap-1.5 disabled:opacity-50"
-            >
-              <span>🎓</span>
-              <span className="truncate">Học sinh Demo</span>
-            </button>
-            <button
-              type="button"
-              disabled={loading}
-              onClick={() => handleQuickDemo("gv@simlab.vn", "123456")}
-              className="px-2.5 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-medium transition-all text-left flex items-center gap-1.5 disabled:opacity-50"
-            >
-              <span>👨‍🏫</span>
-              <span className="truncate">Giáo viên Demo</span>
-            </button>
-          </div>
         </div>
 
         {/* Form */}

@@ -19,11 +19,6 @@ import Footer, { LogoMark } from "@/components/Footer";
 
 type AuthMode = "login" | "register";
 
-const DEMO_ACCOUNTS: { role: Role; label: string; email: string; password: string }[] = [
-    { role: "teacher", label: "Giáo viên", email: "gv@simlab.vn", password: "demo123" },
-    { role: "student", label: "Học sinh", email: "hs@simlab.vn", password: "demo123" },
-];
-
 function Spinner({ className = "w-4 h-4" }: { className?: string }) {
     return (
         <svg className={`${className} animate-spin`} viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -114,36 +109,6 @@ export default function Home() {
     const handleEnterBiology = useCallback(() => {
         router.push("/biology");
     }, [router]);
-
-    const handleDemoLogin = useCallback(
-        async (demoEmail: string, demoPassword: string, demoLabel: string) => {
-            setError("");
-            seedIfNeeded();
-            try {
-                let res;
-                res = await fetch("/api/auth/login", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ email: demoEmail, password: demoPassword })
-                });
-
-                if (!res.ok) {
-                    const data = await res.json();
-                    throw new Error(data.error || "Lỗi kết nối máy chủ Supabase. Hãy kiểm tra biến môi trường trên Vercel.");
-                }
-
-                let loggedIn = await res.json() as User;
-
-                setSession(loggedIn.id);
-                setUser(loggedIn);
-                showToast(`Đã đăng nhập tài khoản demo — ${demoLabel}`);
-                router.push(loggedIn.role === "teacher" ? "/dashboard/teacher" : "/dashboard/student");
-            } catch (err) {
-                setError(err instanceof Error ? err.message : "Có lỗi xảy ra");
-            }
-        },
-        [router, showToast]
-    );
 
     // ─── Trạng thái đã đăng nhập ───
     useEffect(() => {
@@ -253,7 +218,7 @@ export default function Home() {
                             <svg className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.75v4.5m0 4.5v4.5m0-13.5h4.5m-4.5 0H5.25m4.5 13.5h4.5m-4.5 0H5.25" />
                             </svg>
-                            Trải nghiệm Demo Hóa học
+                            Vào phòng thực hành Hóa học
                         </button>
                         <button onClick={() => router.push("/minigame")} className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-yellow-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-400/40 px-6 py-3.5 text-sm font-bold rounded-full inline-flex items-center gap-2 shadow-sm transition-all duration-300 hover:-translate-y-0.5">
                             <span className="text-base">🏆</span>

@@ -366,8 +366,7 @@ export default function StudentDashboard() {
                                 </button>
                             </form>
                             <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-2.5 inline-flex items-center gap-1">
-                                
-                                Thử mã demo: <span className="font-mono">HOA10A</span>
+                                Nhập mã lớp 6 ký tự do giáo viên cung cấp
                             </p>
                         </div>
 
