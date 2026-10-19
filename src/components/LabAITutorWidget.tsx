@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Chemical } from "@/lib/chemicals";
 import { ActiveReaction } from "./LabBench";
+import { FormattedAIMessage } from "./FormattedAIMessage";
 
 interface LabAITutorWidgetProps {
   chemical1: Chemical | null;
@@ -180,7 +181,11 @@ export default function LabAITutorWidget({
                       : "bg-slate-800/90 border border-slate-700/60 text-slate-200 rounded-bl-none"
                   }`}
                 >
-                  <p>{m.text}</p>
+                  {m.sender === "user" ? (
+                    <p className="whitespace-pre-wrap font-medium">{m.text}</p>
+                  ) : (
+                    <FormattedAIMessage content={m.text} />
+                  )}
                   {m.sourceBook && (
                     <div className="mt-1.5 pt-1.5 border-t border-slate-700/50 text-[10px] text-amber-300/90 font-medium flex items-center gap-1">
                       <span>📖</span>

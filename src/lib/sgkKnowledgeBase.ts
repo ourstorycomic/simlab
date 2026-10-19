@@ -1,23 +1,131 @@
 /**
- * Cơ sở Tri thức Số Hóa Sách Giáo Khoa GDPT 2018 (SimLab Curriculum Knowledge Base)
+ * Cơ sở Tri thức Số Hóa Sách Giáo Khoa GDPT 2018 (SimLab Multi-Subject Knowledge Base)
+ * Hỗ trợ toàn diện các môn học: Hóa học, Vật lý, Sinh học, Toán học, Ngữ văn và Kỹ năng học tập
  * Nguồn dữ liệu tham chiếu: Bộ sách Kết nối tri thức với cuộc sống & Cánh Diều (NXB Giáo Dục Việt Nam)
- * Phục vụ cơ chế RAG (Retrieval-Augmented Generation) chống Hallucination (bịa đặt) của AI.
  */
 
 export interface SGKChunk {
   id: string;
-  subject: "chemistry" | "physics" | "biology" | "general_science";
-  grade: number; // 8, 9, 10, 11, 12
+  subject: "chemistry" | "physics" | "biology" | "math" | "literature" | "general";
+  grade: number; // 6 - 12
   topic: string;
-  sourceBook: string; // VD: "Hóa học 11 - Kết nối tri thức - Bài 4"
-  ruleOrLaw: string; // Định luật / Nguyên lý khoa học
-  safetyWarning?: string; // Cảnh báo an toàn thí nghiệm
+  sourceBook: string; // VD: "Toán 10 - Kết nối tri thức - Bài 3"
+  ruleOrLaw: string; // Định luật / Nguyên lý khoa học / Định lý / Khái niệm
+  safetyWarning?: string; // Cảnh báo an toàn (nếu có)
   keywords: string[];
   explanation: string;
 }
 
 export const SGK_CURRICULUM_DATA: SGKChunk[] = [
-  // ─── 1. AN TOÀN PHÒNG THÍ NGHIỆM (KHTN 8, HÓA 10) ───
+  // ─── 1. TOÁN HỌC (MATH) ───
+  {
+    id: "math-08-01",
+    subject: "math",
+    grade: 8,
+    topic: "Định lý Pythagoras (Pi-ta-go) trong tam giác vuông",
+    sourceBook: "Toán 8 - Kết nối tri thức - Bài 9: Định lí Pythagore",
+    ruleOrLaw: "Trong một tam giác vuông, bình phương của cạnh huyền bằng tổng các bình phương của hai cạnh góc vuông: a² + b² = c².",
+    keywords: ["pythagoras", "pitago", "tam giác vuông", "cạnh huyền", "a^2+b^2=c^2", "toán 8"],
+    explanation: "Nếu tam giác ABC vuông tại A với BC là cạnh huyền thì BC² = AB² + AC². Định lý đảo: Nếu một tam giác có bình phương một cạnh bằng tổng bình phương hai cạnh kia thì tam giác đó là tam giác vuông.",
+  },
+  {
+    id: "math-11-01",
+    subject: "math",
+    grade: 11,
+    topic: "Đạo hàm và Ý nghĩa hình học của đạo hàm",
+    sourceBook: "Toán 11 - Kết nối tri thức - Chương VII: Đạo hàm",
+    ruleOrLaw: "Đạo hàm f'(x₀) là hệ số góc của tiếp tuyến của đồ thị hàm số y = f(x) tại điểm M₀(x₀; f(x₀)). Phương trình tiếp tuyến: y - y₀ = f'(x₀)(x - x₀).",
+    keywords: ["đạo hàm", "tiếp tuyến", "hệ số góc", "vi phân", "đạo hàm lượng giác", "toán 11"],
+    explanation: "Các quy tắc đạo hàm cơ bản: (x^n)' = n·x^(n-1); (sin x)' = cos x; (cos x)' = -sin x; (e^x)' = e^x; (ln x)' = 1/x. Đạo hàm hàm hợp: [f(u)]' = f'(u) · u'.",
+  },
+  {
+    id: "math-10-01",
+    subject: "math",
+    grade: 10,
+    topic: "Bất đẳng thức AM-GM (Cauchy) cho các số thực không âm",
+    sourceBook: "Toán 10 - Cánh Diều - Chuyên đề Bất đẳng thức",
+    ruleOrLaw: "Trung bình cộng của n số thực không âm luôn lớn hơn hoặc bằng trung bình nhân của chúng: (a₁ + a₂ + ... + a_n)/n ≥ ⁿ√(a₁a₂...a_n).",
+    keywords: ["cauchy", "am-gm", "bất đẳng thức", "cực trị", "giá trị lớn nhất", "nhỏ nhất"],
+    explanation: "Dấu đẳng thức xảy ra khi và chỉ khi a₁ = a₂ = ... = a_n. Với 2 số a, b ≥ 0: (a + b)/2 ≥ √(ab), dấu bằng xảy ra khi a = b.",
+  },
+
+  // ─── 2. VẬT LÝ (PHYSICS) ───
+  {
+    id: "phy-10-01",
+    subject: "physics",
+    grade: 10,
+    topic: "Định luật II Newton và Khái niệm Lực quán tính",
+    sourceBook: "Vật lý 10 - Kết nối tri thức - Bài 15: Định luật II Newton",
+    ruleOrLaw: "Gia tốc của một vật cùng hướng với lực tác dụng lên vật. Độ lớn của gia tốc tỉ lệ thuận với độ lớn của lực và tỉ lệ nghịch với khối lượng của vật: F = m·a.",
+    keywords: ["newton", "định luật 2 newton", "f=ma", "gia tốc", "khối lượng", "lực"],
+    explanation: "Trong hệ SI, đơn vị của lực là Newton (N): 1 N = 1 kg·m/s². Định luật II là nền tảng của cơ học cổ điển mô tả chuyển động của chất điểm dưới tác dụng của ngoại lực.",
+  },
+  {
+    id: "phy-10-02",
+    subject: "physics",
+    grade: 10,
+    topic: "Định luật Bảo toàn Cơ năng",
+    sourceBook: "Vật lý 10 - Cánh Diều - Bài 17: Động năng và Thế năng",
+    ruleOrLaw: "Khi một vật chỉ chịu tác dụng của trọng lực hoặc lực đàn hồi (lực thế), cơ năng của vật là một đại lượng bảo toàn: W = Wđ + Wt = const.",
+    keywords: ["cơ năng", "động năng", "thế năng", "bảo toàn cơ năng", "1/2mv^2", "mgh"],
+    explanation: "Động năng: Wđ = 1/2·m·v². Thế năng trọng trường: Wt = m·g·h. Khi vật rơi tự do, thế năng giảm bao nhiêu thì động năng tăng bấy nhiêu và ngược lại.",
+  },
+  {
+    id: "phy-11-01",
+    subject: "physics",
+    grade: 11,
+    topic: "Hiện tượng Khúc xạ Ánh sáng & Định luật Snell",
+    sourceBook: "Vật lý 11 - Kết nối tri thức - Bài 13: Hiện tượng khúc xạ ánh sáng",
+    ruleOrLaw: "Tia khúc xạ nằm trong mặt phẳng tới và ở phía bên kia pháp tuyến so với tia tới: n₁·sin(i) = n₂·sin(r).",
+    keywords: ["khúc xạ", "ánh sáng", "chiết suất", "snell", "sin i", "sin r", "phản xạ toàn phần"],
+    explanation: "Khi ánh sáng truyền từ môi trường có chiết suất n₁ sang môi trường n₂ (n₁ > n₂), nếu góc tới i vượt quá góc giới hạn igh (sin igh = n₂/n₁) thì xảy ra hiện tượng phản xạ toàn phần.",
+  },
+
+  // ─── 3. SINH HỌC (BIOLOGY) ───
+  {
+    id: "bio-10-01",
+    subject: "biology",
+    grade: 10,
+    topic: "Quá trình Quang hợp ở Thực vật (Pha sáng và Pha tối)",
+    sourceBook: "Sinh học 10 - Kết nối tri thức - Bài 14: Quang hợp ở thực vật",
+    ruleOrLaw: "Quang hợp là quá trình lục lạp hấp thụ năng lượng ánh sáng mặt trời để tổng hợp chất hữu cơ (glucose) từ CO₂ và H₂O, đồng thời giải phóng O₂: 6CO₂ + 12H₂O + Ánh sáng → C₆H₁₂O₆ + 6O₂ + 6H₂O.",
+    keywords: ["quang hợp", "pha sáng", "pha tối", "calvin", "lục lạp", "diệp lục", "co2", "o2"],
+    explanation: "Pha sáng diễn ra ở màng thylakoid biến quang năng thành hóa năng (ATP, NADPH) và giải phóng O₂ từ quang phân ly nước. Pha tối (chu trình Calvin) diễn ra ở chất nền stroma sử dụng ATP và NADPH để khử CO₂ thành carbohydrate.",
+  },
+  {
+    id: "bio-10-02",
+    subject: "biology",
+    grade: 10,
+    topic: "Cơ chế Nhân đôi ADN (Tái bản theo nguyên tắc bán bảo tồn)",
+    sourceBook: "Sinh học 10 - Cánh Diều - Bài 6: Nucleic acid và sự nhân đôi ADN",
+    ruleOrLaw: "ADN nhân đôi theo 2 nguyên tắc then chốt: Nguyên tắc bổ sung (A-T, G-X) và Nguyên tắc bán bảo tồn (mỗi phân tử con chứa một mạch cũ và một mạch mới tổng hợp).",
+    keywords: ["adn", "nhân đôi", "bán bảo tồn", "nguyên tắc bổ sung", "helicase", "dna polymerase"],
+    explanation: "Enzyme DNA polymerase xúc tác kéo dài mạch mới theo chiều 5' → 3'. Mạch khuôn 3' → 5' được tổng hợp liên tục; mạch khuôn 5' → 3' được tổng hợp ngắt quãng tạo các đoạn Okazaki sau đó nối lại nhờ enzyme ligase.",
+  },
+
+  // ─── 4. NGỮ VĂN & KHOA HỌC XÃ HỘI (LITERATURE) ───
+  {
+    id: "lit-12-01",
+    subject: "literature",
+    grade: 12,
+    topic: "Hình tượng người lính Tây Tiến trong thơ Quang Dũng",
+    sourceBook: "Ngữ văn 12 - Kết nối tri thức - Bài 1: Vẻ đẹp người lính thời kháng chiến",
+    ruleOrLaw: "Bút pháp lãng mạn kết hợp cảm hứng bi tráng khắc họa vẻ đẹp hào hoa, dũng cảm, sẵn sàng hy sinh vì Tổ quốc của đoàn quân Tây Tiến giữa thiên nhiên miền Tây hùng vĩ, dữ dội.",
+    keywords: ["tây tiến", "quang dũng", "người lính", "hào hoa", "bi tráng", "ngữ văn 12"],
+    explanation: "Nét đặc sắc: Thiên nhiên miền Tây Bắc hiểm trở (Dốc lên khúc khuỷu, dốc thăm thẳm) làm tôn lên ý chí phi thường và nét lãng mạn hào hoa (Mắt trừng gửi mộng qua biên giới / Đêm mơ Hà Nội dáng kiều thơm). Cái chết không bi lụy mà bất tử hóa (Áo bào thay chiếu anh về đất / Sông Mã gầm lên khúc độc hành).",
+  },
+  {
+    id: "lit-12-02",
+    subject: "literature",
+    grade: 12,
+    topic: "Hình tượng Sóng và Khát vọng tình yêu trong thơ Xuân Quỳnh",
+    sourceBook: "Ngữ văn 12 - Cánh Diều - Bài 2: Tiếng nói tình yêu và khát vọng",
+    ruleOrLaw: "Hình tượng 'sóng' là sự ẩn dụ, hóa thân của cái tôi trữ tình người phụ nữ trong tình yêu: vừa dữ dội vừa dịu êm, vừa bồn chồn nhớ nhung vừa thủy chung, khát khao vươn tới sự vĩnh hằng.",
+    keywords: ["sóng", "xuân quỳnh", "tình yêu", "dữ dội", "dịu êm", "nhớ nhung", "thủy chung"],
+    explanation: "Cấu trúc tương đồng giữa sóng biển và tâm hồn người phụ nữ: 'Dữ dội và dịu êm / Ồn ào và lặng lẽ'. Khát vọng vượt qua giới hạn thời gian (trăm năm) để hòa vào biển lớn tình yêu nhân loại.",
+  },
+
+  // ─── 5. HÓA HỌC & AN TOÀN PHÒNG THÍ NGHIỆM (CHEMISTRY) ───
   {
     id: "safe-01",
     subject: "chemistry",
@@ -29,30 +137,6 @@ export const SGK_CURRICULUM_DATA: SGKChunk[] = [
     keywords: ["h2so4", "axit", "nước vào axit", "pha loãng", "bỏng", "an toàn", "sunfuric", "đặc"],
     explanation: "Cách pha loãng an toàn: Rót từ từ axit sunfuric đặc vào nước dọc theo đũa thủy tinh, vừa rót vừa khuấy nhẹ. Tuyệt đối không làm ngược lại.",
   },
-  {
-    id: "safe-02",
-    subject: "chemistry",
-    grade: 8,
-    topic: "Quy tắc đun nóng hóa chất trong ống nghiệm",
-    sourceBook: "KHTN 8 - Kết nối tri thức - Mở đầu: Sử dụng dụng cụ và an toàn",
-    ruleOrLaw: "Thủy tinh giãn nở vì nhiệt cục bộ có thể nứt vỡ; chất lỏng sôi cục bộ gây trào phụt.",
-    safetyWarning: "Không để đáy ống nghiệm sát bấc đèn cồn; không hướng miệng ống nghiệm về phía mình hoặc người khác.",
-    keywords: ["đun", "đèn cồn", "ống nghiệm", "nhiệt độ", "trào", "vỡ", "bỏng"],
-    explanation: "Quy trình chuẩn: Dùng kẹp gỗ cặp ở 1/3 thân ống nghiệm tính từ miệng. Hơ đều dọc thân và đáy ống nghiệm để nhiệt tản đều, sau đó mới đun tập trung tại vị trí có hóa chất, nghiêng góc 45 độ.",
-  },
-  {
-    id: "safe-03",
-    subject: "chemistry",
-    grade: 10,
-    topic: "An toàn khi điều chế và thu khí độc (Cl2, NO2, SO2, H2S)",
-    sourceBook: "Hóa học 10 - Cánh Diều - Bài 17: Halogen",
-    ruleOrLaw: "Khí Halogen và Oxide của Nitơ/Lưu huỳnh có tính độc, kích ứng mạnh đường hô hấp.",
-    safetyWarning: "Phải thực hiện trong tủ hút hoặc dùng bông tẩm dung dịch kiềm (NaOH) nút ở miệng ống nghiệm để hấp thụ khí dư.",
-    keywords: ["khí độc", "cl2", "no2", "so2", "bông tẩm", "hút", "naoh"],
-    explanation: "Dung dịch kiềm NaOH phản ứng trung hòa các khí oxit axit và halogen: Cl₂ + 2NaOH → NaCl + NaClO + H₂O; 2NO₂ + 2NaOH → NaNO₃ + NaNO₂ + H₂O.",
-  },
-
-  // ─── 2. HÓA HỌC VÔ CƠ & CÂN BẰNG ION (HÓA 11 - GDPT 2018) ───
   {
     id: "chem-11-01",
     subject: "chemistry",
@@ -73,69 +157,16 @@ export const SGK_CURRICULUM_DATA: SGKChunk[] = [
     keywords: ["baso4", "bacl2", "so4", "kết tủa trắng", "sulfate", "barium", "nhận biết"],
     explanation: "Phương trình ion rút gọn: Ba²⁺ + SO₄²⁻ → BaSO₄↓ (kết tủa màu trắng). Dấu hiệu đặc trưng: Kết tủa trắng này không tan trong dung dịch axit HCl hoặc HNO₃, giúp phân biệt với BaCO₃ hay BaSO₃.",
   },
-  {
-    id: "chem-11-03",
-    subject: "chemistry",
-    grade: 11,
-    topic: "Phản ứng Thủy phân và Cân bằng Sự điện li (pH & Chỉ thị)",
-    sourceBook: "Hóa học 11 - Cánh Diều - Bài 2: Cân bằng trong dung dịch nước",
-    ruleOrLaw: "Thuyết acid-base của Brønsted - Lowry: Acid cho proton (H⁺), base nhận proton (H⁺).",
-    keywords: ["ph", "chỉ thị", "quỳ tím", "phenolphthalein", "axit", "bazo", "h+", "oh-"],
-    explanation: "Chỉ thị màu: Phenolphthalein không màu trong môi trường axit/trung tính (pH < 8.3) và chuyển sang màu hồng tím khi gặp base (pH > 8.3). Quỳ tím hóa đỏ khi pH < 6 và hóa xanh khi pH > 8.",
-  },
-
-  // ─── 3. KIM LOẠI & DÃY HOẠT ĐỘNG HÓA HỌC (KHTN 9 & HÓA 12) ───
-  {
-    id: "chem-09-01",
-    subject: "chemistry",
-    grade: 9,
-    topic: "Kim loại kiềm (Na, K) tác dụng với Nước",
-    sourceBook: "KHTN 9 - Kết nối tri thức - Bài 15: Tính chất kim loại",
-    ruleOrLaw: "Kim loại nhóm IA có tính khử rất mạnh, thế điện cực chuẩn E° rất âm.",
-    safetyWarning: "Kim loại Na phản ứng nổ nguy hiểm nếu dùng lượng lớn. Chỉ dùng mẩu nhỏ cỡ hạt đậu xanh, thấm khô dầu trước khi cho vào chậu nước có che mặt kính đồng hồ.",
-    keywords: ["na", "natri", "nước", "kim loại kiềm", "nổ", "h2", "nóng chảy", "chạy tròn"],
-    explanation: "Hiện tượng: Mẩu natri nóng chảy thành giọt tròn, chạy lượn trên mặt nước, có tiếng xèo xèo, bốc cháy ngọn lửa màu vàng và sinh khí H₂: 2Na + 2H₂O → 2NaOH + H₂↑. Dung dịch thu được làm quỳ tím hóa xanh / phenolphthalein hóa hồng.",
-  },
-  {
-    id: "chem-12-01",
-    subject: "chemistry",
-    grade: 12,
-    topic: "Phản ứng tráng bạc của Glucose (Aldehyde)",
-    sourceBook: "Hóa học 12 - Kết nối tri thức - Bài 4: Carbohydrate",
-    ruleOrLaw: "Nhóm chức -CHO trong glucose bị oxi hóa bởi phức chất [Ag(NH₃)₂]OH thành muối ammonium gluconate.",
-    keywords: ["glucose", "tráng bạc", "ag", "kết tủa bạc", "tollens", "gương", "nh3", "agno3"],
-    explanation: "Hiện tượng: Thành ống nghiệm sáng bóng như gương do lớp kim loại bạc (Ag) kim loại bám vào: CH₂OH[CHOH]₄CHO + 2[Ag(NH₃)₂]OH → CH₂OH[CHOH]₄COONH₄ + 2Ag↓ + 3NH₃ + H₂O (đun nóng cách thủy nhẹ 60-70°C).",
-  },
-
-  // ─── 4. VẬT LÝ & SINH HỌC TÍCH HỢP ───
-  {
-    id: "phy-10-01",
-    subject: "physics",
-    grade: 10,
-    topic: "Định luật Bảo toàn Năng lượng & Nhiệt động lực học",
-    sourceBook: "Vật lý 10 - Kết nối tri thức - Bài 25: Năng lượng và công",
-    ruleOrLaw: "Độ biến thiên nội năng: ΔU = A + Q. Nhiệt lượng tự phát truyền từ vật có nhiệt độ cao sang vật có nhiệt độ thấp.",
-    keywords: ["nhiệt lượng", "năng lượng", "bảo toàn", "nhiệt độ", "truyền nhiệt"],
-    explanation: "Trong phản ứng tỏa nhiệt (Exothermic, ΔH < 0), hóa năng biến đổi thành nhiệt năng làm tăng nhiệt độ của hệ xung quanh. Cần kiểm soát tản nhiệt khi nhiệt độ vượt ngưỡng an toàn.",
-  },
-  {
-    id: "bio-10-01",
-    subject: "biology",
-    grade: 10,
-    topic: "Hiện tượng Co nguyên sinh và Phản co nguyên sinh ở Tế bào",
-    sourceBook: "Sinh học 10 - Cánh Diều - Bài 10: Trao đổi chất qua màng sinh chất",
-    ruleOrLaw: "Thẩm thấu: Nước di chuyển từ nơi có thế nước cao (dung dịch nhược trương) sang nơi có thế nước thấp (dung dịch ưu trương).",
-    keywords: ["co nguyên sinh", "thẩm thấu", "tế bào", "ưu trương", "nhược trương", "màng tế bào"],
-    explanation: "Khi đặt tế bào vào dung dịch ưu trương (nồng độ chất tan cao hơn trong tế bào), nước thẩm thấu ra ngoài làm tế bào chất co lại, màng sinh chất tách rời khỏi thành cellulose.",
-  },
 ];
 
 /**
  * Thuật toán RAG Tối ưu Token:
- * Tìm kiếm các đoạn SGK chuẩn GDPT 2018 khớp nhất với câu hỏi / ngữ cảnh thí nghiệm hiện tại
- * Giúp prompt truyền vào LLM cực kỳ ngắn gọn (chỉ 100-200 tokens), tiết kiệm 80% token so với nạp toàn bộ sách.
+ * Tìm kiếm các đoạn SGK chuẩn GDPT 2018 khớp với câu hỏi.
+ * Nếu không có chủ đề liên quan trực tiếp, trả về danh sách rỗng [] để tránh làm loãng ngữ cảnh.
  */
 export function retrieveSGKKnowledge(query: string, limit = 2): SGKChunk[] {
+  if (!query || query.trim().length < 3) return [];
+
   const cleanQ = query.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const words = cleanQ.split(/\s+/).filter((w) => w.length > 1);
 
@@ -153,21 +184,17 @@ export function retrieveSGKKnowledge(query: string, limit = 2): SGKChunk[] {
     }
 
     for (const kw of chunk.keywords) {
-      if (cleanQ.includes(kw.toLowerCase())) {
-        score += 4;
+      const cleanKw = kw.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      if (cleanQ.includes(cleanKw)) {
+        score += 5;
       }
     }
 
     return { chunk, score };
   });
 
-  scored.sort((a, b) => b.score - a.score);
-
-  const topResults = scored.filter((s) => s.score > 0).slice(0, limit);
-  if (topResults.length === 0) {
-    // Nếu không khớp từ khóa cụ thể, trả về quy tắc an toàn cơ bản
-    return [SGK_CURRICULUM_DATA[0]];
-  }
+  // Chỉ lấy các kết quả có điểm liên quan thực tế (score >= 4)
+  const topResults = scored.filter((s) => s.score >= 4).sort((a, b) => b.score - a.score).slice(0, limit);
 
   return topResults.map((s) => s.chunk);
 }
