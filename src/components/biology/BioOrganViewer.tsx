@@ -236,10 +236,12 @@ export const ORGANS: Organ[] = [
     },
     note: "Mắt người có thể phân biệt khoảng 10 triệu màu sắc khác nhau và có tốc độ điều tiết lấy nét nhanh hơn bất kỳ ống kính máy ảnh nào.",
     hotspots: [
-      { id: "cornea", label: "Giác mạc (Cornea)", description: "Lớp màng hình chỏm cầu trong suốt không có mạch máu ở trước mắt, đóng góp 70% công suất khúc xạ.", position: [0.0, 0.0, 1.1] },
-      { id: "iris", label: "Mống mắt & Đồng tử", description: "Vòng cơ màu sắc điều chỉnh khẩu độ mở của đồng tử tùy thuộc vào cường độ ánh sáng môi trường.", position: [0.0, 0.35, 0.95] },
-      { id: "sclera", label: "Củng mạc (Lòng trắng)", description: "Lớp vỏ xơ trắng dai chắc bọc 5/6 sau nhãn cầu, bảo vệ cấu trúc bên trong và là nơi bám của các cơ vận nhãn.", position: [0.85, 0.45, 0.1] },
-      { id: "optic-nerve", label: "Dây thần kinh thị giác", description: "Bó sợi thần kinh dẫn truyền toàn bộ thông tin thị giác từ võng mạc xuyên qua đỉnh hốc mắt vào não bộ.", position: [0.0, -0.15, -1.15] },
+      { id: "pupil", label: "Đồng tử (Pupil - Con ngươi)", description: "Lỗ tròn rỗng màu đen ở chính tâm mắt. Đóng vai trò như khẩu độ máy ảnh: tự động co nhỏ (~2mm) khi gặp ánh sáng mạnh và giãn to (lên tới ~8mm) trong bóng tối để điều tiết lượng photon đi vào nhãn cầu.", position: [0.85, -0.12, 0.75] },
+      { id: "iris", label: "Mống mắt (Iris - Tròng mắt)", description: "Vành đĩa cơ tròn chứa sắc tố melanin (vân màu nâu vàng) bao quanh đồng tử. Gồm cơ thắt và cơ giãn giúp co mở đồng tử liên tục.", position: [0.65, 0.32, 0.72] },
+      { id: "cornea", label: "Giác mạc (Cornea)", description: "Lớp màng hình chỏm cầu trong suốt nằm ở ngoài cùng phía trước nhãn cầu, đóng góp tới 70% tổng công suất quang học của mắt để khúc xạ ánh sáng.", position: [0.95, -0.08, 0.85] },
+      { id: "sclera", label: "Củng mạc (Sclera - Lòng trắng)", description: "Lớp vỏ mô xơ màu trắng ngà dai chắc bao bọc 5/6 diện tích nhãn cầu, giúp duy trì hình dạng cầu và bảo vệ cấu trúc bên trong.", position: [-0.45, 0.45, 0.75] },
+      { id: "muscles", label: "Cơ vận nhãn (Cơ ngoài mắt)", description: "Hệ thống 6 bó cơ vân bám vào thành củng mạc, phối hợp nhịp nhàng giúp mắt liếc nhìn linh hoạt lên, xuống, trái, phải.", position: [-0.6, 0.75, -0.2] },
+      { id: "optic-nerve", label: "Dây thần kinh thị giác (Dây TK II)", description: "Bó gồm hơn 1 triệu sợi trục thần kinh xuất phát từ các tế bào hạch võng mạc, dẫn truyền tín hiệu hình ảnh về vỏ não thị giác.", position: [-1.2, -0.05, 0.2] },
     ],
   },
 ];
