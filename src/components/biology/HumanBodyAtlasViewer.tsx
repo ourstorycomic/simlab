@@ -1583,13 +1583,37 @@ export default function HumanBodyAtlasViewer({
                   {/* 3D Linked Organ Card (Ảnh 4) */}
                   {(() => {
                     const sys = selectedStructure.system;
-                    const organMap: Record<string, { id: string; name: string; image: string }> = {
-                      cardiac: { id: "heart", name: "Tim", image: "/images/organs/heart.webp" },
-                      nervous: { id: "brain", name: "Não", image: "/images/organs/brain.webp" },
-                      digestive: { id: "liver", name: "Gan", image: "/images/organs/liver.webp" },
-                      respiratory: { id: "lungs", name: "Phổi", image: "/images/organs/lungs.webp" },
-                    };
-                    const linked = organMap[sys] || { id: "heart", name: "Tim", image: "/images/organs/heart.webp" };
+                    const structLower = (selectedStructure.id + " " + selectedStructure.name).toLowerCase();
+                    
+                    let linked = { id: "heart", name: "Tim", image: "/images/organs/heart.webp" };
+                    if (structLower.includes("stomach") || structLower.includes("dạ dày") || structLower.includes("gaster")) {
+                      linked = { id: "stomach", name: "Dạ dày", image: "/images/organs/stomach.webp" };
+                    } else if (structLower.includes("kidney") || structLower.includes("thận") || structLower.includes("ren")) {
+                      linked = { id: "kidney", name: "Thận", image: "/images/organs/kidneys.webp" };
+                    } else if (structLower.includes("pancreas") || structLower.includes("tụy")) {
+                      linked = { id: "pancreas", name: "Tụy", image: "/images/organs/pancreas.webp" };
+                    } else if (structLower.includes("liver") || structLower.includes("gan") || structLower.includes("mật")) {
+                      linked = { id: "liver", name: "Gan", image: "/images/organs/liver.webp" };
+                    } else if (structLower.includes("lung") || structLower.includes("phổi") || structLower.includes("khí quản") || structLower.includes("phế quản")) {
+                      linked = { id: "lungs", name: "Phổi", image: "/images/organs/lungs.webp" };
+                    } else if (structLower.includes("brain") || structLower.includes("não") || structLower.includes("tủy") || structLower.includes("cerebr")) {
+                      linked = { id: "brain", name: "Não", image: "/images/organs/brain.webp" };
+                    } else if (structLower.includes("eye") || structLower.includes("mắt") || structLower.includes("nhãn cầu")) {
+                      linked = { id: "eyeball", name: "Nhãn cầu (Mắt)", image: "/images/organs/eyeball.webp" };
+                    } else if (structLower.includes("intestine") || structLower.includes("ruột") || structLower.includes("tràng") || structLower.includes("colon")) {
+                      linked = { id: "intestine", name: "Ruột & Tiêu hóa", image: "/images/organs/intestine.webp" };
+                    } else {
+                      const organMap: Record<string, { id: string; name: string; image: string }> = {
+                        cardiac: { id: "heart", name: "Tim", image: "/images/organs/heart.webp" },
+                        nervous: { id: "brain", name: "Não", image: "/images/organs/brain.webp" },
+                        digestive: { id: "stomach", name: "Dạ dày", image: "/images/organs/stomach.webp" },
+                        respiratory: { id: "lungs", name: "Phổi", image: "/images/organs/lungs.webp" },
+                        urinary: { id: "kidney", name: "Thận", image: "/images/organs/kidneys.webp" },
+                        endocrine: { id: "pancreas", name: "Tụy", image: "/images/organs/pancreas.webp" },
+                        sensory: { id: "eyeball", name: "Nhãn cầu", image: "/images/organs/eyeball.webp" },
+                      };
+                      linked = organMap[sys] || { id: "heart", name: "Tim", image: "/images/organs/heart.webp" };
+                    }
                     return (
                       <div
                         onClick={() => onNavigateToOrgan?.(linked.id)}

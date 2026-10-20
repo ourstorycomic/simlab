@@ -124,6 +124,18 @@ export function getOrganTissueConfig(url: string): OrganTissueConfig {
             description: "Lớp biểu bì sừng hóa bên ngoài, trung bì liên kết và mô mỡ giàu mạch máu."
         };
     }
+    if (lower.includes("stomach")) {
+        return {
+            name: "Thành niêm mạc dạ dày (Gastric Mucosa)",
+            primaryColor: "#a34e44",
+            secondaryColor: "#c26d63",
+            borderColor: "#57211b",
+            specularColor: "#e68a80",
+            roughness: 0.55,
+            metalness: 0.05,
+            description: "Thành dạ dày dày dặn gồm 3 lớp cơ trơn và lớp niêm mạc nếp gấp giàu tuyến tiết axit HCl và men tiêu hóa."
+        };
+    }
     if (lower.includes("eyeball")) {
         return {
             name: "Cấu trúc mắt (Eye Interior)",
@@ -554,6 +566,36 @@ function Model({
     );
 }
 
+interface ErrorBoundaryProps {
+    fallback: React.ReactNode;
+    children: React.ReactNode;
+    resetKey?: string;
+}
+
+class ModelErrorBoundary extends React.Component<ErrorBoundaryProps, { hasError: boolean }> {
+    constructor(props: ErrorBoundaryProps) {
+        super(props);
+        this.state = { hasError: false };
+    }
+
+    static getDerivedStateFromError() {
+        return { hasError: true };
+    }
+
+    componentDidUpdate(prevProps: ErrorBoundaryProps) {
+        if (prevProps.resetKey !== this.props.resetKey && this.state.hasError) {
+            this.setState({ hasError: false });
+        }
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return this.props.fallback;
+        }
+        return this.props.children;
+    }
+}
+
 export default function ModelViewer({ modelUrl, hotspots = [], onHotspotClick }: { modelUrl: string, hotspots?: HotspotData[], onHotspotClick?: (h: HotspotData) => void }) {
     const [activeHotspot, setActiveHotspot] = useState<string | null>(null);
     const [isAutoRotate, setIsAutoRotate] = useState(true);
@@ -606,19 +648,31 @@ export default function ModelViewer({ modelUrl, hotspots = [], onHotspotClick }:
                 <pointLight position={[-10, -10, -10]} intensity={0.6} />
                 
                 <Suspense fallback={null}>
-                    <Model 
-                        url={modelUrl} 
-                        hotspots={hotspots}
-                        activeHotspot={activeHotspot}
-                        setActiveHotspot={setActiveHotspot}
-                        onHotspotClick={onHotspotClick}
-                        onModelClick={handleModelClick} 
-                        showWireframe={showWireframe}
-                        showCrossSection={showCrossSection}
-                        slicePlaneType={slicePlaneType}
-                        sliceOffset={sliceOffset}
-                        sliceInverted={sliceInverted}
-                    />
+                    <ModelErrorBoundary
+                        resetKey={modelUrl}
+                        fallback={
+                            <Html center>
+                                <div className="p-3 bg-slate-900/95 border border-amber-500/50 rounded-xl text-center backdrop-blur-md shadow-xl max-w-xs">
+                                    <p className="text-amber-400 font-bold text-xs mb-1">Đang tải cấu trúc 3D</p>
+                                    <p className="text-slate-400 text-[10px]">Vui lòng kiểm tra lại tài nguyên giải phẫu...</p>
+                                </div>
+                            </Html>
+                        }
+                    >
+                        <Model 
+                            url={modelUrl} 
+                            hotspots={hotspots}
+                            activeHotspot={activeHotspot}
+                            setActiveHotspot={setActiveHotspot}
+                            onHotspotClick={onHotspotClick}
+                            onModelClick={handleModelClick} 
+                            showWireframe={showWireframe}
+                            showCrossSection={showCrossSection}
+                            slicePlaneType={slicePlaneType}
+                            sliceOffset={sliceOffset}
+                            sliceInverted={sliceInverted}
+                        />
+                    </ModelErrorBoundary>
                     <Environment preset="city" />
                     <ContactShadows position={[0, -1.5, 0]} opacity={0.4} scale={10} blur={2} far={4} />
                 </Suspense>
@@ -825,8 +879,11 @@ useGLTF.preload("/models/brain.glb");
 useGLTF.preload("/models/heart.glb");
 useGLTF.preload("/models/lungs.glb");
 useGLTF.preload("/models/kidneys.glb");
+useGLTF.preload("/models/kidney.glb");
+useGLTF.preload("/models/stomach.glb");
 useGLTF.preload("/models/liver.glb");
 useGLTF.preload("/models/intestine.glb");
 useGLTF.preload("/models/pancreas.glb");
 useGLTF.preload("/models/skin.glb");
 useGLTF.preload("/models/eyeball.glb");
+
