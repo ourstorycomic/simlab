@@ -1221,4 +1221,373 @@ export const experiments: Experiment[] = [
       },
     ],
   },
+
+  // ════════════════════════════════════════════
+  // SINH HỌC (Biology)
+  // ════════════════════════════════════════════
+  {
+    id: "exp-bio-cell-structure",
+    name: "Khảo sát cấu trúc siêu hiển vi tế bào thực vật",
+    emoji: "🔬",
+    subject: "biology",
+    description: "Khám phá không gian 3D cấu tạo tế bào thực vật: lục lạp, không bào trung tâm, thành tế bào xenlulozo, nhân và các bào quan chuyển hóa năng lượng.",
+    chemicalIds: ["microscope", "plant-cell-slice", "staining-solution"],
+    stepLabels: ["Khởi động không gian hiển vi 3D", "Quan sát vách và màng tế bào", "Khảo sát Lục lạp quang hợp", "Đo thể tích Không bào trung tâm", "Kiểm tra Nhân và Ti thể"],
+    expected: "Phân biệt rõ ràng hình thái và vai trò của các bào quan đặc trưng ở thực vật; hiểu cơ chế tạo áp suất trương nước và chuyển hóa quang năng thành hóa năng.",
+    note: "Sử dụng tính năng phát sáng (shader pulse) và xoay tự do để quan sát vị trí tương đối giữa các bào quan.",
+    badge: "color",
+    grade: 10,
+    chapter: "Chương 2: Cấu trúc tế bào",
+    lesson: "Bài 8: Cấu trúc tế bào nhân thực — Tế bào thực vật",
+    objectives: [
+      "Nhận diện chính xác các bào quan đặc thù của tế bào thực vật (thành xenlulozo, lục lạp, không bào trung tâm)",
+      "Giải thích cơ chế quang hợp của lục lạp và vai trò của diệp lục trong hấp thu photon ánh sáng",
+      "Phân tích vai trò duy trì áp suất trương nước của không bào trung tâm giúp thân cỏ đứng thẳng",
+      "So sánh sự khác biệt cơ bản giữa tế bào thực vật và tế bào động vật"
+    ],
+    equations: [
+      "Quang hợp: 6CO₂ + 12H₂O + Ánh sáng → C₆H₁₂O₆ + 6O₂ + 6H₂O",
+      "Hô hấp tế bào (Ti thể): C₆H₁₂O₆ + 6O₂ → 6CO₂ + 6H₂O + ~30-32 ATP"
+    ],
+    theory: "Tế bào thực vật là đơn vị cấu trúc và chức năng cơ bản của giới Thực vật. Khác với tế bào động vật, tế bào thực vật có thành tế bào bằng xenlulozo bảo vệ và định hình, không bào trung tâm khổng lồ tạo áp suất trương nước, và lục lạp chứa chất diệp lục thực hiện chức năng quang hợp biến năng lượng ánh sáng mặt trời thành năng lượng hóa học tích lũy trong chất hữu cơ.",
+    steps: [
+      "Kích hoạt mô hình 3D tế bào thực vật và xoay đa hướng để quan sát hình dạng bao quát.",
+      "Nhấp vào Thành tế bào và Màng sinh chất để tìm hiểu cấu trúc lớp sợi xenlulozo chịu lực.",
+      "Chọn Lục lạp (Chloroplast) để quan sát hệ thống màng thylakoid xếp chồng thành hạt grana hấp thụ ánh sáng.",
+      "Chọn Không bào trung tâm (Central Vacuole) và xem thông số áp suất trương duy trì độ căng của mô.",
+      "Quan sát Nhân tế bào mang DNA điều khiển sinh tổng hợp protein và Ti thể sản xuất năng lượng ATP.",
+      "Hoàn thành các câu hỏi đánh giá kiến thức sinh học tế bào."
+    ],
+    quiz: [
+      {
+        question: "Bào quan nào sau đây chỉ có ở tế bào thực vật mà không có ở tế bào động vật?",
+        options: [
+          "Ti thể và Ribosome",
+          "Lục lạp và Không bào trung tâm lớn",
+          "Bộ máy Golgi và Lưới nội chất",
+          "Nhân tế bào và Màng sinh chất"
+        ],
+        correctIndex: 1,
+        explanation: "Lục lạp và không bào trung tâm lớn (cùng với thành tế bào xenlulozo) là những đặc điểm cấu trúc đặc trưng chỉ có ở tế bào thực vật."
+      },
+      {
+        question: "Vai trò sinh lý quan trọng nhất của Không bào trung tâm ở tế bào thực vật trưởng thành là gì?",
+        options: [
+          "Tổng hợp phân tử ATP phục vụ vận chuyển chủ động",
+          "Tạo ra áp suất trương nước (turgor pressure) giúp tế bào căng phồng và nâng đỡ mô thân thảo",
+          "Thực hiện quá trình dịch mã tổng hợp chuỗi polypeptide",
+          "Tiêu hóa các đại phân tử như một lysosome ở động vật"
+        ],
+        correctIndex: 1,
+        explanation: "Không bào trung tâm tích trữ nước và ion khoáng, tạo lực hút nước và duy trì áp suất trương, giúp các mô thực vật không hóa gỗ (như lá, hoa, thân non) giữ được hình dạng căng thẳng."
+      },
+      {
+        question: "Lục lạp hấp thụ năng lượng ánh sáng mặt trời chủ yếu nhờ sắc tố nào?",
+        options: [
+          "Diệp lục (Chlorophyll)",
+          "Carotenoid",
+          "Anthocyanin",
+          "Hemoglobin"
+        ],
+        correctIndex: 0,
+        explanation: "Chất diệp lục (chlorophyll a và b) nằm trên màng thylakoid của lục lạp đóng vai trò chủ đạo hấp thụ các photon ánh sáng trong vùng xanh tím và đỏ để cung cấp năng lượng cho phản ứng quang hóa."
+      },
+      {
+        question: "Thành tế bào thực vật được cấu tạo chủ yếu từ đại phân tử sinh học nào?",
+        options: [
+          "Chitin",
+          "Peptidoglycan",
+          "Xenlulozo (Cellulose)",
+          "Phospholipid kép"
+        ],
+        correctIndex: 2,
+        explanation: "Thành tế bào thực vật gồm các vi sợi xenlulozo liên kết với nhau bằng cầu nối hydro, bao bọc bên ngoài màng sinh chất tạo độ bền cơ học vững chắc."
+      },
+      {
+        question: "Bào quan nào được ví như 'nhà máy điện' chuyển hóa glucose thành năng lượng ATP cho tế bào thực vật?",
+        options: [
+          "Không bào",
+          "Ti thể (Mitochondria)",
+          "Ribosome",
+          "Bộ máy Golgi"
+        ],
+        correctIndex: 1,
+        explanation: "Ti thể thực hiện chu trình Krebs và chuỗi chuyền electron hô hấp trên màng trong gấp nếp (cristae) để oxy hóa hợp chất hữu cơ thành ATP cung cấp cho mọi hoạt động sống."
+      }
+    ]
+  },
+  {
+    id: "exp-bio-human-systems",
+    name: "Khám phá giải phẫu tổng thể & 14 hệ cơ quan người",
+    emoji: "🧍",
+    subject: "biology",
+    description: "Thực hành bóc tách trực quan không gian 3D toàn thân cơ thể người: khảo sát cấu trúc giải phẫu học và mối liên hệ phối hợp sinh lý giữa 14 hệ cơ quan.",
+    chemicalIds: ["atlas-male", "atlas-female", "layer-isolator"],
+    stepLabels: ["Nạp dữ liệu Atlas 3D toàn thân", "Bật/Tắt các lớp hệ cơ quan", "Phân tích hệ Vận động (Xương & Cơ)", "Khảo sát hệ Tuần hoàn & Thần kinh", "Tra cứu cấu trúc giải phẫu học chi tiết"],
+    expected: "Nắm vững vị trí không gian của các hệ cơ quan nội tạng; giải thích được cơ chế điều hòa phối hợp giữa hệ thần kinh, tuần hoàn và bài tiết.",
+    note: "Có thể đổi qua lại giữa cơ thể Nam và Nữ, cô lập từng hệ cơ quan (Solo Isolate) để quan sát chuẩn xác.",
+    badge: "heat",
+    grade: 11,
+    chapter: "Chương 1: Trao đổi chất và chuyển hóa năng lượng & Sinh lý cơ thể",
+    lesson: "Bài 1: Khái quát cơ thể người và các hệ cơ quan chức năng",
+    objectives: [
+      "Xác định được vị trí giải phẫu học của 14 hệ cơ quan chính trong cơ thể người",
+      "Phân tích mối quan hệ mật thiết giữa cấu tạo hình thái với chức năng sinh lý của từng hệ",
+      "Hiểu cơ chế cân bằng nội môi (homeostasis) nhờ sự hiệp đồng giữa hệ tuần hoàn, hô hấp, bài tiết và nội tiết",
+      "Nhận biết được đặc điểm khác biệt giải phẫu học giữa cơ thể nam và nữ"
+    ],
+    equations: [
+      "Cung lượng tim: Q = Thể tích tâm thu (SV) × Nhịp tim (HR)",
+      "Cân bằng nội môi pH máu: CO₂ + H₂O ⇌ H₂CO₃ ⇌ H⁺ + HCO₃⁻"
+    ],
+    theory: "Cơ thể người là một hệ thống mở, tự điều chỉnh và vô cùng hoàn chỉnh gồm hàng chục nghìn tỷ tế bào biệt hóa thành các mô, cơ quan và hợp nhất trong 14 hệ cơ quan chức năng. Hệ xương và cơ tạo khung vận động; hệ tuần hoàn và hô hấp cung cấp dưỡng chất và oxy; hệ tiêu hóa và tiết niệu xử lý chất dinh dưỡng và đào thải độc tố; hệ thần kinh và nội tiết giữ vai trò điều khiển, kết nối thông tin toàn diện.",
+    steps: [
+      "Khởi động mô hình giải phẫu 3D toàn diện cơ thể người.",
+      "Sử dụng thanh công cụ để thử ẩn/hiện từng hệ: Xương, Cơ bắp, Mạch máu, Thần kinh.",
+      "Kích hoạt tính năng 'Chỉ hiện hệ này' (Solo Isolate) trên Hệ xương để đếm và nhận diện các nhóm xương chính.",
+      "Chuyển sang Hệ tim mạch và Hệ thần kinh để quan sát trục não bộ - tủy sống kết nối với hệ mao mạch.",
+      "Bấm chuột vào một cơ quan bất kỳ (như Phổi, Tim, Gan, Dạ dày) để hiển thị bảng phân tích giải phẫu chuyên sâu.",
+      "Thực hiện bài kiểm tra trắc nghiệm đánh giá kiến thức giải phẫu cơ thể người."
+    ],
+    quiz: [
+      {
+        question: "Cơ thể người trưởng thành có khoảng bao nhiêu chiếc xương cấu thành nên hệ xương?",
+        options: [
+          "150 chiếc",
+          "206 chiếc",
+          "300 chiếc",
+          "260 chiếc"
+        ],
+        correctIndex: 1,
+        explanation: "Ở người trưởng thành, hệ xương gồm chính xác 206 xương (sau khi các xương sọ và đốt sống cùng cụt ở giai đoạn trẻ sơ sinh đã hợp nhất lại)."
+      },
+      {
+        question: "Hai hệ cơ quan nào đóng vai trò chỉ huy và điều hòa hoạt động của tất cả các hệ cơ quan khác trong cơ thể?",
+        options: [
+          "Hệ thần kinh và Hệ nội tiết",
+          "Hệ tuần hoàn và Hệ hô hấp",
+          "Hệ tiêu hóa và Hệ tiết niệu",
+          "Hệ cơ và Hệ xương"
+        ],
+        correctIndex: 0,
+        explanation: "Hệ thần kinh (điều hòa bằng xung điện truyền qua nơ-ron nhanh, chính xác) và Hệ nội tiết (điều hòa bằng hormone tiết vào máu êm dịu, lâu dài) là hai hệ điều khiển tối cao của cơ thể."
+      },
+      {
+        question: "Cơ quan nào sau đây thuộc Hệ tiêu hóa nhưng đồng thời cũng đảm nhiệm chức năng Ngoại tiết và Nội tiết quan trọng?",
+        options: [
+          "Dạ dày",
+          "Tuyến tụy (Pancreas)",
+          "Thực quản",
+          "Ruột thừa"
+        ],
+        correctIndex: 1,
+        explanation: "Tuyến tụy là tuyến pha: chức năng ngoại tiết tiết dịch tụy chứa men tiêu hóa thức ăn vào tá tràng; chức năng nội tiết gồm các tiểu đảo Langerhans tiết Insulin và Glucagon điều hòa đường huyết."
+      },
+      {
+        question: "Hệ bạch huyết (Lymphatic system) đóng vai trò then chốt trong chức năng sinh lý nào?",
+        options: [
+          "Sản sinh xung điện thần kinh vận động",
+          "Dẫn lưu dịch kẽ dư thừa trở về máu và bảo vệ miễn dịch qua các hạch lympho",
+          "Trực tiếp trao đổi khí O₂ và CO₂ với phế nang",
+          "Lọc bỏ toàn bộ urê ra khỏi nước tiểu"
+        ],
+        correctIndex: 1,
+        explanation: "Hệ bạch huyết thu gom dịch mô dư thừa đưa lại vào tĩnh mạch dưới đòn, đồng thời vận chuyển tế bào lympho, đại thực bào và kháng thể để tiêu diệt mầm bệnh."
+      },
+      {
+        question: "Cơ chế duy trì môi trường trong cơ thể (nhiệt độ, huyết áp, pH máu, đường huyết) ổn định được gọi là gì?",
+        options: [
+          "Cân bằng nội môi (Homeostasis)",
+          "Đồng hóa sinh học (Anabolism)",
+          "Dị hóa năng lượng (Catabolism)",
+          "Thẩm thấu thụ động (Osmosis)"
+        ],
+        correctIndex: 0,
+        explanation: "Cân bằng nội môi (Homeostasis) là khả năng tự điều chỉnh của cơ thể nhằm giữ cho các chỉ số hóa - lý của môi trường trong luôn ở trạng thái cân bằng động tối ưu cho sự sống."
+      }
+    ]
+  },
+  {
+    id: "exp-bio-cardiovascular",
+    name: "Khảo sát hoạt động tim và hệ tuần hoàn máu người",
+    emoji: "🫀",
+    subject: "biology",
+    description: "Nghiên cứu cơ chế bơm máu tự động của tim, cấu tạo 4 buồng tim, hệ thống van tim và chu trình vận chuyển máu trong vòng tuần hoàn lớn và nhỏ.",
+    chemicalIds: ["heart-model", "flow-tracer", "stethoscope"],
+    stepLabels: ["Quan sát hình thái tim 3D", "Phân tích 4 buồng tim và độ dày thành cơ", "Khảo sát van tim và động mạch chủ", "Theo dõi vòng tiểu tuần hoàn phổi", "Theo dõi vòng đại tuần hoàn toàn thân"],
+    expected: "Hiểu rõ cơ chế co bóp nhịp nhàng của tim theo chu kỳ 0.8 giây; giải thích sự chênh lệch huyết áp động mạch và cơ chế đóng mở van tim.",
+    note: "Quan sát mỏm tim (apex) hướng chếch sang bên trái lồng ngực và áp lực tống máu của thất trái.",
+    badge: "heat",
+    grade: 11,
+    chapter: "Chương 1: Trao đổi chất và chuyển hóa năng lượng",
+    lesson: "Bài 12: Hệ tuần hoàn ở động vật và người",
+    objectives: [
+      "Mô tả chính xác cấu tạo giải phẫu 4 buồng tim và các mạch máu lớn vào/ra tim",
+      "Vẽ sơ đồ và trình bày đường đi của máu trong vòng tuần hoàn phổi và vòng tuần hoàn cơ thể",
+      "Giải thích nguyên nhân thành tâm thất trái dày hơn thành tâm thất phải",
+      "Nêu được tính tự động của tim và chu kỳ hoạt động của tim người trưởng thành"
+    ],
+    equations: [
+      "Chu kỳ tim (0.8s) = Pha co tâm nhĩ (0.1s) + Pha co tâm thất (0.3s) + Pha giãn chung (0.4s)",
+      "Huyết áp = Áp lực máu tác dụng lên thành động mạch (HA tâm thu / HA tâm trương ~ 120/80 mmHg)"
+    ],
+    theory: "Tim người là một khối cơ rỗng đặc biệt (cơ tim) hoạt động như một chiếc máy bơm kép. Nửa phải của tim chứa máu nghèo oxy đưa lên phổi để lấy oxy và thải CO₂; nửa trái của tim nhận máu giàu oxy từ phổi về rồi bơm đi khắp cơ thể. Nhờ hệ thống van tim (van 2 lá, van 3 lá, van tổ chim) máu chỉ chảy theo một chiều nhất định.",
+    steps: [
+      "Xoay mô hình tim 3D để nhận diện mỏm tim hướng về bên trái và quai động mạch chủ uốn cong.",
+      "Nhấp vào Tâm thất trái và xem thông tin giải thích tại sao thành cơ này dày gấp 3 lần tâm thất phải.",
+      "Quan sát Tâm nhĩ phải nơi tiếp nhận dòng máu đỏ thẫm từ tĩnh mạch chủ trên và tĩnh mạch chủ dưới.",
+      "Tìm hiểu vị trí Nút xoang nhĩ (SA node) - máy tạo nhịp tim sinh học tự nhiên phát xung thần kinh.",
+      "Kiểm tra đường đi của máu vào Động mạch phổi đến 2 lá phổi.",
+      "Làm bài kiểm tra trắc nghiệm về sinh lý hệ tuần hoàn máu."
+    ],
+    quiz: [
+      {
+        question: "Tại sao thành cơ của tâm thất trái lại dày hơn nhiều so với tâm thất phải?",
+        options: [
+          "Vì tâm thất trái phải chứa lượng máu nhiều hơn gấp đôi",
+          "Vì tâm thất trái phải co bóp tạo lực tống máu qua động mạch chủ đi nuôi toàn bộ cơ thể",
+          "Vì tâm thất trái chịu áp lực khí ép từ hai lá phổi",
+          "Vì máu ở tâm thất trái có độ nhớt cao hơn máu ở tâm thất phải"
+        ],
+        correctIndex: 1,
+        explanation: "Tâm thất phải chỉ cần bơm máu qua quãng đường ngắn lên phổi (vòng tiểu tuần hoàn với áp lực thấp), trong khi tâm thất trái phải tạo lực ép cực lớn để thắng sức cản đưa máu đi khắp cơ thể (vòng đại tuần hoàn)."
+      },
+      {
+        question: "Cấu trúc nào trong tim được xem là 'máy tạo nhịp tim tự nhiên' phát xung điện kích hoạt tim co bóp đều đặn?",
+        options: [
+          "Nút xoang nhĩ (SA node)",
+          "Nút nhĩ thất (AV node)",
+          "Bó His",
+          "Mạng Purkinje"
+        ],
+        correctIndex: 0,
+        explanation: "Nút xoang nhĩ (Sinoatrial node) nằm ở thành tâm nhĩ phải có khả năng tự phát xung điện nhịp nhàng với tần số khoảng 70-80 lần/phút, kích hoạt toàn bộ chu kỳ co tim."
+      },
+      {
+        question: "Trong một chu kỳ tim chuẩn kéo dài 0.8 giây ở người bình thường, pha giãn chung kéo dài bao nhiêu thời gian?",
+        options: [
+          "0.1 giây",
+          "0.3 giây",
+          "0.4 giây",
+          "0.8 giây"
+        ],
+        correctIndex: 2,
+        explanation: "Chu kỳ tim chuẩn 0.8s gồm: pha co tâm nhĩ (0.1s), pha co tâm thất (0.3s) và pha giãn chung (0.4s). Do tim nghỉ ngơi một nửa thời gian nên tim có thể đập bền bỉ suốt cả cuộc đời."
+      },
+      {
+        question: "Máu đỏ tươi giàu oxy từ phổi trở về buồng tim nào qua các tĩnh mạch phổi?",
+        options: [
+          "Tâm thất phải",
+          "Tâm nhĩ phải",
+          "Tâm thất trái",
+          "Tâm nhĩ trái"
+        ],
+        correctIndex: 3,
+        explanation: "Máu sau khi trao đổi khí tại mao mạch phế nang trở nên giàu oxy, theo 4 tĩnh mạch phổi đổ trực tiếp vào Tâm nhĩ trái trước khi xuống tâm thất trái."
+      },
+      {
+        question: "Van hai lá (mitral valve) nằm ở vị trí nào trong cấu tạo buồng tim?",
+        options: [
+          "Nằm giữa tâm nhĩ phải và tâm thất phải",
+          "Nằm giữa tâm nhĩ trái và tâm thất trái",
+          "Nằm tại gốc động mạch phổi",
+          "Nằm tại gốc động mạch chủ"
+        ],
+        correctIndex: 1,
+        explanation: "Van hai lá ngăn cách giữa tâm nhĩ trái và tâm thất trái, mở ra khi nhĩ trái co và đóng chặt khi thất trái co để ngăn máu phụt ngược trở lại tâm nhĩ."
+      }
+    ]
+  },
+  {
+    id: "exp-bio-internal-organs",
+    name: "Khảo sát giải phẫu hệ hô hấp & tiêu hóa người",
+    emoji: "🫁",
+    subject: "biology",
+    description: "Tìm hiểu cấu trúc cây phế quản, túi phế nang trao đổi khí ở phổi cùng các trạm phân giải thức ăn then chốt: gan, tuyến tụy, dạ dày và ruột non.",
+    chemicalIds: ["lungs-model", "liver-pancreas", "intestine-model"],
+    stepLabels: ["Quan sát cây phế quản và thùy phổi", "Khảo sát cơ chế cơ hoành hô hấp", "Khảo sát Gan và Tĩnh mạch cửa", "Tìm hiểu Dịch mật và Tuyến tụy", "Quan sát Ruột non và Lông mao hấp thụ"],
+    expected: "Mô tả được bề mặt diện tích trao đổi khí khổng lồ của phế nang và mạng lưới mao mạch hấp thụ chất dinh dưỡng ở ruột non.",
+    note: "Quan sát sự đối xứng nhưng khác biệt giữa phổi phải (3 thùy) và phổi trái (2 thùy nhường chỗ cho hố tim).",
+    badge: "gas",
+    grade: 11,
+    chapter: "Chương 1: Trao đổi chất và chuyển hóa năng lượng",
+    lesson: "Bài 8 & 9: Hô hấp và Dinh dưỡng ở người",
+    objectives: [
+      "Nhận diện đặc điểm cấu tạo của phổi phải và phổi trái phù hợp với cơ chế trao đổi khí",
+      "Hiểu vai trò của Cơ hoành và áp suất âm trong khoang màng phổi khi hít vào - thở ra",
+      "Nêu được chức năng khử độc, dự trữ glycogen và tiết mật của lá gan",
+      "Phân tích cơ chế hấp thụ chất dinh dưỡng qua lớp lông mao ruột non vào máu và bạch huyết"
+    ],
+    equations: [
+      "Khuếch tán khí phế nang: O₂ (phế nang ~100 mmHg) → Máu (~40 mmHg)",
+      "Đào thải CO₂: Máu (~46 mmHg) → Phế nang (~40 mmHg)"
+    ],
+    theory: "Hệ hô hấp và hệ tiêu hóa là hai cửa ngõ tiếp nhận vật chất từ môi trường ngoài vào cơ thể. Hệ hô hấp có hơn 300 triệu phế nang tạo diện tích bề mặt trao đổi khí lên tới 70-100 m². Hệ tiêu hóa biến đổi cơ học và hóa học thức ăn thành các đơn phân (glucose, axit amin, axit béo) hấp thu qua hàng triệu lông nhung ruột non có diện tích bề mặt xấp xỉ sân tennis.",
+    steps: [
+      "Mở mô hình 3D Phổi, kiểm tra khí quản có các vòng sụn chữ C nâng đỡ ống thở.",
+      "Quan sát phổi phải có 3 thùy trong khi phổi trái chỉ có 2 thùy để ôm trọn hố tim.",
+      "Chuyển sang mô hình Gan và xác định Tĩnh mạch cửa thu nhận máu mang dưỡng chất từ ruột về gan xử lý độc tố.",
+      "Xem cấu trúc Tuyến tụy tiết enzyme Amylase, Lipase, Trypsin vào tá tràng tiêu hóa thức ăn.",
+      "Mở mô hình Ruột và Đại tràng, tìm hiểu vai trò tái hấp thu nước và hệ vi khuẩn đường ruột.",
+      "Hoàn thành bộ câu hỏi kiểm tra đánh giá bài học."
+    ],
+    quiz: [
+      {
+        question: "Tại sao phổi trái của người bình thường chỉ có 2 thùy trong khi phổi phải lại có tới 3 thùy?",
+        options: [
+          "Vì phổi trái cần ít không khí hơn phổi phải",
+          "Để nhường không gian cho Hố tim (khoang lõm ôm lấy đỉnh quả tim nằm lệch sang trái)",
+          "Do phổi trái bị khối gan phía dưới đẩy lên",
+          "Do dây thần kinh hoành chỉ đi qua bên phải"
+        ],
+        correctIndex: 1,
+        explanation: "Phổi trái có kích thước nhỏ hơn khoảng 10% và có một khoang lõm sâu gọi là Hố tim (cardiac notch) để quả tim nằm nép an toàn trong lồng ngực."
+      },
+      {
+        question: "Cơ hô hấp nào đóng vai trò chính tạo ra sự thay đổi thể tích lồng ngực khi hít thở bình thường?",
+        options: [
+          "Cơ ức đòn chũm",
+          "Cơ hoành (Diaphragm)",
+          "Cơ thẳng bụng",
+          "Cơ ngực lớn"
+        ],
+        correctIndex: 1,
+        explanation: "Cơ hoành là cơ vân hình vòm ngăn cách ngực và bụng. Khi co lại, cơ hoành hạ phẳng xuống làm tăng thể tích lồng ngực theo chiều dọc, tạo áp suất âm hút khí vào phổi."
+      },
+      {
+        question: "Toàn bộ máu chứa chất dinh dưỡng vừa hấp thụ từ ruột non sẽ được đưa về cơ quan nào đầu tiên qua Tĩnh mạch cửa?",
+        options: [
+          "Lá gan (Liver)",
+          "Quả thận",
+          "Trái tim",
+          "Tuyến tụy"
+        ],
+        correctIndex: 0,
+        explanation: "Tĩnh mạch cửa dẫn truyền 100% dòng máu từ ống tiêu hóa đổ thẳng vào gan để gan kiểm duyệt, khử độc tố, dự trữ glycogen và điều hòa lượng dưỡng chất trước khi vào tuần hoàn chung."
+      },
+      {
+        question: "Tại ruột non, cấu trúc nào giúp tăng diện tích bề mặt tiếp xúc và hấp thụ chất dinh dưỡng lên gấp hàng trăm lần?",
+        options: [
+          "Các nếp gấp niêm mạc, lông nhung (villi) và vi nhung mao (microvilli)",
+          "Các lớp cơ trơn co bóp nhu động",
+          "Túi thừa Meckel",
+          "Các van hồi manh tràng"
+        ],
+        correctIndex: 0,
+        explanation: "Mặt trong ruột non có các nếp gấp van tràng, bao phủ bởi hàng triệu lông nhung và vi mao li ti, nâng tổng diện tích bề mặt hấp thu lên tới gần 250-300 m²."
+      },
+      {
+        question: "Chức năng chính của Đại tràng (ruột già) trong chu trình tiêu hóa là gì?",
+        options: [
+          "Tiết axit HCl để phân giải sợi thịt",
+          "Tái hấp thu phần lớn lượng nước, ion khoáng và tạo khuôn phân",
+          "Hấp thụ 90% lượng axit amin và glucose",
+          "Sản xuất dịch mật nhũ hóa chất béo"
+        ],
+        correctIndex: 1,
+        explanation: "Sau khi ruột non hấp thu dưỡng chất, đại tràng sẽ hút nốt lượng nước dư thừa và muối khoáng, đồng thời vi khuẩn cộng sinh tại đây lên men chất xơ và tổng hợp vitamin K trước khi thải phân ra ngoài."
+      }
+    ]
+  }
 ];
+

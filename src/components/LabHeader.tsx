@@ -76,24 +76,26 @@ export default function LabHeader({
         },
     ];
 
+    const isBiology = currentSubject === "biology";
+
     return (
-        <header className="sticky top-0 z-30 h-16 w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-gray-200 dark:border-slate-800 px-3 sm:px-6 flex items-center justify-between flex-shrink-0 transition-colors shadow-xs">
+        <header className={`sticky top-0 z-30 h-16 w-full ${isBiology ? "bg-[#0b0f19]/95 border-slate-800" : "bg-white/95 dark:bg-slate-900/95 border-gray-200 dark:border-slate-800"} backdrop-blur-md border-b px-3 sm:px-6 flex items-center justify-between flex-shrink-0 transition-colors shadow-xs`}>
             {/* Left: Brand + Subject Switcher */}
             <div className="flex items-center gap-2 sm:gap-4">
                 <Link href="/" className="flex items-center gap-2 group shrink-0">
                     <LogoMark className="w-7 h-7 sm:w-8 sm:h-8" />
                     <div className="hidden md:block">
-                        <span className="font-bold text-gray-900 dark:text-white text-base tracking-tight group-hover:text-blue-500 transition-colors">
+                        <span className={`font-bold text-base tracking-tight transition-colors ${isBiology ? "text-white group-hover:text-emerald-400" : "text-gray-900 dark:text-white group-hover:text-blue-500"}`}>
                             Simlab Edu
                         </span>
-                        <p className="text-[10px] text-gray-400 dark:text-gray-500 leading-none">Phòng thực hành ảo</p>
+                        <p className={`text-[10px] leading-none ${isBiology ? "text-slate-400" : "text-gray-400 dark:text-gray-500"}`}>Phòng thực hành ảo</p>
                     </div>
                 </Link>
 
-                <div className="h-5 w-px bg-gray-200 dark:bg-slate-700 hidden sm:block" />
+                <div className={`h-5 w-px hidden sm:block ${isBiology ? "bg-slate-800" : "bg-gray-200 dark:bg-slate-700"}`} />
 
                 {/* Subject Switcher Tabs */}
-                <nav className="flex items-center gap-1 bg-gray-100/80 dark:bg-slate-800/80 p-1 rounded-xl border border-gray-200/60 dark:border-slate-700/60">
+                <nav className={`flex items-center gap-1 p-1 rounded-xl border ${isBiology ? "bg-slate-800/80 border-slate-700/60" : "bg-gray-100/80 dark:bg-slate-800/80 border-gray-200/60 dark:border-slate-700/60"}`}>
                     {SUBJECTS.map((s) => {
                         const isActive = currentSubject === s.id;
                         return (
@@ -103,6 +105,8 @@ export default function LabHeader({
                                 className={`flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold transition-all border ${
                                     isActive
                                         ? `${s.activeClass} shadow-xs`
+                                        : isBiology
+                                        ? "border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-700/60"
                                         : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-white/60 dark:hover:bg-slate-700/60"
                                 }`}
                             >
@@ -140,7 +144,11 @@ export default function LabHeader({
                 {onTourOpen && (
                     <button
                         onClick={onTourOpen}
-                        className="px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-slate-700 transition-colors flex items-center gap-1.5"
+                        className={`px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 border ${
+                            isBiology
+                                ? "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700"
+                                : "bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-slate-700"
+                        }`}
                         title="Xem hướng dẫn sử dụng"
                     >
                         <svg className="w-3.5 h-3.5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -165,7 +173,11 @@ export default function LabHeader({
                 ) : (
                     <Link
                         href="/"
-                        className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-slate-700 transition-colors"
+                        className={`hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors border ${
+                            isBiology
+                                ? "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700"
+                                : "bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-slate-700"
+                        }`}
                     >
                         <span>Trang chủ</span>
                     </Link>
@@ -174,11 +186,15 @@ export default function LabHeader({
                 {/* Theme Toggle */}
                 <button
                     onClick={toggleTheme}
-                    className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 text-gray-500 dark:text-gray-400 hover:text-amber-500 dark:hover:text-amber-400 transition-colors"
-                    title={isDark ? "Chuyển sang chế độ sáng" : "Chuyển sang chế độ tối"}
+                    className={`p-2 rounded-lg transition-colors border ${
+                        isBiology
+                            ? "bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300 hover:text-emerald-400"
+                            : "bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 border-gray-200 dark:border-slate-700 text-gray-500 dark:text-gray-400 hover:text-amber-500 dark:hover:text-amber-400"
+                    }`}
+                    title={isBiology ? "Phòng Lab Sinh học 3D — Chế độ Dark Studio tối ưu hiển vi" : isDark ? "Chuyển sang chế độ sáng" : "Chuyển sang chế độ tối"}
                     aria-label="Đổi giao diện sáng/tối"
                 >
-                    {isDark ? (
+                    {isDark || isBiology ? (
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
                         </svg>

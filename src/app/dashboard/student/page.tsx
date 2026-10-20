@@ -633,11 +633,18 @@ export default function StudentDashboard() {
                                                     </div>
                                                     <div className="flex items-center gap-2 mt-3">
                                                         <button
-                                                            onClick={() => router.push(`/lab?assignment=${a.id}`)}
+                                                            onClick={() => {
+                                                                const dest = exp?.subject === "biology"
+                                                                    ? `/biology?assignment=${a.id}`
+                                                                    : exp?.subject === "physics"
+                                                                        ? `/physics?assignment=${a.id}`
+                                                                        : `/lab?assignment=${a.id}`;
+                                                                router.push(dest);
+                                                            }}
                                                             className="lab-btn-primary px-3 py-1.5 text-[11px] rounded-lg inline-flex items-center gap-1.5"
                                                         >
                                                             
-                                                            {submission ? "Làm lại" : "Làm thí nghiệm"}
+                                                            {submission ? "Làm lại" : (exp?.subject === "biology" ? "Khám phá & Làm bài" : "Làm thí nghiệm")}
                                                         </button>
                                                         {exp && (
                                                             <span className="text-[10px] text-gray-400 dark:text-gray-500">

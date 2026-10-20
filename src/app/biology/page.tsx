@@ -19,12 +19,14 @@ function LabFallback() {
 export default function BiologyPage() {
     const [tourOpen, setTourOpen] = useState(false);
     const tourSteps: TourStep[] = [
-        { target: "#tour-bio-sidebar, #tour-bio-sidebar-mobile", title: "Danh sách Mô hình", description: "Tại đây bạn có thể chọn các cơ quan sinh lý khác nhau để bắt đầu quan sát." },
-        { target: "#tour-bio-viewer", title: "Khu vực Tương tác 3D", description: "Bạn có thể xoay, phóng to, thu nhỏ mô hình 3D tự do bằng chuột hoặc ngón tay. Hãy thử chạm/bấm vào các chấm xanh (hotspots) trên mô hình để xem các bộ phận chi tiết." },
-        { target: "#tour-bio-info", title: "Bảng Thông tin chi tiết", description: "Các kiến thức chuyên sâu về cấu tạo và chức năng sinh học sẽ được hiển thị ở khu vực này, giúp bạn hiểu rõ hơn về đối tượng đang quan sát." }
+        { target: "#tour-bio-tabs", title: "3 Không gian Khám phá Sinh học 3D", description: "Dễ dàng chuyển đổi giữa Tế bào Thực vật siêu vi 3D, Giải phẫu Toàn thân người 14 hệ cơ quan, và 9 Mô hình Nội tạng chuyên sâu." },
+        { target: "#tour-bio-workspace", title: "Tương tác 3D Trực quan", description: "Tự do xoay 360°, phóng to thu nhỏ, nhấp chọn bào quan để kích hoạt hiệu ứng phát sáng sinh học (shader pulse) hoặc bóc tách từng lớp hệ cơ quan (Solo Isolate)." },
+        { target: "#tour-bio-inspector", title: "Hồ sơ Giải phẫu & Giao bài tập", description: "Tra cứu danh pháp Y khoa chuẩn, chức năng sinh hóa, thông tin kỳ thú và hoàn thành các bài tập thực hành môn Sinh học được giao." }
     ];
 
     useEffect(() => {
+        // Phòng Lab 3D Sinh học chuyên dụng luôn tối ưu ở chế độ Dark Studio
+        document.documentElement.classList.add("dark");
         const hasSeen = localStorage.getItem("simlab-biology-tour");
         if (!hasSeen) {
             setTimeout(() => setTourOpen(true), 500);
@@ -34,7 +36,7 @@ export default function BiologyPage() {
 
     return (
         <Suspense fallback={<LabFallback />}>
-            <div className="relative w-full h-screen flex flex-col bg-white dark:bg-[#0a0e17] overflow-hidden">
+            <div className="relative w-full h-screen flex flex-col bg-[#0a0e17] text-slate-100 overflow-hidden dark">
                 <LabHeader
                     currentSubject="biology"
                     onTourOpen={() => setTourOpen(true)}

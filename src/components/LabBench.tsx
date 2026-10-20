@@ -581,8 +581,23 @@ export default function LabBench() {
         ? experiments.find((e) => e.id === assignment.experimentId) ?? null
         : null;
 
-    // ── Lab đầy đủ cho Vật lý / Sinh học (thay cho "Đang phát triển") ──
-    if (activeExperiment && (activeExperiment.subject === "biology" || activeExperiment.subject === "physics")) {
+    // ── Chuyển tiếp sang Lab Sinh học 3D chuyên sâu nếu là bài tập Sinh học ──
+    if (activeExperiment && activeExperiment.subject === "biology") {
+        if (typeof window !== "undefined" && assignment) {
+            window.location.href = `/biology?assignment=${assignment.id}`;
+        }
+        return (
+            <div className="w-full h-screen flex items-center justify-center bg-slate-950 text-slate-300">
+                <div className="flex flex-col items-center gap-3">
+                    <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                    <p className="text-sm font-semibold text-emerald-400">Đang chuyển tiếp tới Phòng thí nghiệm Sinh học 3D…</p>
+                </div>
+            </div>
+        );
+    }
+
+    // ── Lab đầy đủ cho Vật lý (thay cho "Đang phát triển") ──
+    if (activeExperiment && activeExperiment.subject === "physics") {
         return (
             <ScienceLab
                 experiment={activeExperiment}

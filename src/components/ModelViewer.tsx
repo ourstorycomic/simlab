@@ -569,6 +569,24 @@ export default function ModelViewer({ modelUrl, hotspots = [], onHotspotClick }:
 
     const handleModelClick = (e: ThreeEvent<MouseEvent>) => {
         e.stopPropagation();
+        if (hotspots && hotspots.length > 0 && e.point) {
+            // Tìm điểm giải phẫu (hotspot) gần nhất với vị trí nhấp chuột trên bề mặt cơ quan
+            let nearest: HotspotData | null = null;
+            let minDist = Infinity;
+            for (const h of hotspots) {
+                const hPos = new THREE.Vector3(...h.position);
+                const dist = e.point.distanceTo(hPos);
+                if (dist < minDist) {
+                    minDist = dist;
+                    nearest = h;
+                }
+            }
+            if (nearest && minDist < 3.5) {
+                setActiveHotspot(nearest.id);
+                if (onHotspotClick) onHotspotClick(nearest);
+                return;
+            }
+        }
         setActiveHotspot(null);
     };
 
