@@ -903,6 +903,33 @@ export default function HumanBodyAtlasViewer({
     setActivePreset("custom");
   };
 
+  const showAllSystems = () => {
+    setActiveSystems(new Set(ANATOMY_SYSTEMS.map((s) => s.id)));
+    setActivePreset("all_systems");
+    selectMesh(null);
+  };
+
+  const hideAllSystems = () => {
+    setActiveSystems(new Set());
+    setActivePreset("custom");
+    selectMesh(null);
+  };
+
+  const toggleCategorySystems = (catId: string) => {
+    setActiveCategory(catId);
+    if (catId === "all") {
+      showAllSystems();
+    } else {
+      const catSystems = ANATOMY_SYSTEMS.filter((s) => s.category === catId).map((s) => s.id);
+      setActiveSystems((prev) => {
+        const next = new Set(prev);
+        catSystems.forEach((id) => next.add(id));
+        return next;
+      });
+      selectMesh(null);
+    }
+  };
+
   // Camera Presets
   const setCameraAngle = (angle: "front" | "back" | "side" | "perspective" | "head" | "chest" | "abdomen" | "arms" | "legs" | "reset") => {
     if (!cameraRef.current || !controlsRef.current) return;
@@ -1198,7 +1225,16 @@ export default function HumanBodyAtlasViewer({
                       <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center text-rose-300 group-hover:scale-110 transition-transform">
                         💪
                       </div>
-                      <span>Cơ</span>
+                      <span>Hệ cơ bắp & Xương</span>
+                    </button>
+                    <button
+                      onClick={showAllSystems}
+                      className="w-full p-2 rounded-xl bg-gradient-to-r from-sky-950/80 to-indigo-950/80 hover:from-sky-900/90 hover:to-indigo-900/90 border border-sky-500/50 flex items-center gap-2.5 text-xs font-bold text-sky-200 hover:text-white transition-all group shadow-md"
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-sky-900/80 flex items-center justify-center text-sky-300 group-hover:scale-110 transition-transform">
+                        🌐
+                      </div>
+                      <span>Đầy đủ cơ thể (14 hệ)</span>
                     </button>
                   </div>
 
@@ -1216,16 +1252,16 @@ export default function HumanBodyAtlasViewer({
             ) : (
               /* Systems Panel */
               <div className="space-y-3">
-                {/* Category Chips */}
+                {/* Category Chips: Click vào để chọn và bật nhóm hệ tương ứng */}
                 <div className="flex gap-1 overflow-x-auto custom-scrollbar pb-1">
                   {ANATOMY_CATEGORIES.map((cat) => (
                     <button
                       key={cat.id}
-                      onClick={() => setActiveCategory(cat.id)}
-                      className={`px-2 py-1 rounded-lg text-[10px] font-semibold whitespace-nowrap transition-all ${
+                      onClick={() => toggleCategorySystems(cat.id)}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold whitespace-nowrap transition-all border ${
                         activeCategory === cat.id
-                          ? "bg-sky-600 text-white"
-                          : "bg-slate-900 text-slate-400 hover:text-slate-200"
+                          ? "bg-sky-600 border-sky-500 text-white shadow-sm"
+                          : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-850"
                       }`}
                     >
                       {cat.label}
@@ -1233,8 +1269,34 @@ export default function HumanBodyAtlasViewer({
                   ))}
                 </div>
 
+                {/* Batch Action Bar: Bật tất cả / Ẩn tất cả */}
+                <div className="flex items-center justify-between px-1 text-[11px] font-medium text-slate-400 border-b border-slate-800/60 pb-1.5">
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Hệ cơ quan</span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-800 text-sky-400 font-mono">
+                      {Array.from(activeSystems).length}/{ANATOMY_SYSTEMS.length} bật
+                    </span>
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={showAllSystems}
+                      className="px-2 py-0.5 rounded-md bg-sky-600 hover:bg-sky-500 text-white text-[10px] font-bold transition-all shadow-sm flex items-center gap-1"
+                      title="Hiện đầy đủ cơ thể: bật cả 14 hệ (Hệ cơ, Khung xương, Mạch máu, Thần kinh...)"
+                    >
+                      <span>Bật tất cả</span>
+                    </button>
+                    <button
+                      onClick={hideAllSystems}
+                      className="px-2 py-0.5 rounded-md bg-slate-850 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700 text-[10px] transition-all"
+                      title="Tắt các hệ để chọn xem riêng biệt"
+                    >
+                      Ẩn hết
+                    </button>
+                  </div>
+                </div>
+
                 {/* Systems List */}
-                <div className="space-y-1">
+                <div className="space-y-1 max-h-[calc(100vh-320px)] overflow-y-auto custom-scrollbar pr-0.5">
                   {filteredSystems.map((sys) => {
                     const isVisible = activeSystems.has(sys.id);
                     return (
@@ -1242,8 +1304,8 @@ export default function HumanBodyAtlasViewer({
                         key={sys.id}
                         className={`px-2.5 py-1.5 rounded-xl border transition-all flex items-center justify-between gap-2 ${
                           isVisible
-                            ? "bg-slate-900/80 border-slate-700/60 text-slate-200"
-                            : "bg-slate-900/30 border-slate-800/40 text-slate-500 opacity-50"
+                            ? "bg-slate-900/90 border-slate-700/80 text-slate-200 shadow-sm"
+                            : "bg-slate-900/30 border-slate-800/40 text-slate-500 opacity-60"
                         }`}
                       >
                         <div
