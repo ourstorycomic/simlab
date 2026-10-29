@@ -67,7 +67,7 @@ export default function DeviceMotionControlBar({
 
   return (
     <div
-      className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-[65] pointer-events-auto flex items-center gap-2 max-w-[95vw] ${className}`}
+      className={`fixed bottom-20 right-4 sm:right-6 z-[60] pointer-events-auto flex items-center gap-2 max-w-[90vw] ${className}`}
     >
       {/* ─── Thanh Trạng thái Cảm biến Di động & Giả lập PC ─── */}
       <div className="bg-slate-950/90 backdrop-blur-xl border border-slate-700/80 p-1.5 px-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs text-slate-200 ring-1 ring-white/10 select-none">

@@ -47,7 +47,9 @@ import {
     ArrowDown, 
     Hand, 
     Droplets, 
-    RotateCcw 
+    RotateCcw,
+    ZoomIn,
+    Maximize2 
 } from "lucide-react";
 import {
     RealisticGlasswareMesh,
@@ -185,12 +187,13 @@ function InteractiveVessel({
             >
                 {/* Toàn bộ mô hình được dịch xuống -gripY để đáy bình nằm đúng item.position[1] */}
                 <group position={[0, -gripY, 0]}>
-                    {/* 1. Model 3D thủy tinh & chất lỏng chuẩn vật lý với mặt nước cân bằng trọng lực */}
+                    {/* 1. Model 3D thủy tinh & chất lỏng chuẩn vật lý với mặt nước cân bằng trọng lực (Tăng scale 1.25 để nhìn to rõ) */}
                     <RealisticGlasswareMesh
                         type={item.type}
                         fillLevel={item.fillLevel}
                         liquidColor={item.liquidColor}
                         tiltAngle={item.tiltAngle || 0}
+                        scale={1.22}
                     />
 
                     {/* 2. Nhãn dán công thức hóa học nếu bình đang chứa hóa chất */}
@@ -248,6 +251,53 @@ function InteractiveVessel({
                             />
                         </mesh>
                     )}
+
+                    {/* 6. Nhãn Nổi Hologram 3D (Floating Smart Badge) - Siêu To & Dễ Nhìn */}
+                    <group position={[0, mouthH + (item.heldBy ? 0.14 : 0.09), 0]}>
+                        <mesh position={[0, 0, 0]}>
+                            <planeGeometry args={[0.26, 0.08]} />
+                            <meshBasicMaterial 
+                                color="#090d16" 
+                                transparent 
+                                opacity={0.88} 
+                                side={THREE.DoubleSide} 
+                            />
+                        </mesh>
+                        <mesh position={[0, 0, 0.001]}>
+                            <planeGeometry args={[0.264, 0.084]} />
+                            <meshBasicMaterial 
+                                color={isSelected ? "#38bdf8" : item.chemical ? item.liquidColor : "#475569"} 
+                                transparent 
+                                opacity={0.5} 
+                                wireframe 
+                                side={THREE.DoubleSide} 
+                            />
+                        </mesh>
+                        <Text
+                            position={[0, 0.015, 0.005]}
+                            fontSize={0.028}
+                            color={isSelected ? "#38bdf8" : "#ffffff"}
+                            anchorX="center"
+                            anchorY="middle"
+                        >
+                            {item.chemical 
+                                ? normalizeChemicalFormula(item.chemical.formula) 
+                                : item.label
+                            }
+                        </Text>
+                        <Text
+                            position={[0, -0.016, 0.005]}
+                            fontSize={0.016}
+                            color={item.chemical ? "#93c5fd" : "#94a3b8"}
+                            anchorX="center"
+                            anchorY="middle"
+                        >
+                            {item.chemical 
+                                ? `${item.chemical.name} • ${Math.round(item.fillLevel * 100)}%`
+                                : "(Bình rỗng - Sẵn sàng)"
+                            }
+                        </Text>
+                    </group>
                 </group>
             </group>
 
@@ -305,6 +355,7 @@ interface SceneContentProps {
     refChemical?: Chemical | null;
     reactionPosition: [number, number, number];
     setReactionPosition: React.Dispatch<React.SetStateAction<[number, number, number]>>;
+    cameraPreset?: "closeup" | "pour" | "overview";
 }
 
 function SceneContent({
@@ -325,7 +376,7 @@ function SceneContent({
     activeReaction,
     setActiveReaction,
     handleExecutePour,
-    show3DTeacher = true,
+    show3DTeacher = false,
     isFixedCamera = true,
     isCabinetOpen,
     setIsCabinetOpen,
@@ -338,6 +389,7 @@ function SceneContent({
     refChemical,
     reactionPosition,
     setReactionPosition,
+    cameraPreset = "closeup",
 }: SceneContentProps) {
     const { camera } = useThree();
     const controlsRef = useRef<any>(null);
@@ -346,30 +398,48 @@ function SceneContent({
     const ungrabStartTimeRef = useRef<number | null>(null);
     const pinkyCabinetToggleRef = useRef<number>(0);
     const pinkyWasActiveRef = useRef<boolean>(false);
+    const isUserOrbitingRef = useRef(false);
 
-    // Đồng bộ camera và góc nhìn khi chuyển đổi giữa Cố định 2.5D và Xoay 3D
-    // Lùi camera ra xa hơn (Y = 0.95, Z = 3.45) để bao quát toàn cảnh bàn thí nghiệm và đạo cụ
-    useEffect(() => {
-        if (isFixedCamera) {
-            camera.position.set(0, 0.95, 3.45);
-            camera.lookAt(0, 0.12, 0.15);
-            if (controlsRef.current) {
-                controlsRef.current.target.set(0, 0.12, 0.15);
-                controlsRef.current.update();
-            }
+    // Tính toán góc nhìn tối ưu cho từng Preset
+    const getPresetTarget = useCallback((preset: "closeup" | "pour" | "overview") => {
+        switch (preset) {
+            case "closeup":
+                return {
+                    pos: new THREE.Vector3(0, 0.32, 1.38),
+                    look: new THREE.Vector3(0, 0.05, 0.35),
+                };
+            case "pour":
+                return {
+                    pos: new THREE.Vector3(-0.16, 0.35, 1.25),
+                    look: new THREE.Vector3(-0.36, 0.08, 0.35),
+                };
+            case "overview":
+            default:
+                return {
+                    pos: new THREE.Vector3(0, 0.65, 2.35),
+                    look: new THREE.Vector3(0, 0.10, 0.25),
+                };
         }
-    }, [isFixedCamera, camera]);
+    }, []);
+
+    // Cập nhật camera ngay khi người dùng chọn Preset
+    useEffect(() => {
+        const { pos, look } = getPresetTarget(cameraPreset);
+        camera.position.copy(pos);
+        if (controlsRef.current) {
+            controlsRef.current.target.copy(look);
+            controlsRef.current.update();
+        } else {
+            camera.lookAt(look);
+        }
+    }, [cameraPreset, getPresetTarget, camera]);
 
     // ─── Frame Update: Xử Lý Camera Zoom & Cầm Nắm Chuẩn Xác, Đặt Xuống & Rót Của 2 Bàn Tay ───
     useFrame((_, delta) => {
         // Tự động Zoom Camera tới cận cảnh Kệ Tủ Hóa Chất khi mở tủ hoặc mở GUI
-        if (isFixedCamera) {
-            const targetCamPos = isCabinetModalOpen
-                ? new THREE.Vector3(-1.15, 0.46, 1.45)
-                : new THREE.Vector3(0, 0.95, 3.45);
-            const targetCamLook = isCabinetModalOpen
-                ? new THREE.Vector3(-1.35, 0.44, -0.42)
-                : new THREE.Vector3(0, 0.12, 0.15);
+        if (isCabinetModalOpen) {
+            const targetCamPos = new THREE.Vector3(-1.05, 0.42, 1.35);
+            const targetCamLook = new THREE.Vector3(-1.35, 0.38, -0.42);
 
             camera.position.lerp(targetCamPos, Math.min(1, delta * 3.8));
             if (controlsRef.current) {
@@ -378,6 +448,7 @@ function SceneContent({
             } else {
                 camera.lookAt(targetCamLook);
             }
+            return;
         }
 
         if (isCabinetModalOpen) {
@@ -704,18 +775,27 @@ function SceneContent({
         <>
             <PerspectiveCamera
                 makeDefault
-                position={[0, 0.95, 3.45]}
-                fov={48}
+                position={[0, 0.32, 1.38]}
+                fov={46}
             />
             <OrbitControls
                 ref={controlsRef}
                 enablePan={false}
-                enableZoom={false}
-                enableRotate={false}
+                enableZoom={true}
+                enableRotate={true}
+                minDistance={0.7}
+                maxDistance={3.2}
+                minPolarAngle={Math.PI / 6}
                 maxPolarAngle={Math.PI / 2 - 0.05}
-                minDistance={1.5}
-                maxDistance={7.0}
-                target={[0, 0.12, 0.15]}
+                minAzimuthAngle={-Math.PI / 3}
+                maxAzimuthAngle={Math.PI / 3}
+                target={[0, 0.05, 0.35]}
+                onStart={() => {
+                    isUserOrbitingRef.current = true;
+                }}
+                onEnd={() => {
+                    isUserOrbitingRef.current = false;
+                }}
             />
 
             {/* Phòng thí nghiệm hoạt hình Pixar tươi sáng & Đạo cụ từ Unity */}
@@ -818,9 +898,10 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
     const [teacherMessage, setTeacherMessage] = useState(
         "Xin chào! Cô là Cô Giáo Mai SimLab. Hãy nhấp chọn dụng cụ bên dưới hoặc đưa tay trước Webcam để thực hành phản ứng nhé!"
     );
-    const [isTeacherGuideOpen, setIsTeacherGuideOpen] = useState(true);
-    const [show3DTeacher, setShow3DTeacher] = useState(true);
+    const [isTeacherGuideOpen, setIsTeacherGuideOpen] = useState(false);
+    const [show3DTeacher, setShow3DTeacher] = useState(false);
     const [isFixedCamera, setIsFixedCamera] = useState(true);
+    const [cameraPreset, setCameraPreset] = useState<"closeup" | "pour" | "overview">("closeup");
 
     const [selectedCategory, setSelectedCategory] = useState<string>("all");
     const [searchQuery, setSearchQuery] = useState("");
@@ -837,7 +918,7 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
     const baoh2 = useMemo(() => getChemicalById("ba(oh)2"), []);
     const hcl = useMemo(() => getChemicalById("hcl"), []);
 
-    // ─── Danh sách 3 dụng cụ trên bàn: Ban đầu bình rỗng để người dùng tự chọn & pha chất ───
+    // ─── Danh sách 3 dụng cụ trên bàn: Vị trí gom trung tâm, to rõ, dễ quan sát phản ứng ───
     const [items, setItems] = useState<InteractiveWorkbenchItem[]>([
         {
             id: "bottle-reagent",
@@ -846,8 +927,8 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
             chemical: activeChemical,
             liquidColor: getDisplayLiquidColor(activeChemical, "#2563eb"),
             fillLevel: 0.65,
-            position: [0.0, -0.06, 0.35],
-            defaultPosition: [0.0, -0.06, 0.35],
+            position: [0.0, -0.06, 0.36],
+            defaultPosition: [0.0, -0.06, 0.36],
             heldBy: null,
             tiltAngle: 0,
         },
@@ -858,8 +939,8 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
             chemical: null, // Ban đầu rỗng theo yêu cầu
             liquidColor: "#38bdf8",
             fillLevel: 0, // 0% rỗng
-            position: [-0.52, -0.06, 0.35],
-            defaultPosition: [-0.52, -0.06, 0.35],
+            position: [-0.36, -0.06, 0.36],
+            defaultPosition: [-0.36, -0.06, 0.36],
             heldBy: null,
             tiltAngle: 0,
         },
@@ -870,8 +951,8 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
             chemical: null, // Ban đầu rỗng theo yêu cầu
             liquidColor: "#38bdf8",
             fillLevel: 0, // 0% rỗng
-            position: [0.52, -0.06, 0.35],
-            defaultPosition: [0.52, -0.06, 0.35],
+            position: [0.36, -0.06, 0.36],
+            defaultPosition: [0.36, -0.06, 0.36],
             heldBy: null,
             tiltAngle: 0,
         },
@@ -1355,19 +1436,59 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                             refChemical={refChemical}
                             reactionPosition={reactionPosition}
                             setReactionPosition={setReactionPosition}
+                            cameraPreset={cameraPreset}
                         />
                     </React.Suspense>
                 </Canvas>
             </WebGLErrorBoundary>
 
-            {/* ─── THÔNG BÁO GÓC NHÌN BÀN THAO TÁC CỐ ĐỊNH ─── */}
-            <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 pointer-events-none select-none">
-                <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold backdrop-blur-xl border border-sky-400/30 bg-slate-900/90 text-sky-400 shadow-xl shadow-sky-500/10">
-                    <Lock className="w-3.5 h-3.5 text-sky-400" />
-                    <span>Camera cố định 2.5D</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-white/10 font-mono text-slate-300">
-                        Chống rung lắc
-                    </span>
+            {/* ─── THANH ĐIỀU KHIỂN GÓC NHÌN & CAMERA THAO TÁC ─── */}
+            <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 pointer-events-auto select-none">
+                <div className="flex items-center gap-1.5 p-1 rounded-2xl backdrop-blur-xl border border-sky-400/30 bg-slate-900/90 text-white shadow-2xl shadow-sky-500/10">
+                    <button
+                        onClick={() => setCameraPreset("closeup")}
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                            cameraPreset === "closeup"
+                                ? "bg-sky-600 text-white shadow-md shadow-sky-600/30"
+                                : "text-slate-300 hover:text-white hover:bg-slate-800"
+                        }`}
+                        title="Góc nhìn cận cảnh bàn thí nghiệm - Rõ nét nhất"
+                    >
+                        <ZoomIn className="w-3.5 h-3.5" />
+                        <span>Cận Cảnh</span>
+                    </button>
+
+                    <button
+                        onClick={() => setCameraPreset("pour")}
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                            cameraPreset === "pour"
+                                ? "bg-sky-600 text-white shadow-md shadow-sky-600/30"
+                                : "text-slate-300 hover:text-white hover:bg-slate-800"
+                        }`}
+                        title="Góc nhìn tập trung vào cốc đong để quan sát rót dung dịch"
+                    >
+                        <Droplets className="w-3.5 h-3.5 text-cyan-300" />
+                        <span>Góc Rót</span>
+                    </button>
+
+                    <button
+                        onClick={() => setCameraPreset("overview")}
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                            cameraPreset === "overview"
+                                ? "bg-sky-600 text-white shadow-md shadow-sky-600/30"
+                                : "text-slate-300 hover:text-white hover:bg-slate-800"
+                        }`}
+                        title="Góc nhìn bao quát toàn bộ phòng thí nghiệm"
+                    >
+                        <Maximize2 className="w-3.5 h-3.5" />
+                        <span>Toàn Cảnh</span>
+                    </button>
+
+                    <div className="h-4 w-px bg-slate-700/60 mx-0.5" />
+
+                    <div className="flex items-center gap-1 px-1.5 text-[10px] text-slate-400 font-mono">
+                        <span>Cuộn chuột: Zoom</span>
+                    </div>
                 </div>
             </div>
 

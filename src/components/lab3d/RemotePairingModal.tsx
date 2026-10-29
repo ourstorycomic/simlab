@@ -160,8 +160,13 @@ export default function RemotePairingModal({
     : "";
 
   return (
-    <div className="fixed inset-0 z-[120] bg-black/70 backdrop-blur-md flex items-center justify-center p-4 select-none animate-in fade-in duration-150">
-      <div className="bg-slate-900 border-2 border-slate-700/80 rounded-3xl max-w-lg w-full p-6 shadow-2xl text-slate-100 ring-1 ring-white/10 relative overflow-hidden">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-[120] bg-black/70 backdrop-blur-md flex items-center justify-center p-4 select-none animate-in fade-in duration-150"
+    >
+      <div className="bg-slate-900 border-2 border-slate-700/80 rounded-3xl max-w-md w-full p-5 max-h-[88vh] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 shadow-2xl text-slate-100 ring-1 ring-white/10 relative">
         {/* Nút đóng */}
         <button
           onClick={onClose}

@@ -1337,12 +1337,18 @@ const PhysicsSceneContent = memo(function PhysicsSceneContent({
 
     return (
         <>
-            <PerspectiveCamera makeDefault position={[0, 0.65, 2.1]} fov={50} />
+            <PerspectiveCamera makeDefault position={[0, 0.55, 1.65]} fov={48} />
             <OrbitControls
                 ref={controlsRef}
                 enablePan={false}
-                enableZoom={false}
-                enableRotate={false}
+                enableZoom={true}
+                enableRotate={true}
+                minDistance={0.8}
+                maxDistance={3.2}
+                minPolarAngle={Math.PI / 6}
+                maxPolarAngle={Math.PI / 2 - 0.05}
+                minAzimuthAngle={-Math.PI / 3}
+                maxAzimuthAngle={Math.PI / 3}
                 target={[0, 0.45, 0]}
             />
 
