@@ -29,6 +29,7 @@ import { deviceSensors } from "@/lib/deviceSensors";
 import Lab3DRoom from "./Lab3DRoom";
 import Lab3DFullHandModel from "./Lab3DFullHandModel";
 import Lab3DAITeacher from "./Lab3DAITeacher";
+import Lab3DAITutorVoice from "./Lab3DAITutorVoice";
 import Lab3DChemicalCabinet from "./Lab3DChemicalCabinet";
 import Lab3DReactionEffects from "./Lab3DReactionEffects";
 import RealisticWaterStream from "./RealisticWaterStream";
@@ -308,8 +309,8 @@ interface SceneContentProps {
     setActiveChemical: (c: Chemical) => void;
     teacherMessage: string;
     setTeacherMessage: (msg: string) => void;
-    teacherMode: "idle" | "speaking" | "warning" | "success";
-    setTeacherMode: (mode: "idle" | "speaking" | "warning" | "success") => void;
+    teacherMode: "idle" | "speaking" | "warning" | "success" | "listening";
+    setTeacherMode: (mode: "idle" | "speaking" | "warning" | "success" | "listening") => void;
     items: InteractiveWorkbenchItem[];
     setItems: React.Dispatch<React.SetStateAction<InteractiveWorkbenchItem[]>>;
     itemsRef: MutableRefObject<InteractiveWorkbenchItem[]>;
@@ -826,8 +827,8 @@ function SceneContent({
             {/* Nhân vật Cô Giáo AI (Tùy chọn Bật/Tắt theo nhu cầu người dùng) */}
             {show3DTeacher && (
                 <Lab3DAITeacher
-                    position={[2.35, -0.555, 0.55]}
-                    rotation={[0, -0.55, 0]}
+                    position={[1.32, -0.15, 0.42]}
+                    rotation={[0, -0.45, 0]}
                     scale={1.15}
                     mode={teacherMode}
                     message={teacherMessage}
@@ -879,12 +880,12 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
         return getChemicalById("cuso4") || allChemicals[0];
     });
 
-    const [teacherMode, setTeacherMode] = useState<"idle" | "speaking" | "warning" | "success">("speaking");
+    const [teacherMode, setTeacherMode] = useState<"idle" | "speaking" | "warning" | "success" | "listening">("speaking");
     const [teacherMessage, setTeacherMessage] = useState(
-        "Xin chào! Cô là Cô Giáo Mai SimLab. Hãy nhấp chọn dụng cụ bên dưới hoặc đưa tay trước Webcam để thực hành phản ứng nhé!"
+        "Xin chào! Cô là Cô Giáo Mai SimLab. Hãy giơ ngón tay ☝️ hoặc giữ nút Nói để đặt câu hỏi về thí nghiệm nhé!"
     );
     const [isTeacherGuideOpen, setIsTeacherGuideOpen] = useState(false);
-    const [show3DTeacher, setShow3DTeacher] = useState(false);
+    const [show3DTeacher, setShow3DTeacher] = useState(true);
     const [isFixedCamera, setIsFixedCamera] = useState(true);
     const [cameraPreset, setCameraPreset] = useState<"closeup" | "pour" | "overview">("closeup");
 
@@ -1583,65 +1584,19 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                 </div>
             </div>
 
-            {/* ─── 2. HỘP THOẠI CÔ GIÁO MAI DẠNG HUD GÓC PHẢI TRÊN (KÈM NÚT BẬT/TẮT CÔ GIÁO 3D) ─── */}
-            <div className="absolute top-16 right-4 z-20 pointer-events-auto select-none max-w-xs">
-                {isTeacherGuideOpen ? (
-                    <div className="bg-slate-900/90 backdrop-blur-xl border border-sky-400/40 rounded-2xl p-3 shadow-2xl text-white animate-in fade-in duration-200">
-                        <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-800">
-                            <div className="flex items-center gap-2">
-                                <GraduationCap className="w-4 h-4 text-sky-400" />
-                                <div>
-                                    <h4 className="text-xs font-bold text-sky-400">Cô Giáo Mai (AI)</h4>
-                                    <p className="text-[9px] text-slate-400">
-                                        {teacherMode === "success"
-                                            ? "Phản ứng xuất sắc!"
-                                            : teacherMode === "warning"
-                                            ? "Cảnh báo an toàn!"
-                                            : "Hướng dẫn thực hành"}
-                                    </p>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => setIsTeacherGuideOpen(false)}
-                                className="text-slate-400 hover:text-white text-xs p-1"
-                                title="Thu nhỏ"
-                            >
-                                <X className="w-3.5 h-3.5" />
-                            </button>
-                        </div>
-                        <p className="text-xs text-slate-200 leading-relaxed">{teacherMessage}</p>
-
-                        {/* Nút bật/tắt Model 3D Cô Giáo */}
-                        <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between">
-                            <button
-                                onClick={() => setShow3DTeacher((v) => !v)}
-                                className="text-[11px] px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 flex items-center gap-1.5 transition-colors"
-                                title="Ẩn hoặc hiện nhân vật Cô giáo 3D trong phòng"
-                            >
-                                <span>{show3DTeacher ? "Ẩn Cô Giáo 3D" : "Hiện Cô Giáo 3D"}</span>
-                            </button>
-                            <span className="text-[10px] text-slate-400">AI Teacher Mode</span>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="flex items-center gap-1.5">
-                        <button
-                            onClick={() => setIsTeacherGuideOpen(true)}
-                            className="bg-slate-900/90 backdrop-blur-xl hover:bg-slate-800 text-sky-400 border border-sky-400/40 rounded-full px-3 py-1.5 shadow-xl text-xs font-semibold flex items-center gap-1.5 transition-all"
-                        >
-                            <GraduationCap className="w-3.5 h-3.5 text-sky-400" />
-                            <span>Lời Cô Giáo</span>
-                        </button>
-                        <button
-                            onClick={() => setShow3DTeacher((v) => !v)}
-                            className="bg-slate-900/90 backdrop-blur-xl hover:bg-slate-800 text-slate-300 border border-slate-700 rounded-full px-2.5 py-1.5 shadow-xl text-xs font-medium transition-all"
-                            title={show3DTeacher ? "Ẩn Cô Giáo 3D" : "Hiện Cô Giáo 3D"}
-                        >
-                            {show3DTeacher ? "Ẩn 3D" : "Hiện 3D"}
-                        </button>
-                    </div>
-                )}
-            </div>
+            {/* ─── 2. TRỢ LÝ SƯ PHẠM CÔ GIÁO MAI AI (VOICE PUSH-TO-TALK & CỬ CHỈ TAY ☝️) ─── */}
+            <Lab3DAITutorVoice
+                subject="chemistry"
+                activeChemical={activeChemical}
+                reactionBeakerChemical={items.find((it) => it.id === "beaker-1")?.chemical}
+                reactionBeakerSolid={items.find((it) => it.id === "beaker-1")?.solidChemical}
+                activeReaction={activeReaction}
+                handStateRef={actualHandRef}
+                onTeacherModeChange={(mode) => setTeacherMode(mode)}
+                onTeacherMessageChange={(msg) => setTeacherMessage(msg)}
+                show3DTeacher={show3DTeacher}
+                onToggle3DTeacher={() => setShow3DTeacher((v) => !v)}
+            />
 
             {/* ─── 3. DOCK ĐIỀU KHIỂN DỤNG CỤ THÍ NGHIỆM GỌN GÀNG (CONTEXTUAL ACTION DOCK) ─── */}
             <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 z-20 pointer-events-auto select-none max-w-xl w-[95%] sm:w-full">

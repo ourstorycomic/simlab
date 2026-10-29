@@ -20,7 +20,7 @@ interface Lab3DAITeacherProps {
     rotation?: [number, number, number];
     scale?: number | [number, number, number];
     message?: string | null;
-    mode?: "idle" | "speaking" | "warning" | "success";
+    mode?: "idle" | "speaking" | "warning" | "success" | "listening";
 }
 
 export default function Lab3DAITeacher({
@@ -36,6 +36,7 @@ export default function Lab3DAITeacher({
     const ponytailRef = useRef<THREE.Group>(null);
     const leftEyeRef = useRef<THREE.Group>(null);
     const rightEyeRef = useRef<THREE.Group>(null);
+    const mouthRef = useRef<THREE.Group>(null);
 
     // ─── Cartoon & Anime Materials ───
     const mats = useMemo(() => {
@@ -153,9 +154,19 @@ export default function Lab3DAITeacher({
 
         // 2. Đầu nghiêng nhẹ biểu cảm
         if (headGroupRef.current) {
-            headGroupRef.current.rotation.y = -0.3 + Math.sin(t * 1.1) * 0.04;
-            headGroupRef.current.rotation.x = 0.04 + Math.cos(t * 1.4) * 0.02;
-            headGroupRef.current.rotation.z = Math.sin(t * 0.8) * 0.02;
+            if (mode === "listening") {
+                headGroupRef.current.rotation.y = -0.18 + Math.sin(t * 1.5) * 0.02;
+                headGroupRef.current.rotation.x = 0.06;
+                headGroupRef.current.rotation.z = 0.07; // Nghiêng đầu chăm chú lắng nghe
+            } else if (mode === "speaking") {
+                headGroupRef.current.rotation.y = -0.28 + Math.sin(t * 2.2) * 0.05;
+                headGroupRef.current.rotation.x = 0.05 + Math.sin(t * 4.5) * 0.035; // Gật đầu nhịp nhàng khi nói
+                headGroupRef.current.rotation.z = Math.sin(t * 1.5) * 0.02;
+            } else {
+                headGroupRef.current.rotation.y = -0.3 + Math.sin(t * 1.1) * 0.04;
+                headGroupRef.current.rotation.x = 0.04 + Math.cos(t * 1.4) * 0.02;
+                headGroupRef.current.rotation.z = Math.sin(t * 0.8) * 0.02;
+            }
         }
 
         // 3. Đuôi tóc đung đưa theo cử chỉ
@@ -164,18 +175,35 @@ export default function Lab3DAITeacher({
             ponytailRef.current.rotation.z = Math.cos(t * 1.1) * 0.04;
         }
 
-        // 4. Cơ chế tự động chớp mắt (Blink every 3.8s)
+        // 4. Cơ chế tự động chớp mắt (Blink every 3.8s) & ánh mắt vui vẻ
         const blinkCycle = t % 3.8;
         const isBlinking = blinkCycle > 3.65 && blinkCycle < 3.78;
-        const eyeScaleY = isBlinking ? 0.08 : 1.0;
+        const eyeScaleY = isBlinking ? 0.08 : mode === "listening" ? 1.08 : 1.0;
         if (leftEyeRef.current) leftEyeRef.current.scale.y = eyeScaleY;
         if (rightEyeRef.current) rightEyeRef.current.scale.y = eyeScaleY;
 
-        // 5. Cánh tay phải cử chỉ giảng dạy
+        // 5. Khẩu hình miệng nói chuyện sinh động (Lip-sync Animation) & Nụ cười tươi
+        if (mouthRef.current) {
+            if (mode === "speaking") {
+                const mouthOpen = 0.35 + Math.abs(Math.sin(t * 14)) * 1.5;
+                mouthRef.current.scale.y = mouthOpen;
+                mouthRef.current.scale.x = 1.0 + Math.sin(t * 8) * 0.18;
+            } else if (mode === "listening") {
+                mouthRef.current.scale.set(1.08, 0.75, 1);
+            } else {
+                // Nụ cười mỉm hiền hậu
+                mouthRef.current.scale.set(1.0, 1.0, 1.0);
+            }
+        }
+
+        // 6. Cánh tay phải cử chỉ giảng dạy
         if (rightArmRef.current) {
             if (mode === "speaking" || mode === "success") {
                 rightArmRef.current.rotation.z = -0.55 + Math.sin(t * 2.8) * 0.14;
                 rightArmRef.current.rotation.x = -0.32 + Math.cos(t * 2.0) * 0.1;
+            } else if (mode === "listening") {
+                rightArmRef.current.rotation.z = -0.38 + Math.sin(t * 1.2) * 0.04;
+                rightArmRef.current.rotation.x = -0.15;
             } else {
                 rightArmRef.current.rotation.z = -0.22 + Math.sin(t * 1.1) * 0.03;
                 rightArmRef.current.rotation.x = -0.16;
@@ -306,8 +334,8 @@ export default function Lab3DAITeacher({
                     <primitive object={mats.blush} />
                 </mesh>
 
-                {/* Nụ cười duyên dáng thanh lịch chuẩn Anime (Smooth smile arc) */}
-                <group position={[0, -0.038, 0.134]} rotation={[0, 0, Math.PI]}>
+                {/* Nụ cười duyên dáng thanh lịch chuẩn Anime (Smooth smile arc) có Lip-Sync khi nói */}
+                <group ref={mouthRef} position={[0, -0.038, 0.134]} rotation={[0, 0, Math.PI]}>
                     <mesh>
                         <torusGeometry args={[0.015, 0.0022, 8, 20, Math.PI]} />
                         <primitive object={mats.lips} />

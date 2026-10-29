@@ -20,6 +20,8 @@ import { playLabSound } from "./ChemistryRealisticModels";
 import { deviceSensors } from "@/lib/deviceSensors";
 import PhysicsLabRoom from "./PhysicsRoom";
 import Lab3DFullHandModel from "./Lab3DFullHandModel";
+import Lab3DAITeacher from "./Lab3DAITeacher";
+import Lab3DAITutorVoice from "./Lab3DAITutorVoice";
 import { Zap, Timer, Search, Globe, Hand, MousePointer, BarChart2, Sliders, Target, Sparkles as SparklesIcon, Ruler } from "lucide-react";
 
 interface Lab3DPhysicsSceneProps {
@@ -1141,6 +1143,8 @@ const PhysicsSceneContent = memo(function PhysicsSceneContent({
     onLensTypeChange,
     laserColor,
     onLaserColorChange,
+    show3DTeacher = true,
+    aiSpeech = "",
 }: {
     handStateRef: MutableRefObject<HandState>;
     currentExp: PhysicsExperiment;
@@ -1148,7 +1152,7 @@ const PhysicsSceneContent = memo(function PhysicsSceneContent({
     onPeriodUpdate: (t: number, angleDeg: number) => void;
     isCircuitClosed: boolean;
     onToggleCircuit: () => void;
-    aiMode: "idle" | "speaking" | "warning" | "success";
+    aiMode: "idle" | "speaking" | "warning" | "success" | "listening";
     setSwipeNotice: (msg: string | null) => void;
     manualAngleTrigger?: { angleRad: number; timestamp: number } | null;
     voltage: number;
@@ -1162,6 +1166,8 @@ const PhysicsSceneContent = memo(function PhysicsSceneContent({
     onLensTypeChange?: (t: "converging" | "diverging") => void;
     laserColor?: "red" | "green" | "blue";
     onLaserColorChange?: (c: "red" | "green" | "blue") => void;
+    show3DTeacher?: boolean;
+    aiSpeech?: string;
 }) {
     const { camera } = useThree();
     const controlsRef = useRef<any>(null);
@@ -1405,7 +1411,16 @@ const PhysicsSceneContent = memo(function PhysicsSceneContent({
                 />
             )}
 
-            {/* Không còn quả cầu sao Thiên Vương thừa thãi */}
+            {/* Nhân vật Cô Giáo AI Đồng Hành 3D (Tùy chọn Bật/Tắt) */}
+            {show3DTeacher && (
+                <Lab3DAITeacher
+                    position={[1.55, -0.16, 0.42]}
+                    rotation={[0, -0.45, 0]}
+                    scale={1.12}
+                    mode={aiMode}
+                    message={aiSpeech}
+                />
+            )}
         </>
     );
 });
@@ -1428,9 +1443,10 @@ export default function Lab3DPhysicsScene({ handStateRef }: Lab3DPhysicsScenePro
     const [manualAngleTrigger, setManualAngleTrigger] = useState<{ angleRad: number; timestamp: number } | null>(null);
 
     const [aiSpeech, setAiSpeech] = useState<string>(
-        "Chào mừng bạn đến với Lab Vật Lý 3D! Bạn có thể bấm chuột kéo thả trực tiếp, hoặc dùng camera tay, hoặc dùng thanh điều khiển tiện lợi bên dưới."
+        "Chào mừng em đến với Lab Vật Lý 3D! Em có thể giơ ngón tay ☝️ hoặc giữ nút Nói để đặt câu hỏi về con lắc, mạch điện hay thấu kính nhé!"
     );
-    const [aiMode, setAiMode] = useState<"idle" | "speaking" | "warning" | "success">("idle");
+    const [aiMode, setAiMode] = useState<"idle" | "speaking" | "warning" | "success" | "listening">("speaking");
+    const [show3DTeacher, setShow3DTeacher] = useState(true);
     const [swipeNotice, setSwipeNotice] = useState<string | null>(null);
     const [orbitEnabled, setOrbitEnabled] = useState(true);
 
@@ -1527,6 +1543,8 @@ export default function Lab3DPhysicsScene({ handStateRef }: Lab3DPhysicsScenePro
                     onLensTypeChange={setLensType}
                     laserColor={laserColor}
                     onLaserColorChange={setLaserColor}
+                    show3DTeacher={show3DTeacher}
+                    aiSpeech={aiSpeech}
                 />
             </Canvas>
 
@@ -1540,20 +1558,18 @@ export default function Lab3DPhysicsScene({ handStateRef }: Lab3DPhysicsScenePro
                 </div>
             )}
 
-            {/* ─── 2D HUD: Bảng Đo Lường Vật Lý & Hướng Dẫn AI (Góc trên phải) ─── */}
-            <div className="absolute top-16 right-4 z-20 pointer-events-auto max-w-sm w-full sm:w-80 select-none">
-                {/* AI Assistant Card */}
-                {aiSpeech && (
-                    <div className="mb-2 bg-slate-900/95 backdrop-blur-xl border border-indigo-500/40 rounded-2xl p-3 shadow-2xl text-white animate-in fade-in duration-200">
-                        <div className="flex items-center gap-2 mb-1">
-                            <Zap className="w-4 h-4 text-amber-400" />
-                            <span className="text-xs font-bold text-indigo-300">Trợ Lý Vật Lý AI</span>
-                        </div>
-                        <p className="text-[11px] text-slate-200 leading-relaxed">{aiSpeech}</p>
-                    </div>
-                )}
+            {/* ─── 2D HUD: TRỢ LÝ SƯ PHẠM CÔ GIÁO MAI AI (VOICE PUSH-TO-TALK & CỬ CHỈ TAY ☝️ GÓC TRÊN PHẢI) ─── */}
+            <Lab3DAITutorVoice
+                subject="physics"
+                handStateRef={actualHandRef}
+                onTeacherModeChange={(mode) => setAiMode(mode)}
+                onTeacherMessageChange={(msg) => setAiSpeech(msg)}
+                show3DTeacher={show3DTeacher}
+                onToggle3DTeacher={() => setShow3DTeacher((v) => !v)}
+            />
 
-                {/* Live Physics Measurement Card */}
+            {/* ─── 2D HUD: Bảng Đo Lường Vật Lý 3D (Góc trên trái, độc lập & không đè lấn) ─── */}
+            <div className="absolute top-16 left-4 z-20 pointer-events-auto max-w-sm w-full sm:w-80 select-none">
                 <div className="bg-slate-950/90 backdrop-blur-xl border border-indigo-500/30 rounded-2xl p-3 shadow-2xl text-white">
                     <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-slate-800">
                         <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">

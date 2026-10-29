@@ -13,6 +13,7 @@ import HumanBodyAtlasViewer from "./biology/HumanBodyAtlasViewer";
 import BioOrganViewer from "./biology/BioOrganViewer";
 import BioHandOverlay from "./biology/BioHandOverlay";
 import BioLive3DHandCanvas from "./biology/BioLive3DHandCanvas";
+import Lab3DAITutorVoice from "@/components/lab3d/Lab3DAITutorVoice";
 
 import { HandState } from "@/lib/handTracking";
 import { playLabSound } from "@/components/lab3d/ChemistryRealisticModels";
@@ -305,6 +306,14 @@ export default function BiologyBench({
             tabMode={tabMode}
           />
         )}
+
+        {/* ── Trợ Lý Sư Phạm Cô Giáo Mai AI (Voice Push-to-Talk Sinh Học 3D) ── */}
+        <Lab3DAITutorVoice
+          subject="biology"
+          handStateRef={externalHandStateRef}
+          show3DTeacher={false}
+          onToggle3DTeacher={() => {}}
+        />
       </div>
     </div>
   );
