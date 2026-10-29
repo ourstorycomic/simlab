@@ -50,3 +50,12 @@ next-env.d.ts
 
 # raw downloaded data
 human body/
+
+# external reference projects
+/Chemistry-Lab-master/
+/Hand-controlled-Scrolling-project-main/
+/InScroll-main/
+/RightHandController-main/
+/Virtual-Mouse-main/
+/threejs-handtracking-101-main/
+/Bao_Cao_Kien_Truc_Cong_Nghe_He_Thong_Simlab.docx

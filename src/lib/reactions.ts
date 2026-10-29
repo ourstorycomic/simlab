@@ -1108,6 +1108,92 @@ export function getReaction(
     };
   }
 
+  // Ba(OH)₂ + H₂SO₄ → BaSO₄↓ + 2H₂O (kết tủa trắng BaSO4 + phản ứng trung hòa tỏa nhiệt)
+  if (pair("baoh2", "h2so4")) {
+    return {
+      type: "precipitation",
+      equation: "Ba(OH)₂ + H₂SO₄ → BaSO₄↓ + 2H₂O",
+      equationHtml: `<span class='text-white'>Ba(OH)₂</span> + <span class='text-chemical-red'>H₂SO₄</span> → <span class='text-gray-100'>BaSO₄↓</span> + 2${WATER_HTML}`,
+      description: "Phản ứng trung hòa tạo kết tủa trắng bari sunfat không tan trong axit.",
+      effects: [
+        { type: "precipitate", intensity: "high", duration: 4000, targetColor: "#ffffff" },
+        { type: "color_change", intensity: "high", duration: 3000, targetColor: "#ffffff" },
+      ],
+      products: ["baso4", "h2o"],
+      observations: [
+        "Xuất hiện ngay lập tức kết tủa trắng mịn (BaSO₄)",
+        "Ống nghiệm nóng lên do phản ứng trung hòa tỏa nhiệt",
+      ],
+      heatChange: "exothermic",
+    };
+  }
+
+  // Ba(OH)₂ + Na₂SO₄ → BaSO₄↓ + 2NaOH
+  if (pair("baoh2", "na2so4")) {
+    return {
+      type: "precipitation",
+      equation: "Ba(OH)₂ + Na₂SO₄ → BaSO₄↓ + 2NaOH",
+      equationHtml: `<span class='text-white'>Ba(OH)₂</span> + <span class='text-white'>Na₂SO₄</span> → <span class='text-gray-100'>BaSO₄↓</span> + 2<span class='text-white'>NaOH</span>`,
+      description: "Tạo kết tủa trắng bari sunfat.",
+      effects: [
+        { type: "precipitate", intensity: "high", duration: 3500, targetColor: "#ffffff" },
+        { type: "color_change", intensity: "high", duration: 2500, targetColor: "#ffffff" },
+      ],
+      products: ["baso4", "naoh"],
+      observations: ["Xuất hiện kết tủa trắng mịn BaSO₄"],
+      heatChange: "none",
+    };
+  }
+
+  // Ba(OH)₂ + Na₂CO₃ → BaCO₃↓ + 2NaOH
+  if (pair("baoh2", "na2co3")) {
+    return {
+      type: "precipitation",
+      equation: "Ba(OH)₂ + Na₂CO₃ → BaCO₃↓ + 2NaOH",
+      equationHtml: `<span class='text-white'>Ba(OH)₂</span> + <span class='text-white'>Na₂CO₃</span> → <span class='text-gray-100'>BaCO₃↓</span> + 2<span class='text-white'>NaOH</span>`,
+      description: "Tạo kết tủa trắng bari cacbonat.",
+      effects: [
+        { type: "precipitate", intensity: "high", duration: 3500, targetColor: "#ffffff" },
+      ],
+      products: ["baco3", "naoh"],
+      observations: ["Xuất hiện kết tủa trắng BaCO₃"],
+      heatChange: "none",
+    };
+  }
+
+  // Ba(OH)₂ + 2HCl → BaCl₂ + 2H₂O
+  if (pair("baoh2", "hcl")) {
+    return {
+      type: "acid_base",
+      equation: "Ba(OH)₂ + 2HCl → BaCl₂ + 2H₂O",
+      equationHtml: `<span class='text-white'>Ba(OH)₂</span> + 2<span class='text-chemical-red'>HCl</span> → <span class='text-white'>BaCl₂</span> + 2${WATER_HTML}`,
+      description: "Phản ứng trung hòa bazơ mạnh và axit mạnh, dung dịch trong suốt không màu, tỏa nhiệt.",
+      effects: [
+        { type: "color_change", intensity: "low", duration: 1500, targetColor: "#f8fafc" },
+      ],
+      products: ["bacl2", "h2o"],
+      observations: ["Dung dịch vẫn trong suốt không màu", "Nhiệt độ dung dịch tăng (tỏa nhiệt)"],
+      heatChange: "exothermic",
+    };
+  }
+
+  // Ba(OH)₂ + FeCl₃ → 3BaCl₂ + 2Fe(OH)₃↓
+  if (pair("baoh2", "fecl3")) {
+    return {
+      type: "precipitation",
+      equation: "3Ba(OH)₂ + 2FeCl₃ → 3BaCl₂ + 2Fe(OH)₃↓",
+      equationHtml: `3<span class='text-white'>Ba(OH)₂</span> + 2<span class='text-amber-500'>FeCl₃</span> → 3<span class='text-white'>BaCl₂</span> + 2<span class='text-amber-700'>Fe(OH)₃↓</span>`,
+      description: "Tạo kết tủa màu nâu đỏ của sắt(III) hidroxit.",
+      effects: [
+        { type: "precipitate", intensity: "high", duration: 3500, targetColor: "#9a3412" },
+        { type: "color_change", intensity: "high", duration: 2500, targetColor: "#9a3412" },
+      ],
+      products: ["bacl2", "feoh3"],
+      observations: ["Xuất hiện kết tủa màu nâu đỏ Fe(OH)₃", "Dung dịch vàng nâu nhạt dần"],
+      heatChange: "none",
+    };
+  }
+
   // CuCl₂ + Kiềm (NaOH, KOH)
   if (pair("cucl2", "naoh")) {
     return {

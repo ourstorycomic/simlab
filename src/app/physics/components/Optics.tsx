@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { Eye, SlidersHorizontal, Maximize2, Minimize2, Tv, MousePointer } from "lucide-react";
 
 export default function Optics() {
     const [focalLength, setFocalLength] = useState(50); // f in cm
@@ -295,7 +296,10 @@ export default function Optics() {
                             : "text-slate-400 hover:text-white"
                     }`}
                 >
-                    🔍 Thấu kính
+                    <span className="inline-flex items-center justify-center gap-1.5">
+                        <Eye className="w-3.5 h-3.5" />
+                        Thấu kính
+                    </span>
                 </button>
                 <button
                     onClick={() => setMobileTab("controls")}
@@ -305,7 +309,10 @@ export default function Optics() {
                             : "text-slate-400 hover:text-white"
                     }`}
                 >
-                    ⚙️ Bảng điều khiển & Kết quả
+                    <span className="inline-flex items-center justify-center gap-1.5">
+                        <SlidersHorizontal className="w-3.5 h-3.5" />
+                        Bảng điều khiển & Kết quả
+                    </span>
                 </button>
             </div>
 
@@ -399,10 +406,17 @@ export default function Optics() {
                         }`}
                         title={isTheaterMode ? "Thu nhỏ lại chế độ tiêu chuẩn" : "Phóng to toàn màn hình thí nghiệm cho khán giả"}
                     >
-                        <svg className="w-3.5 h-3.5 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isTheaterMode ? "M9 9L4 4m0 0l5 0m-5 0l0 5m11 0l5-5m0 0l-5 0m5 0l0 5m-5 11l5 5m0 0l-5 0m5 0l0-5m-11 0l-5 5m0 0l5 0m-5 0l0-5" : "M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"} />
-                        </svg>
-                        <span>{isTheaterMode ? "🔍 Thu nhỏ" : "🖥️ Phóng to Trình chiếu"}</span>
+                        {isTheaterMode ? (
+                            <>
+                                <Minimize2 className="w-3.5 h-3.5 text-sky-400" />
+                                <span>Thu nhỏ</span>
+                            </>
+                        ) : (
+                            <>
+                                <Maximize2 className="w-3.5 h-3.5 text-sky-400" />
+                                <span>Phóng to Trình chiếu</span>
+                            </>
+                        )}
                     </button>
                 </div>
 
@@ -413,13 +427,12 @@ export default function Optics() {
                             onClick={() => setIsTheaterMode(false)}
                             className="px-3 py-1.5 rounded-xl bg-slate-800/95 hover:bg-slate-700 border border-slate-600 text-sky-300 text-xs font-semibold flex items-center gap-1.5 shadow-xl backdrop-blur transition-all"
                         >
-                            <svg className="w-4 h-4 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                            </svg>
-                            <span>📂 Hiện bảng chỉnh (f = {focalLength}cm)</span>
+                            <SlidersHorizontal className="w-3.5 h-3.5 text-sky-400" />
+                            <span>Hiện bảng chỉnh (f = {focalLength}cm)</span>
                         </button>
-                        <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-sky-500/20 text-sky-300 border border-sky-500/30">
-                            🖥️ Trình chiếu Quang học
+                        <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-sky-500/20 text-sky-300 border border-sky-500/30 flex items-center gap-1.5">
+                            <Tv className="w-3 h-3 text-sky-400" />
+                            Trình chiếu Quang học
                         </span>
                     </div>
                 )}
@@ -452,7 +465,8 @@ export default function Optics() {
                     {/* Interactive hint */}
                     <div className="absolute top-2 left-1/2 -translate-x-1/2 pointer-events-none z-10">
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-xs font-semibold bg-slate-900/80 backdrop-blur border border-slate-700 text-emerald-300 shadow-md">
-                            👆 Chạm & kéo mũi tên xanh (vật AB) để chỉnh d và h
+                            <MousePointer className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>Chạm & kéo mũi tên xanh (vật AB) để chỉnh d và h</span>
                         </span>
                     </div>
 
@@ -487,7 +501,8 @@ export default function Optics() {
                         onClick={() => setMobileTab("controls")}
                         className="w-full py-2.5 px-4 rounded-xl bg-slate-800 border border-slate-600 text-sky-300 font-bold text-xs flex items-center justify-center gap-1.5"
                     >
-                        ⚙️ Thay đổi tiêu cự (f) & khoảng cách (d)
+                        <SlidersHorizontal className="w-3.5 h-3.5" />
+                        <span>Thay đổi tiêu cự (f) & khoảng cách (d)</span>
                     </button>
                 </div>
             </div>

@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { Chemical, chemicals, chemicalCategories, isLiquidState, getStateLabel } from "@/lib/chemicals";
 import { getReaction } from "@/lib/reactions";
+import { X, Sparkles, FlaskConical, Lightbulb, Zap, Lock, Hand } from "lucide-react";
 
 interface ChemicalSelectorProps {
     onSelect: (chemical: Chemical) => void;
@@ -404,14 +405,14 @@ export default function ChemicalSelector({
                             className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs w-4 h-4 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700"
                             title="Xóa tìm kiếm"
                         >
-                            ✕
+                            <X className="w-3 h-3" />
                         </button>
                     )}
                 </div>
 
                 {/* Mobile / Tablet Drag & Tap Guide */}
                 <div className="mt-2 flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-50/70 dark:bg-emerald-950/40 text-[10px] text-emerald-800 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/50">
-                    <span className="text-xs">👆</span>
+                    <Hand className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                     <span className="font-medium leading-tight">Chạm để chọn hoặc kéo thả vào ống nghiệm</span>
                 </div>
 
@@ -419,8 +420,9 @@ export default function ChemicalSelector({
                 {disabled && onReset && (
                     <div className="mt-2.5 p-2.5 rounded-xl bg-gradient-to-r from-blue-500/15 to-indigo-500/15 border border-blue-400/40 dark:border-blue-500/40 flex flex-col gap-1.5 shadow-sm">
                         <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-bold text-blue-700 dark:text-blue-300 flex items-center gap-1">
-                                <span>✨ Đã hoàn thành thí nghiệm</span>
+                            <span className="text-[11px] font-bold text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
+                                <Sparkles className="w-3.5 h-3.5 text-blue-500" />
+                                <span>Đã hoàn thành thí nghiệm</span>
                             </span>
                         </div>
                         <p className="text-[10px] text-gray-600 dark:text-gray-300 leading-tight">
@@ -430,7 +432,8 @@ export default function ChemicalSelector({
                             onClick={onReset}
                             className="w-full py-1.5 px-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-[11px] font-bold flex items-center justify-center gap-1.5 shadow active:scale-95 transition-all"
                         >
-                            <span>🧪 Làm thí nghiệm khác (Dọn bàn)</span>
+                            <FlaskConical className="w-3.5 h-3.5" />
+                            <span>Làm thí nghiệm khác (Dọn bàn)</span>
                         </button>
                     </div>
                 )}
@@ -447,8 +450,9 @@ export default function ChemicalSelector({
                                 {reactableIds.size} chất
                             </span>
                         </div>
-                        <p className="text-[9px] text-emerald-600 dark:text-emerald-400/90 leading-tight">
-                            💡 Các chất có phản ứng sẽ <b>SÁNG LÊN</b>. Chất không phản ứng bị <b>KHÓA</b>.
+                        <p className="text-[9px] text-emerald-600 dark:text-emerald-400/90 leading-tight flex items-center gap-1">
+                            <Lightbulb className="w-3 h-3 text-amber-500 shrink-0" />
+                            <span>Các chất có phản ứng sẽ <b>SÁNG LÊN</b>. Chất không phản ứng bị <b>KHÓA</b>.</span>
                         </p>
                     </div>
                 )}
@@ -544,7 +548,7 @@ export default function ChemicalSelector({
                                         refChemical && !canReactWithRef && !isRefSelf
                                             ? `${chemical.name} — Không có phản ứng với ${refChemical.name} (Đã khóa)`
                                             : refChemical && canReactWithRef && !isRefSelf
-                                                ? `⚡ ${chemical.name} — CÓ PHẢN ỨNG VỚI ${refChemical.name}!`
+                                                ? `${chemical.name} — Có phản ứng với ${refChemical.name}!`
                                                 : `${chemical.name} (${chemical.formula})`
                                     }
                                 >
@@ -559,12 +563,14 @@ export default function ChemicalSelector({
                                     {/* Badge sáng phản ứng hoặc khóa */}
                                     {refChemical && canReactWithRef && !isRefSelf && (
                                         <span className="absolute -top-1.5 -right-1.5 px-1 py-0.5 rounded-full bg-emerald-600 dark:bg-emerald-500 text-[6px] font-bold text-white flex items-center gap-0.5 shadow-sm z-10 animate-pulse">
-                                            ⚡ Có p/ứ
+                                            <Zap className="w-2 h-2 fill-current" />
+                                            <span>Có p/ứ</span>
                                         </span>
                                     )}
                                     {isBlockedByRef && (
-                                        <span className="absolute -top-1 -right-1 px-1 py-0.2 rounded bg-gray-400/80 dark:bg-gray-600/80 text-[6px] font-medium text-white shadow-sm z-10">
-                                            ✕ Khóa
+                                        <span className="absolute -top-1 -right-1 px-1 py-0.2 rounded bg-gray-400/80 dark:bg-gray-600/80 text-[6px] font-medium text-white shadow-sm z-10 flex items-center gap-0.5">
+                                            <Lock className="w-1.5 h-1.5" />
+                                            <span>Khóa</span>
                                         </span>
                                     )}
 

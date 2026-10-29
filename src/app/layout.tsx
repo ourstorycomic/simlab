@@ -89,10 +89,11 @@ export default function RootLayout({
     return (
         <html lang="vi" className={`dark ${beVietnamPro.variable}`} suppressHydrationWarning>
             <body className="antialiased min-h-screen">
-                {/* Apply saved theme before paint to avoid flash */}
+                {/* Apply saved theme before paint and guard against stale chunk load errors on server restart */}
                 <script
                     dangerouslySetInnerHTML={{
-                        __html: `try{var t=localStorage.getItem("simlab-theme");if(t==="light"){document.documentElement.classList.remove("dark")}}catch(e){}`,
+                        __html: `try{var t=localStorage.getItem("simlab-theme");if(t==="light"){document.documentElement.classList.remove("dark")}}catch(e){}
+window.addEventListener('error',function(e){if(e&&e.message&&/ChunkLoadError|Loading chunk/i.test(e.message)){window.location.reload();}});`,
                     }}
                 />
                 {/* Structured data for search engines */}

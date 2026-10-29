@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Chemical } from "@/lib/chemicals";
 import { ActiveReaction } from "./LabBench";
 import { FormattedAIMessage } from "./FormattedAIMessage";
+import { Sparkles, X, Send, BookOpen, FlaskConical, ShieldAlert, FileText, Bot } from "lucide-react";
 
 interface LabAITutorWidgetProps {
   chemical1: Chemical | null;
@@ -109,7 +110,7 @@ export default function LabAITutorWidget({
         ...prev,
         {
           sender: "ai",
-          text: "⚠️ Hiện chưa thể kết nối tới mô hình Groq. Vui lòng kiểm tra kết nối mạng hoặc biến môi trường GROQ_API_KEY.",
+          text: "Hiện chưa thể kết nối tới trợ lý AI. Vui lòng kiểm tra kết nối mạng hoặc biến môi trường GROQ_API_KEY.",
           isWarning: true,
         },
       ]);
@@ -127,7 +128,7 @@ export default function LabAITutorWidget({
           <div className="p-3.5 bg-gradient-to-r from-blue-900/40 via-indigo-900/30 to-slate-900 border-b border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="relative w-8 h-8 rounded-xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400">
-                <span className="text-base">🤖</span>
+                <Bot className="w-4 h-4 text-blue-400" />
                 <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
                 <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500" />
               </div>
@@ -146,7 +147,7 @@ export default function LabAITutorWidget({
               onClick={() => setIsOpen(false)}
               className="w-7 h-7 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-xs transition-colors"
             >
-              ✕
+              <X className="w-4 h-4" />
             </button>
           </div>
 
@@ -187,8 +188,8 @@ export default function LabAITutorWidget({
                     <FormattedAIMessage content={m.text} />
                   )}
                   {m.sourceBook && (
-                    <div className="mt-1.5 pt-1.5 border-t border-slate-700/50 text-[10px] text-amber-300/90 font-medium flex items-center gap-1">
-                      <span>📖</span>
+                    <div className="mt-1.5 pt-1.5 border-t border-slate-700/50 text-[10px] text-amber-300/90 font-medium flex items-center gap-1.5">
+                      <BookOpen className="w-3 h-3 text-amber-400 shrink-0" />
                       <span>{m.sourceBook}</span>
                     </div>
                   )}
@@ -210,21 +211,24 @@ export default function LabAITutorWidget({
           <div className="px-3 py-1.5 bg-slate-950/60 border-t border-slate-800/80 flex gap-1.5 overflow-x-auto scrollbar-none">
             <button
               onClick={() => handleAskAI("Hiện tượng hóa học của phản ứng này là gì theo SGK?")}
-              className="whitespace-nowrap px-2 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/20 text-[10px] transition-colors"
+              className="whitespace-nowrap px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/20 text-[10px] transition-colors inline-flex items-center gap-1.5"
             >
-              🔬 Hiện tượng là gì?
+              <FlaskConical className="w-3 h-3 text-blue-400" />
+              <span>Hiện tượng là gì?</span>
             </button>
             <button
               onClick={() => handleAskAI("Thao tác này có an toàn không, có nguy cơ bỏng hay trào hóa chất không?")}
-              className="whitespace-nowrap px-2 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/20 text-[10px] transition-colors"
+              className="whitespace-nowrap px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/20 text-[10px] transition-colors inline-flex items-center gap-1.5"
             >
-              ⚠️ An toàn thí nghiệm?
+              <ShieldAlert className="w-3 h-3 text-amber-400" />
+              <span>An toàn thí nghiệm?</span>
             </button>
             <button
               onClick={() => handleAskAI("Viết phương trình ion rút gọn và giải thích bản chất phản ứng.")}
-              className="whitespace-nowrap px-2 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 text-[10px] transition-colors"
+              className="whitespace-nowrap px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 text-[10px] transition-colors inline-flex items-center gap-1.5"
             >
-              📘 Phương trình & bản chất
+              <FileText className="w-3 h-3 text-emerald-400" />
+              <span>Phương trình & bản chất</span>
             </button>
           </div>
 
@@ -246,9 +250,10 @@ export default function LabAITutorWidget({
             <button
               type="submit"
               disabled={isLoading || !inputQuery.trim()}
-              className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-semibold text-xs transition-colors flex items-center justify-center shrink-0"
+              className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-semibold text-xs transition-colors flex items-center justify-center shrink-0 gap-1.5"
             >
-              Gửi
+              <Send className="w-3.5 h-3.5" />
+              <span>Gửi</span>
             </button>
           </form>
         </div>
@@ -263,7 +268,9 @@ export default function LabAITutorWidget({
         aria-label="Mở Trợ lý ảo AI Tutor"
         className="relative group w-13 h-13 p-3 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-500 text-white shadow-xl shadow-blue-500/30 hover:scale-105 active:scale-95 transition-all flex items-center justify-center border border-white/20"
       >
-        <span className="text-2xl">🤖</span>
+        <div className="flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
+          {isOpen ? <X className="w-6 h-6 text-white" /> : <Bot className="w-6 h-6 text-white" />}
+        </div>
         {hasAlert && (
           <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 border-2 border-slate-950 animate-bounce" />
         )}

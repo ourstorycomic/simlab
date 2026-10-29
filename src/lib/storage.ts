@@ -472,15 +472,15 @@ export function getSubmission(assignmentId: string, studentId: string): Submissi
 // ─── Gamification ────────────────────────────────────────────────────────────
 
 export const BADGES: BadgeDef[] = [
-  { id: "first-reaction", label: "Nhà thực hành", desc: "Tạo phản ứng hóa học đầu tiên", icon: "🧪" },
-  { id: "reactions-10", label: "Thợ pha chế", desc: "Tạo 10 phản ứng hóa học", icon: "⚗️" },
-  { id: "reactions-25", label: "Bậc thầy phản ứng", desc: "Tạo 25 phản ứng hóa học", icon: "🔬" },
-  { id: "first-submit", label: "Người nộp bài", desc: "Nộp bài thí nghiệm đầu tiên", icon: "📝" },
-  { id: "submit-5", label: "Chăm chỉ", desc: "Nộp 5 bài thí nghiệm", icon: "🎯" },
-  { id: "good-score", label: "Học sinh giỏi", desc: "Đạt điểm 8 trở lên", icon: "🌟" },
-  { id: "perfect-score", label: "Toàn A", desc: "Đạt điểm tuyệt đối 10", icon: "💯" },
-  { id: "streak-3", label: "Đam mê", desc: "3 ngày liên tiếp làm thí nghiệm", icon: "🔥" },
-  { id: "streak-7", label: "Nghiện phòng lab", desc: "7 ngày liên tiếp làm thí nghiệm", icon: "🏆" },
+  { id: "first-reaction", label: "Nhà thực hành", desc: "Tạo phản ứng hóa học đầu tiên", icon: "flask-conical" },
+  { id: "reactions-10", label: "Thợ pha chế", desc: "Tạo 10 phản ứng hóa học", icon: "sparkles" },
+  { id: "reactions-25", label: "Bậc thầy phản ứng", desc: "Tạo 25 phản ứng hóa học", icon: "award" },
+  { id: "first-submit", label: "Người nộp bài", desc: "Nộp bài thí nghiệm đầu tiên", icon: "file-check" },
+  { id: "submit-5", label: "Chăm chỉ", desc: "Nộp 5 bài thí nghiệm", icon: "target" },
+  { id: "good-score", label: "Học sinh giỏi", desc: "Đạt điểm 8 trở lên", icon: "star" },
+  { id: "perfect-score", label: "Toàn A", desc: "Đạt điểm tuyệt đối 10", icon: "trophy" },
+  { id: "streak-3", label: "Đam mê", desc: "3 ngày liên tiếp làm thí nghiệm", icon: "flame" },
+  { id: "streak-7", label: "Nghiện phòng lab", desc: "7 ngày liên tiếp làm thí nghiệm", icon: "zap" },
 ];
 
 export function getBadgeDefinitions(): BadgeDef[] { return BADGES; }

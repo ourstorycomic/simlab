@@ -10,6 +10,8 @@ import {
   ANATOMY_CATEGORIES,
 } from "./data/anatomySystemsData";
 import { translateAnatomyName } from "./utils/anatomyTranslations";
+import { playLabSound } from "@/components/lab3d/ChemistryRealisticModels";
+import { Bone, Activity, Globe, Lightbulb, Plus, Minus, Layers, Hand, Maximize2, Minimize2, MousePointerClick } from "lucide-react";
 
 interface SelectedStructureInfo {
   id: string;
@@ -79,6 +81,9 @@ export default function HumanBodyAtlasViewer({
     progress: number;
   } | null>(null);
   const pointerDownPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const isOrbitingRef = useRef<boolean>(false);
+  const lastOrbitEndTimeRef = useRef<number>(0);
+  const lastHandRotateTimeRef = useRef<number>(0);
 
   // Highlight material for selected structure (vibrant solid pink/rose like reference photo)
   const highlightMaterial = useMemo(() => {
@@ -330,9 +335,18 @@ export default function HumanBodyAtlasViewer({
 
       setSelectedStructure(info);
       if (onStructureSelect) onStructureSelect(info);
+
+      window.dispatchEvent(
+        new CustomEvent("bio-hand-hover-info", {
+          detail: { name: trans.viName, color: sysDef?.color || "#38bdf8" },
+        })
+      );
     },
     [applyMeshAppearance, flyCameraTo, isIsolated, onStructureSelect]
   );
+
+  const selectMeshRef = useRef(selectMesh);
+  selectMeshRef.current = selectMesh;
 
   // Chọn nhanh cơ quan trong ngữ cảnh toàn thân (Ảnh 3)
   const selectOrganInBody = useCallback(
@@ -515,6 +529,7 @@ export default function HumanBodyAtlasViewer({
             mesh.name = part.id;
 
             geom.computeBoundingBox();
+            geom.computeBoundingSphere();
             const meshBox = geom.boundingBox || new THREE.Box3();
             const meshCenter = meshBox.getCenter(new THREE.Vector3());
 
@@ -526,6 +541,9 @@ export default function HumanBodyAtlasViewer({
               bounds: part.bounds,
               origCenter: meshCenter.clone(),
             };
+
+            mesh.matrixAutoUpdate = false;
+            mesh.updateMatrix();
 
             allMeshesRef.current.push(mesh);
             const targetGroup = systemGroupsRef.current.get(part.system) || otherGroup;
@@ -574,6 +592,7 @@ export default function HumanBodyAtlasViewer({
               mesh.name = part.id;
 
               geom.computeBoundingBox();
+              geom.computeBoundingSphere();
               const meshBox = geom.boundingBox || new THREE.Box3();
               const meshCenter = meshBox.getCenter(new THREE.Vector3());
 
@@ -585,6 +604,9 @@ export default function HumanBodyAtlasViewer({
                 bounds: part.bounds,
                 origCenter: meshCenter.clone(),
               };
+
+              mesh.matrixAutoUpdate = false;
+              mesh.updateMatrix();
 
               allMeshesRef.current.push(mesh);
               const targetGroup = systemGroupsRef.current.get(part.system) || otherGroup;
@@ -628,6 +650,7 @@ export default function HumanBodyAtlasViewer({
     let animId: number;
 
     const scene = new THREE.Scene();
+    scene.background = new THREE.Color("#070b13");
     sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(
@@ -645,7 +668,7 @@ export default function HumanBodyAtlasViewer({
       powerPreference: "high-performance",
     });
     renderer.setSize(container.clientWidth, container.clientHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.1;
@@ -659,6 +682,14 @@ export default function HumanBodyAtlasViewer({
     controls.maxDistance = 30.0; // Cho phép zoom lùi ra xa toàn cảnh thoải mái
     controls.target.set(0, 0.15, 0);
     controlsRef.current = controls;
+
+    controls.addEventListener("start", () => {
+      isOrbitingRef.current = true;
+    });
+    controls.addEventListener("end", () => {
+      isOrbitingRef.current = false;
+      lastOrbitEndTimeRef.current = performance.now();
+    });
 
     // Lighting
     const hemiLight = new THREE.HemisphereLight(0xffffff, 0x1e293b, 1.8);
@@ -686,6 +717,113 @@ export default function HumanBodyAtlasViewer({
     };
     window.addEventListener("resize", handleResize);
 
+    const handleHandRotate = (e: Event) => {
+      lastHandRotateTimeRef.current = performance.now();
+      const customEvent = e as CustomEvent<{ dx: number; dy: number }>;
+      if (!controlsRef.current || !cameraRef.current) return;
+      const { dx, dy } = customEvent.detail;
+      const offset = new THREE.Vector3().subVectors(cameraRef.current.position, controlsRef.current.target);
+      const spherical = new THREE.Spherical().setFromVector3(offset);
+      spherical.theta -= dx * 0.007;
+      spherical.phi = Math.max(0.05, Math.min(Math.PI - 0.05, spherical.phi - dy * 0.007));
+      offset.setFromSpherical(spherical);
+      cameraRef.current.position.addVectors(controlsRef.current.target, offset);
+      cameraRef.current.lookAt(controlsRef.current.target);
+      controlsRef.current.update();
+    };
+    const handleHandZoom = (e: Event) => {
+      const customEvent = e as CustomEvent<{ factor: number | "reset" }>;
+      if (!cameraRef.current || !controlsRef.current) return;
+      const { factor } = customEvent.detail;
+      if (factor === "reset") {
+        controlsRef.current.reset();
+        return;
+      }
+      const target = controlsRef.current.target;
+      const dir = cameraRef.current.position.clone().sub(target);
+      const newDist = Math.max(0.2, Math.min(28.0, dir.length() * factor));
+      cameraRef.current.position.copy(target).add(dir.normalize().multiplyScalar(newDist));
+      controlsRef.current.update();
+    };
+    window.addEventListener("bio-hand-rotate", handleHandRotate);
+    window.addEventListener("bio-hand-zoom", handleHandZoom);
+
+    let hoveredMesh: THREE.Mesh | null = null;
+    let hoverStartTime = 0;
+    let pointSelectCooldown = 0;
+
+    const handleHandPoint = (e: Event) => {
+      const now = performance.now();
+      const customEvent = e as CustomEvent<{
+        screenX: number;
+        screenY: number;
+        normalizedX: number;
+        normalizedY: number;
+      }>;
+      if (!cameraRef.current || !atlasRootRef.current || !container) return;
+
+      // TUYỆT ĐỐI KHÔNG CHỌN CẤU TRÚC KHI ĐANG XOAY MÔ HÌNH (CHUỘT HOẶC TAY)
+      if (
+        isOrbitingRef.current ||
+        now - lastOrbitEndTimeRef.current < 250 ||
+        now - lastHandRotateTimeRef.current < 400
+      ) {
+        hoveredMesh = null;
+        return;
+      }
+
+      const { screenX, screenY } = customEvent.detail;
+
+      // Kiểm tra vị trí ngón tay có đang nằm trong khung nhìn 3D (không nằm trên thanh công cụ hoặc sidebar)
+      const rect = container.getBoundingClientRect();
+      if (
+        screenX < rect.left ||
+        screenX > rect.right ||
+        screenY < rect.top ||
+        screenY > rect.bottom
+      ) {
+        hoveredMesh = null;
+        return;
+      }
+
+      // Chuẩn hóa tọa độ NDC (-1 đến 1) chính xác tuyệt đối theo khung nhìn 3D thực tế
+      const viewNdcX = ((screenX - rect.left) / rect.width) * 2 - 1;
+      const viewNdcY = -((screenY - rect.top) / rect.height) * 2 + 1;
+
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(new THREE.Vector2(viewNdcX, viewNdcY), cameraRef.current);
+
+      const visibleMeshes = allMeshesRef.current.filter((m) => m.visible);
+      const intersects = raycaster.intersectObjects(visibleMeshes, false);
+
+      if (intersects.length > 0) {
+        const hit = intersects[0].object as THREE.Mesh;
+        if (hit && hit.userData) {
+          const trans = translateAnatomyName(hit.userData.name || hit.name, hit.userData.conceptId);
+          window.dispatchEvent(
+            new CustomEvent("bio-hand-hover-info", {
+              detail: { name: trans.viName, color: "#38bdf8" },
+            })
+          );
+
+          // CẦN GIỮ NGUYÊN NGÓN TAY TRÊN CẤU TRÚC 650ms MỚI CHỌN (TRÁNH LƯỚT QUA TỰ ĐỘNG CHỌN KHI XOAY)
+          if (hit === hoveredMesh) {
+            if (now - hoverStartTime > 650 && now > pointSelectCooldown) {
+              pointSelectCooldown = now + 1200;
+              selectMeshRef.current(hit);
+              playLabSound("pick");
+            }
+          } else {
+            hoveredMesh = hit;
+            hoverStartTime = now;
+          }
+        }
+      } else {
+        hoveredMesh = null;
+      }
+    };
+    window.addEventListener("bio-hand-point", handleHandPoint);
+
     const animate = () => {
       if (isDisposed) return;
       animId = requestAnimationFrame(animate);
@@ -701,11 +839,19 @@ export default function HumanBodyAtlasViewer({
         }
       }
 
-      // Update 3D projected pin badge for selected structure (Ảnh 3)
+      // Update 3D projected pin badge for selected structure (Optimized: zero per-frame vertex traversal)
       if (selectedMeshRef.current && pinBadgeRef.current && container) {
-        const box = new THREE.Box3().setFromObject(selectedMeshRef.current);
-        const center = box.getCenter(new THREE.Vector3());
-        const projected = center.clone().project(camera);
+        const mesh = selectedMeshRef.current;
+        const worldPos = new THREE.Vector3();
+        if (mesh.userData.origCenter) {
+          worldPos.copy(mesh.userData.origCenter).add(mesh.position);
+          if (mesh.parent) {
+            worldPos.applyMatrix4(mesh.parent.matrixWorld);
+          }
+        } else {
+          mesh.getWorldPosition(worldPos);
+        }
+        const projected = worldPos.project(camera);
         if (projected.z < 1) {
           const px = ((projected.x + 1) * container.clientWidth) / 2;
           const py = ((-projected.y + 1) * container.clientHeight) / 2;
@@ -729,7 +875,13 @@ export default function HumanBodyAtlasViewer({
       isDisposed = true;
       cancelAnimationFrame(animId);
       window.removeEventListener("resize", handleResize);
+      window.removeEventListener("bio-hand-rotate", handleHandRotate);
+      window.removeEventListener("bio-hand-zoom", handleHandZoom);
+      window.removeEventListener("bio-hand-point", handleHandPoint);
       renderer.dispose();
+      try {
+        renderer.forceContextLoss();
+      } catch {}
       if (container && renderer.domElement.parentNode === container) {
         container.removeChild(renderer.domElement);
       }
@@ -850,6 +1002,16 @@ export default function HumanBodyAtlasViewer({
   // Handle Raycast Mesh Click
   const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current || !cameraRef.current || !atlasRootRef.current) return;
+
+    const now = performance.now();
+    // TUYỆT ĐỐI KHÔNG CHỌN CẤU TRÚC KHI ĐANG HOẶC VỪA KÉO XOAY MÔ HÌNH
+    if (
+      isOrbitingRef.current ||
+      now - lastOrbitEndTimeRef.current < 200 ||
+      now - lastHandRotateTimeRef.current < 300
+    ) {
+      return;
+    }
 
     // Nếu người dùng vừa kéo chuột để xoay model (khoảng cách di chuyển > 6px), không coi là click
     const dragDist = Math.hypot(
@@ -1211,7 +1373,7 @@ export default function HumanBodyAtlasViewer({
                       className="w-full p-2 rounded-xl bg-slate-900/60 hover:bg-slate-800 border border-slate-800 flex items-center gap-2.5 text-xs font-semibold text-slate-200 hover:text-white transition-all group"
                     >
                       <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center text-amber-300 group-hover:scale-110 transition-transform">
-                        🦴
+                        <Bone className="w-4 h-4 text-amber-300" />
                       </div>
                       <span>Bộ xương</span>
                     </button>
@@ -1223,7 +1385,7 @@ export default function HumanBodyAtlasViewer({
                       className="w-full p-2 rounded-xl bg-slate-900/60 hover:bg-slate-800 border border-slate-800 flex items-center gap-2.5 text-xs font-semibold text-slate-200 hover:text-white transition-all group"
                     >
                       <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center text-rose-300 group-hover:scale-110 transition-transform">
-                        💪
+                        <Activity className="w-4 h-4 text-rose-300" />
                       </div>
                       <span>Hệ cơ bắp & Xương</span>
                     </button>
@@ -1232,7 +1394,7 @@ export default function HumanBodyAtlasViewer({
                       className="w-full p-2 rounded-xl bg-gradient-to-r from-sky-950/80 to-indigo-950/80 hover:from-sky-900/90 hover:to-indigo-900/90 border border-sky-500/50 flex items-center gap-2.5 text-xs font-bold text-sky-200 hover:text-white transition-all group shadow-md"
                     >
                       <div className="w-7 h-7 rounded-lg bg-sky-900/80 flex items-center justify-center text-sky-300 group-hover:scale-110 transition-transform">
-                        🌐
+                        <Globe className="w-4 h-4 text-sky-300" />
                       </div>
                       <span>Đầy đủ cơ thể (14 hệ)</span>
                     </button>
@@ -1244,7 +1406,7 @@ export default function HumanBodyAtlasViewer({
                     }}
                     className="w-full mt-2 py-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-sky-300 flex items-center justify-center gap-2 transition-all shadow-md"
                   >
-                    <span>💡</span>
+                    <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
                     <span>Tìm hiểu</span>
                   </button>
                 </div>
@@ -1442,13 +1604,13 @@ export default function HumanBodyAtlasViewer({
 
           {/* Floating Center Button: Quay lại toàn thân (Ảnh 4) */}
           {selectedStructure && (
-            <div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-20">
+            <div className="absolute bottom-36 left-1/2 -translate-x-1/2 z-30">
               <button
                 onClick={() => {
                   selectMesh(null);
                   flyCameraTo(new THREE.Vector3(0, 0.15, 0), new THREE.Vector3(0, 0.15, 2.35));
                 }}
-                className="px-4 py-2 rounded-full bg-slate-900/95 hover:bg-slate-800 border border-slate-700 backdrop-blur-md text-xs font-semibold text-slate-200 hover:text-white shadow-2xl flex items-center gap-2 transition-all hover:scale-105"
+                className="px-4 py-2 rounded-full bg-slate-900/95 hover:bg-slate-800 border border-slate-700 backdrop-blur-md text-xs font-semibold text-slate-200 hover:text-white shadow-2xl flex items-center gap-2 transition-all hover:scale-105 ring-1 ring-sky-500/20"
               >
                 <svg className="w-3.5 h-3.5 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -1458,11 +1620,11 @@ export default function HumanBodyAtlasViewer({
             </div>
           )}
 
-          {/* Floating Bottom Bar: Angles + Explode Slider (Ảnh 2 & Ảnh 3) */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 w-[94%] max-w-lg bg-slate-900/90 backdrop-blur-md p-2 rounded-2xl border border-slate-800 shadow-2xl space-y-2">
-            {/* Row 1: Angles & Gender */}
-            <div className="flex items-center justify-between gap-1 text-xs">
-              <div className="flex items-center gap-1 bg-slate-950/60 p-1 rounded-xl border border-slate-800">
+          {/* Floating Bottom Bar: Angles + Explode Slider */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 w-[94%] max-w-xl bg-slate-900/95 backdrop-blur-xl p-2.5 rounded-2xl border border-slate-700/80 shadow-2xl space-y-2 ring-1 ring-white/10">
+            {/* Row 1: Angles & Gender & Zoom */}
+            <div className="flex items-center justify-between gap-1.5 text-xs flex-wrap">
+              <div className="flex items-center gap-1 bg-slate-950/70 p-1 rounded-xl border border-slate-800">
                 <button
                   onClick={() => setCameraAngle("front")}
                   className="px-2.5 py-1 rounded-lg font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-all"
@@ -1490,7 +1652,7 @@ export default function HumanBodyAtlasViewer({
               </div>
 
               {/* Gender selector */}
-              <div className="flex items-center bg-slate-950/60 p-1 rounded-xl border border-slate-800 text-xs">
+              <div className="flex items-center bg-slate-950/70 p-1 rounded-xl border border-slate-800 text-xs">
                 <button
                   onClick={() => {
                     if (gender !== "male") {
@@ -1522,12 +1684,37 @@ export default function HumanBodyAtlasViewer({
                   Nữ
                 </button>
               </div>
+
+              {/* Quick Zoom buttons */}
+              <div className="flex items-center gap-1 bg-slate-950/70 p-1 rounded-xl border border-slate-800 text-xs">
+                <button
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent("bio-hand-zoom", { detail: { factor: 0.80 } }));
+                    playLabSound("pick");
+                  }}
+                  className="p-1 px-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-all font-bold flex items-center justify-center"
+                  title="Phóng to"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent("bio-hand-zoom", { detail: { factor: 1.25 } }));
+                    playLabSound("pick");
+                  }}
+                  className="p-1 px-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-all font-bold flex items-center justify-center"
+                  title="Thu nhỏ"
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
 
-            {/* Row 2: Tách các cấu trúc ra xa nhau Slider (Ảnh 2 & 3) */}
+            {/* Row 2: Thanh Phân tách cấu trúc ra xa nhau (Explode 3D) */}
             <div className="flex items-center justify-between gap-3 px-2 pt-1 border-t border-slate-800/60 text-xs">
-              <span className="text-[11px] font-medium text-slate-300 whitespace-nowrap">
-                Tách các cấu trúc ra xa nhau
+              <span className="text-[12px] font-bold text-sky-300 whitespace-nowrap flex items-center gap-1.5">
+                <Layers className="w-4 h-4 text-sky-400" />
+                <span>Phân tách cấu trúc:</span>
               </span>
               <div className="flex-1 flex items-center gap-2">
                 <input
@@ -1536,22 +1723,34 @@ export default function HumanBodyAtlasViewer({
                   max="100"
                   value={explodeLevel}
                   onChange={(e) => setExplodeLevel(Number(e.target.value))}
-                  className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-400"
-                  title="Kéo thanh trượt để chia xếp các bộ phận thành hàng lối 2D"
+                  className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-400"
+                  title="Kéo thanh trượt để phân tách các cấu trúc giải phẫu ra xa nhau"
                 />
-                <span className="font-mono text-[11px] text-slate-300 w-8 text-right font-semibold">
+                <span className="font-mono text-xs text-sky-200 w-11 text-center font-bold bg-sky-950/70 px-1.5 py-0.5 rounded border border-sky-800/50">
                   {explodeLevel}%
                 </span>
                 <button
                   onClick={() => setExplodeLevel(0)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-                  title="Đặt lại vị trí"
+                  className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors flex items-center gap-1 text-[11px] font-medium"
+                  title="Đặt lại vị trí (0%)"
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-3.5 h-3.5 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
+                  <span>Thu về</span>
                 </button>
               </div>
+            </div>
+
+            {/* Row 3: Gesture Hints */}
+            <div className="hidden sm:flex items-center justify-between pt-1 border-t border-slate-800/40 text-[10px] text-slate-400 px-2 font-medium">
+              <span className="text-sky-300 inline-flex items-center gap-1"><Hand className="w-3 h-3 text-sky-400" /> Nắm tay: Xoay 360°</span>
+              <span className="text-slate-600">•</span>
+              <span className="text-emerald-300 inline-flex items-center gap-1"><Maximize2 className="w-3 h-3 text-emerald-400" /> 2 ngón: Phóng to</span>
+              <span className="text-slate-600">•</span>
+              <span className="text-amber-300 inline-flex items-center gap-1"><Minimize2 className="w-3 h-3 text-amber-400" /> Ngón út: Thu nhỏ</span>
+              <span className="text-slate-600">•</span>
+              <span className="text-rose-300 inline-flex items-center gap-1"><MousePointerClick className="w-3 h-3 text-rose-400" /> Giữ ngón: Chọn chi tiết</span>
             </div>
           </div>
 

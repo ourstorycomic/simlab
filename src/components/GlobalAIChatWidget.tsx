@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { getCurrentUser } from "@/lib/storage";
 import { FormattedAIMessage } from "./FormattedAIMessage";
+import { Sparkles, X, Send, FlaskConical, Compass, Zap, BookOpen, Dna, ShieldAlert, AlertTriangle } from "lucide-react";
 
 interface Message {
   sender: "user" | "ai";
@@ -109,7 +110,7 @@ export default function GlobalAIChatWidget() {
         ...prev,
         {
           sender: "ai",
-          text: "⚠️ Hiện chưa thể kết nối tới mô hình Groq. Vui lòng kiểm tra lại kết nối mạng hoặc thử lại sau.",
+          text: "Hiện chưa thể kết nối tới trợ lý AI. Vui lòng kiểm tra lại kết nối mạng hoặc thử lại sau.",
           time: new Date().toLocaleTimeString("vi-VN", {
             hour: "2-digit",
             minute: "2-digit",
@@ -129,8 +130,8 @@ export default function GlobalAIChatWidget() {
           {/* Header */}
           <div className="px-4 py-3 bg-gradient-to-r from-blue-900/50 via-indigo-900/40 to-slate-900 border-b border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="relative w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-md">
-                <span className="text-sm">🤖</span>
+              <div className="relative w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-md">
+                <Sparkles className="w-4 h-4 text-white" />
                 <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-slate-900" />
               </div>
               <div>
@@ -149,7 +150,7 @@ export default function GlobalAIChatWidget() {
               className="w-7 h-7 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-xs transition-colors"
               title="Thu nhỏ"
             >
-              ✕
+              <X className="w-4 h-4" />
             </button>
           </div>
 
@@ -175,8 +176,8 @@ export default function GlobalAIChatWidget() {
                     <FormattedAIMessage content={m.text} />
                   )}
                   {m.sourceBook && (
-                    <div className="mt-2 pt-1.5 border-t border-slate-700/50 text-[10px] text-amber-300 font-semibold flex items-center gap-1">
-                      <span>📖</span>
+                    <div className="mt-2 pt-1.5 border-t border-slate-700/50 text-[10px] text-amber-300 font-semibold flex items-center gap-1.5">
+                      <BookOpen className="w-3 h-3 text-amber-400 shrink-0" />
                       <span>{m.sourceBook}</span>
                     </div>
                   )}
@@ -200,39 +201,45 @@ export default function GlobalAIChatWidget() {
           <div className="px-3 py-1.5 bg-slate-950/60 border-t border-slate-800/80 flex gap-1.5 overflow-x-auto scrollbar-none">
             <button
               onClick={() => handleSendMessage("Hiện tượng Cu tác dụng HNO3 đặc theo SGK Hóa 11 là gì?")}
-              className="whitespace-nowrap px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/20 text-[10px] transition-colors"
+              className="whitespace-nowrap px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/20 text-[10px] transition-colors inline-flex items-center gap-1.5"
             >
-              🧪 Cu + HNO₃
+              <FlaskConical className="w-3 h-3 text-blue-400" />
+              <span>Cu + HNO₃</span>
             </button>
             <button
               onClick={() => handleSendMessage("Định lý Pythagoras là gì và cho ví dụ áp dụng?")}
-              className="whitespace-nowrap px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 text-[10px] transition-colors"
+              className="whitespace-nowrap px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 text-[10px] transition-colors inline-flex items-center gap-1.5"
             >
-              📐 Định lý Pythagoras
+              <Compass className="w-3 h-3 text-emerald-400" />
+              <span>Định lý Pythagoras</span>
             </button>
             <button
               onClick={() => handleSendMessage("Nội dung và ý nghĩa của Định luật 2 Newton?")}
-              className="whitespace-nowrap px-2.5 py-1 rounded-lg bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 border border-violet-500/20 text-[10px] transition-colors"
+              className="whitespace-nowrap px-2.5 py-1 rounded-lg bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 border border-violet-500/20 text-[10px] transition-colors inline-flex items-center gap-1.5"
             >
-              ⚡ Định luật 2 Newton
+              <Zap className="w-3 h-3 text-violet-400" />
+              <span>Định luật 2 Newton</span>
             </button>
             <button
               onClick={() => handleSendMessage("Phân tích hình tượng người lính trong bài thơ Tây Tiến của Quang Dũng?")}
-              className="whitespace-nowrap px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-[10px] transition-colors"
+              className="whitespace-nowrap px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-[10px] transition-colors inline-flex items-center gap-1.5"
             >
-              📖 Thơ Tây Tiến
+              <BookOpen className="w-3 h-3 text-rose-400" />
+              <span>Thơ Tây Tiến</span>
             </button>
             <button
               onClick={() => handleSendMessage("Giải thích quá trình quang hợp pha sáng và pha tối ở thực vật?")}
-              className="whitespace-nowrap px-2.5 py-1 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/20 text-[10px] transition-colors"
+              className="whitespace-nowrap px-2.5 py-1 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/20 text-[10px] transition-colors inline-flex items-center gap-1.5"
             >
-              🧬 Quang hợp
+              <Dna className="w-3 h-3 text-teal-400" />
+              <span>Quang hợp</span>
             </button>
             <button
               onClick={() => handleSendMessage("Quy tắc pha loãng axit H2SO4 an toàn?")}
-              className="whitespace-nowrap px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/20 text-[10px] transition-colors"
+              className="whitespace-nowrap px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/20 text-[10px] transition-colors inline-flex items-center gap-1.5"
             >
-              ⚠️ An toàn H₂SO₄
+              <ShieldAlert className="w-3 h-3 text-amber-400" />
+              <span>An toàn H₂SO₄</span>
             </button>
           </div>
 
@@ -254,9 +261,10 @@ export default function GlobalAIChatWidget() {
             <button
               type="submit"
               disabled={isLoading || !inputQuery.trim()}
-              className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-semibold text-xs shadow-md transition-colors flex items-center justify-center shrink-0"
+              className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-semibold text-xs shadow-md transition-colors flex items-center justify-center shrink-0 gap-1.5"
             >
-              Gửi
+              <Send className="w-3.5 h-3.5" />
+              <span>Gửi</span>
             </button>
           </form>
         </div>
@@ -272,9 +280,9 @@ export default function GlobalAIChatWidget() {
         aria-label="Mở Trợ Lý AI SimLab"
         className="relative group w-14 h-14 rounded-full bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-xl shadow-blue-500/30 hover:shadow-blue-500/50 flex items-center justify-center transition-all duration-300 hover:scale-105 active:scale-95 border-2 border-white/20"
       >
-        <span className="text-2xl transition-transform duration-300 group-hover:rotate-12">
-          {isOpen ? "✕" : "🤖"}
-        </span>
+        <div className="flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
+          {isOpen ? <X className="w-6 h-6 text-white" /> : <Sparkles className="w-6 h-6 text-white" />}
+        </div>
 
         {/* Chấm thông báo có tin mới */}
         {unreadAlert && !isOpen && (

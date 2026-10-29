@@ -2,9 +2,13 @@
 
 import React, { Suspense, useState, useMemo, useRef, useLayoutEffect } from "react";
 import * as THREE from "three";
-import { Canvas, ThreeEvent } from "@react-three/fiber";
+import { Canvas, ThreeEvent, useFrame } from "@react-three/fiber";
 import { OrbitControls, useGLTF, Environment, ContactShadows, Html } from "@react-three/drei";
 import { createAnatomicalAtlasTexture, getInternalHotspotsForOrgan } from "@/lib/anatomicalAtlas";
+import { HandState } from "@/lib/handTracking";
+import { deviceSensors } from "@/lib/deviceSensors";
+import Lab3DFullHandModel from "./lab3d/Lab3DFullHandModel";
+import { Layers, MousePointer, Hand } from "lucide-react";
 
 export interface HotspotData {
     id: string;
@@ -188,6 +192,7 @@ function Model({
     sliceInverted?: boolean;
 }) {
     const { scene } = useGLTF(url);
+    const organConfig = useMemo(() => getOrganTissueConfig(url), [url]);
     const [modelTransform, setModelTransform] = useState<{
         scale: [number, number, number];
         position: [number, number, number];
@@ -394,12 +399,20 @@ function Model({
                 mesh.receiveShadow = false;
 
                 const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-                materials.forEach(mat => {
-                    (mat as any).wireframe = showWireframe;
+                materials.forEach((mat: any) => {
+                    mat.wireframe = showWireframe;
                     mat.clippingPlanes = showCrossSection ? [worldClipPlane] : null;
                     mat.clipShadows = true;
                     // DoubleSide đảm bảo không bao giờ bị hốc đen rỗng
                     mat.side = showCrossSection ? THREE.DoubleSide : THREE.FrontSide;
+                    // Bảo toàn màu sắc rực rỡ chuẩn sRGB, không bị phai màu hay trắng bệch
+                    if (mat.map) {
+                        mat.map.colorSpace = THREE.SRGBColorSpace;
+                        mat.color.set("#ffffff");
+                        mat.map.needsUpdate = true;
+                    } else if (organConfig?.primaryColor) {
+                        mat.color.set(organConfig.primaryColor);
+                    }
                     mat.needsUpdate = true;
                 });
 
@@ -547,8 +560,9 @@ function Model({
                         </button>
                         <div className={`absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max max-w-xs bg-white dark:bg-gray-900 border ${hotspot.isInternal ? 'border-amber-400/60 dark:border-amber-600/60 shadow-amber-500/10' : 'border-gray-200 dark:border-gray-700'} shadow-xl rounded-xl py-2 px-3 transition-all duration-200 pointer-events-none origin-bottom ${activeHotspot === hotspot.id ? 'opacity-100 scale-100' : 'opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100'}`}>
                             {hotspot.isInternal && (
-                                <span className="text-[9px] font-bold text-amber-500 dark:text-amber-400 uppercase tracking-wider block mb-0.5">
-                                    🔬 Cấu trúc bên trong
+                                <span className="text-[9px] font-bold text-amber-500 dark:text-amber-400 uppercase tracking-wider mb-0.5 flex items-center gap-1">
+                                    <Layers className="w-3 h-3 text-amber-500" />
+                                    <span>Cấu trúc bên trong</span>
                                 </span>
                             )}
                             <h4 className="text-xs font-bold text-gray-900 dark:text-white">{hotspot.label}</h4>
@@ -596,11 +610,104 @@ class ModelErrorBoundary extends React.Component<ErrorBoundaryProps, { hasError:
     }
 }
 
-export default function ModelViewer({ modelUrl, hotspots = [], onHotspotClick }: { modelUrl: string, hotspots?: HotspotData[], onHotspotClick?: (h: HotspotData) => void }) {
+function HandOrganInteraction({
+    handStateRef,
+    controlsRef,
+}: {
+    handStateRef?: React.MutableRefObject<HandState>;
+    controlsRef: React.MutableRefObject<any>;
+}) {
+    const lastPosRef = useRef<{ x: number; y: number } | null>(null);
+
+    useFrame(() => {
+        if (!handStateRef || !handStateRef.current || !controlsRef.current) return;
+        const hs = handStateRef.current;
+        if (!hs.detected || hs.landmarks.length < 9) {
+            lastPosRef.current = null;
+            return;
+        }
+
+        const lm = hs.landmarks[9] || hs.landmarks[0];
+        const screenX = 1 - lm.x; // Mirrored webcam
+        const screenY = lm.y;
+
+        const isGrabbing =
+            hs.gesture === "GRAB" ||
+            (hs.rightHand?.gripStrength || 0) > 0.32 ||
+            (hs.rightHand?.pinchDistance || 1) < 0.40 ||
+            (hs.rightHand?.isIndexExtended && !hs.rightHand?.isPinkyExtended);
+
+        if (isGrabbing) {
+            if (lastPosRef.current) {
+                const dx = screenX - lastPosRef.current.x;
+                const dy = screenY - lastPosRef.current.y;
+
+                if (Math.abs(dx) > 0.001 || Math.abs(dy) > 0.001) {
+                    const controls = controlsRef.current;
+                    const camera = controls?.object;
+                    const target = controls?.target;
+                    if (camera && target) {
+                        const offset = new THREE.Vector3().copy(camera.position).sub(target);
+                        const spherical = new THREE.Spherical().setFromVector3(offset);
+                        spherical.theta += dx * 4.2;
+                        spherical.phi = Math.max(0.08, Math.min(Math.PI - 0.08, spherical.phi - dy * 3.2));
+                        offset.setFromSpherical(spherical);
+                        camera.position.copy(target).add(offset);
+                        camera.lookAt(target);
+                        if (typeof controls.update === "function") {
+                            controls.update();
+                        }
+                    }
+                }
+            }
+            lastPosRef.current = { x: screenX, y: screenY };
+        } else {
+            lastPosRef.current = { x: screenX, y: screenY };
+
+            // Tích hợp Cảm biến Điện thoại: Nghiêng điện thoại để xoay quan sát 360° cơ quan (Spatial Viewing)
+            const sensor = deviceSensors.getData();
+            if (sensor.isSupported && (Math.abs(sensor.roll) > 8 || Math.abs(sensor.pitch - 60) > 8)) {
+                const controls = controlsRef.current;
+                const camera = controls?.object;
+                const target = controls?.target;
+                if (camera && target) {
+                    const rollDelta = (sensor.roll / 90) * 0.015;
+                    const pitchDelta = ((sensor.pitch - 60) / 90) * 0.012;
+
+                    const offset = new THREE.Vector3().copy(camera.position).sub(target);
+                    const spherical = new THREE.Spherical().setFromVector3(offset);
+                    spherical.theta += rollDelta;
+                    spherical.phi = Math.max(0.12, Math.min(Math.PI - 0.12, spherical.phi - pitchDelta));
+                    offset.setFromSpherical(spherical);
+                    camera.position.copy(target).add(offset);
+                    camera.lookAt(target);
+                    if (typeof controls.update === "function") {
+                        controls.update();
+                    }
+                }
+            }
+        }
+    });
+
+    return null;
+}
+
+export default function ModelViewer({
+    modelUrl,
+    hotspots = [],
+    onHotspotClick,
+    handStateRef,
+}: {
+    modelUrl: string;
+    hotspots?: HotspotData[];
+    onHotspotClick?: (h: HotspotData) => void;
+    handStateRef?: React.MutableRefObject<HandState>;
+}) {
     const [activeHotspot, setActiveHotspot] = useState<string | null>(null);
-    const [isAutoRotate, setIsAutoRotate] = useState(true);
+    const [isAutoRotate, setIsAutoRotate] = useState(false);
     const [showWireframe, setShowWireframe] = useState(false);
     const [showCrossSection, setShowCrossSection] = useState(false);
+    const controlsRef = useRef<any>(null);
 
     // Cấu hình mặt cắt giải phẫu chuẩn y khoa
     const [slicePlaneType, setSlicePlaneType] = useState<SlicePlaneType>("coronal");
@@ -609,10 +716,74 @@ export default function ModelViewer({ modelUrl, hotspots = [], onHotspotClick }:
 
     const organConfig = useMemo(() => getOrganTissueConfig(modelUrl), [modelUrl]);
 
+    // Xoay camera bằng hệ tọa độ cầu (Spherical Coordinates) chuẩn Three.js 100% an toàn
+    const rotateCamera = (deltaTheta: number, deltaPhi: number = 0) => {
+        if (!controlsRef.current) return;
+        const controls = controlsRef.current;
+        const camera = controls.object;
+        const target = controls.target || new THREE.Vector3(0, 0, 0);
+        if (!camera) return;
+
+        const offset = new THREE.Vector3().copy(camera.position).sub(target);
+        const spherical = new THREE.Spherical().setFromVector3(offset);
+        spherical.theta += deltaTheta;
+        spherical.phi = Math.max(0.08, Math.min(Math.PI - 0.08, spherical.phi + deltaPhi));
+        offset.setFromSpherical(spherical);
+        camera.position.copy(target).add(offset);
+        camera.lookAt(target);
+        if (typeof controls.update === "function") {
+            controls.update();
+        }
+    };
+
+    const zoomCamera = (factor: number) => {
+        if (!controlsRef.current) return;
+        const controls = controlsRef.current;
+        const camera = controls.object;
+        const target = controls.target || new THREE.Vector3(0, 0, 0);
+        if (!camera) return;
+
+        const offset = new THREE.Vector3().copy(camera.position).sub(target);
+        const currentDist = offset.length();
+        const newDist = Math.max(1.0, Math.min(10.0, currentDist * factor));
+        offset.setLength(newDist);
+        camera.position.copy(target).add(offset);
+        if (typeof controls.update === "function") {
+            controls.update();
+        }
+    };
+
+    // Các hàm xoay mô hình 3D chủ động (Quick Rotation Controls)
+    const handleRotateLeft = () => rotateCamera(Math.PI / 8, 0);
+    const handleRotateRight = () => rotateCamera(-Math.PI / 8, 0);
+    const handleRotateUp = () => rotateCamera(0, -Math.PI / 12);
+    const handleRotateDown = () => rotateCamera(0, Math.PI / 12);
+
+    const handleResetCamera = () => {
+        if (controlsRef.current) {
+            if (typeof controlsRef.current.reset === "function") {
+                try {
+                    controlsRef.current.reset();
+                } catch (e) {}
+            }
+            if (controlsRef.current.object) {
+                controlsRef.current.object.position.set(0, 0, 4);
+            }
+            if (controlsRef.current.target) {
+                controlsRef.current.target.set(0, 0, 0);
+            }
+            if (typeof controlsRef.current.update === "function") {
+                controlsRef.current.update();
+            }
+        }
+    };
+
+    const handleZoomIn = () => zoomCamera(0.85);
+    const handleZoomOut = () => zoomCamera(1.18);
+
     const handleModelClick = (e: ThreeEvent<MouseEvent>) => {
         e.stopPropagation();
         if (hotspots && hotspots.length > 0 && e.point) {
-            // Tìm điểm giải phẫu (hotspot) gần nhất với vị trí nhấp chuột trên bề mặt cơ quan
             let nearest: HotspotData | null = null;
             let minDist = Infinity;
             for (const h of hotspots) {
@@ -634,7 +805,7 @@ export default function ModelViewer({ modelUrl, hotspots = [], onHotspotClick }:
 
     return (
         <div 
-            className="w-full h-full relative cursor-grab active:cursor-grabbing bg-[#f8fafc] dark:bg-[#0f1522] rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 flex flex-col touch-none select-none"
+            className="w-full h-full relative cursor-grab active:cursor-grabbing bg-[#070b13] rounded-2xl overflow-hidden border border-slate-800 flex flex-col touch-none select-none"
             style={{ touchAction: "none" }}
         >
             <Canvas 
@@ -643,9 +814,16 @@ export default function ModelViewer({ modelUrl, hotspots = [], onHotspotClick }:
                 className="w-full h-full touch-none"
                 style={{ touchAction: "none", width: "100%", height: "100%" }}
             >
-                <ambientLight intensity={0.6} />
-                <spotLight position={[10, 10, 10]} angle={0.2} penumbra={1} intensity={1.2} castShadow />
-                <pointLight position={[-10, -10, -10]} intensity={0.6} />
+                {/* Nền studio tối huyền bí chuẩn phòng lab giải phẫu cao cấp */}
+                <color attach="background" args={["#070b13"]} />
+                <fog attach="fog" args={["#070b13", 8, 25]} />
+
+                {/* Hệ thống ánh sáng Studio rực rỡ, cân bằng, tôn vinh màu sắc giải phẫu */}
+                <ambientLight intensity={0.65} />
+                <directionalLight position={[5, 7, 5]} intensity={1.1} castShadow />
+                <directionalLight position={[-5, -3, -3]} intensity={0.45} color="#38bdf8" />
+                <pointLight position={[0, 3, 2.5]} intensity={0.7} color="#ffffff" />
+                <pointLight position={[0, -3, 1.5]} intensity={0.35} color="#fda4af" />
                 
                 <Suspense fallback={null}>
                     <ModelErrorBoundary
@@ -674,15 +852,21 @@ export default function ModelViewer({ modelUrl, hotspots = [], onHotspotClick }:
                         />
                     </ModelErrorBoundary>
                     <Environment preset="city" />
-                    <ContactShadows position={[0, -1.5, 0]} opacity={0.4} scale={10} blur={2} far={4} />
+                    <ContactShadows position={[0, -1.5, 0]} opacity={0.5} scale={10} blur={2.5} far={4} color="#000000" />
+
+                    {/* Bộ điều khiển tương tác cử chỉ xoay mô hình (bàn tay 3D đã hiển thị toàn cục ở Global3DHandOverlay) */}
+                    {handStateRef && (
+                        <HandOrganInteraction handStateRef={handStateRef} controlsRef={controlsRef} />
+                    )}
                 </Suspense>
 
                 <OrbitControls 
+                    ref={controlsRef}
                     makeDefault 
                     autoRotate={isAutoRotate} 
-                    autoRotateSpeed={0.5} 
+                    autoRotateSpeed={0.8} 
                     enableDamping 
-                    dampingFactor={0.05} 
+                    dampingFactor={0.06} 
                     minDistance={1} 
                     maxDistance={10} 
                     touches={{
@@ -692,53 +876,58 @@ export default function ModelViewer({ modelUrl, hotspots = [], onHotspotClick }:
                 />
             </Canvas>
             
-            {/* Hướng dẫn góc trên */}
+            {/* Hướng dẫn thao tác nổi góc trên bên trái */}
             <div className="absolute top-2.5 left-2.5 sm:top-4 sm:left-4 pointer-events-none z-10">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold bg-white/90 dark:bg-gray-900/90 backdrop-blur-md text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 shadow-sm">
-                    <svg className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.042 21.672 13.684 16.6m0 0-2.51 2.225.569-9.47 5.227 7.917-3.286-.672ZM12 2.25V4.5m5.834.166-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243-1.59-1.59" />
-                    </svg>
-                    <span className="hidden sm:inline">Kéo để xoay 360° • Cuộn để thu phóng</span>
-                    <span className="sm:hidden">Chạm xoay 360° • 2 ngón thu phóng</span>
+                <span className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold bg-slate-900/90 backdrop-blur-md text-slate-200 border border-slate-700/80 shadow-2xl">
+                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse flex-shrink-0" />
+                    <span className="inline-flex items-center gap-1.5">
+                        <MousePointer className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>Kéo để xoay 360° • Cuộn thu phóng</span>
+                    </span>
+                    <span className="text-slate-600">|</span>
+                    <span className="inline-flex items-center gap-1.5">
+                        <Hand className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Nắm tay di chuyển để xoay</span>
+                    </span>
                 </span>
             </div>
 
             {/* BẢNG ĐIỀU KHIỂN CẮT LỚP GIẢI PHẪU Y KHOA CHUYÊN DỤNG */}
             {showCrossSection && (
                 <div 
-                    className="absolute top-12 left-2.5 right-2.5 sm:top-auto sm:bottom-4 sm:left-4 sm:right-auto sm:w-80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md p-3 sm:p-3.5 rounded-2xl shadow-xl border border-indigo-200 dark:border-indigo-900/60 z-20 transition-all duration-300"
+                    className="absolute top-12 left-2.5 right-2.5 sm:top-auto sm:bottom-4 sm:left-4 sm:right-auto sm:w-80 bg-slate-900/95 backdrop-blur-md p-3 sm:p-3.5 rounded-2xl shadow-2xl border border-indigo-500/50 z-20 transition-all duration-300 text-slate-200"
                     onTouchStart={(e) => e.stopPropagation()}
                     onTouchMove={(e) => e.stopPropagation()}
                     onTouchEnd={(e) => e.stopPropagation()}
                     style={{ touchAction: "auto" }}
                 >
-                    <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-gray-100 dark:border-gray-800">
+                    <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-slate-800">
                         <div className="flex items-center gap-1.5">
                             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                            <h4 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+                            <h4 className="text-xs font-bold text-white uppercase tracking-wider">
                                 Cắt lớp Mô đặc Y khoa
                             </h4>
                         </div>
-                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/50">
+                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-700/60">
                             {organConfig.name}
                         </span>
                     </div>
 
                     {/* Chọn 3 mặt cắt giải phẫu quốc tế */}
                     <div className="space-y-1.5 mb-2.5">
-                        <label className="text-[11px] font-semibold text-gray-600 dark:text-gray-300 flex items-center justify-between">
+                        <label className="text-[11px] font-semibold text-slate-300 flex items-center justify-between">
                             <span>Mặt phẳng giải phẫu:</span>
-                            <span className="text-[10px] text-gray-400">
+                            <span className="text-[10px] text-slate-400">
                                 {slicePlaneType === "coronal" ? "Đứng ngang (Trước/Sau)" : slicePlaneType === "sagittal" ? "Đứng dọc (Trái/Phải)" : "Cắt ngang (CT/MRI)"}
                             </span>
                         </label>
-                        <div className="grid grid-cols-3 gap-1 p-0.5 bg-gray-100 dark:bg-gray-800/80 rounded-lg text-[11px] font-medium">
+                        <div className="grid grid-cols-3 gap-1 p-0.5 bg-slate-950/80 rounded-lg text-[11px] font-medium border border-slate-800">
                             <button
                                 onClick={() => setSlicePlaneType("coronal")}
                                 className={`py-1.5 px-1 rounded-md text-center transition-all ${
                                     slicePlaneType === "coronal"
-                                        ? "bg-white dark:bg-indigo-600 text-indigo-600 dark:text-white shadow-sm font-bold"
-                                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
+                                        ? "bg-indigo-600 text-white shadow-sm font-bold"
+                                        : "text-slate-400 hover:text-white"
                                 }`}
                                 title="Mặt phẳng Đứng Ngang (Coronal) - Chuẩn quan sát buồng tim & phổi"
                             >
@@ -748,8 +937,8 @@ export default function ModelViewer({ modelUrl, hotspots = [], onHotspotClick }:
                                 onClick={() => setSlicePlaneType("sagittal")}
                                 className={`py-1.5 px-1 rounded-md text-center transition-all ${
                                     slicePlaneType === "sagittal"
-                                        ? "bg-white dark:bg-indigo-600 text-indigo-600 dark:text-white shadow-sm font-bold"
-                                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
+                                        ? "bg-indigo-600 text-white shadow-sm font-bold"
+                                        : "text-slate-400 hover:text-white"
                                 }`}
                                 title="Mặt phẳng Đứng Dọc (Sagittal) - Chia đôi bán cầu não/tim"
                             >
@@ -759,8 +948,8 @@ export default function ModelViewer({ modelUrl, hotspots = [], onHotspotClick }:
                                 onClick={() => setSlicePlaneType("axial")}
                                 className={`py-1.5 px-1 rounded-md text-center transition-all ${
                                     slicePlaneType === "axial"
-                                        ? "bg-white dark:bg-indigo-600 text-indigo-600 dark:text-white shadow-sm font-bold"
-                                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
+                                        ? "bg-indigo-600 text-white shadow-sm font-bold"
+                                        : "text-slate-400 hover:text-white"
                                 }`}
                                 title="Mặt phẳng Cắt Ngang (Axial) - Chuẩn lát cắt vi tính CT/MRI"
                             >
@@ -772,21 +961,21 @@ export default function ModelViewer({ modelUrl, hotspots = [], onHotspotClick }:
                     {/* Thanh trượt độ sâu cắt (Depth Offset) */}
                     <div className="space-y-1 mb-2.5">
                         <div className="flex items-center justify-between text-[11px]">
-                            <span className="font-semibold text-gray-600 dark:text-gray-300">Vị trí lát cắt:</span>
+                            <span className="font-semibold text-slate-300">Vị trí lát cắt:</span>
                             <div className="flex items-center gap-1.5">
-                                <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                                <span className="font-mono font-bold text-indigo-400">
                                     {sliceOffset <= -2.2 ? "Nguyên vẹn" : sliceOffset >= 2.2 ? "Cắt hết" : sliceOffset > 0 ? `+${sliceOffset.toFixed(2)}` : sliceOffset.toFixed(2)}
                                 </span>
                                 <button
                                     onClick={() => setSliceOffset(0)}
-                                    className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 font-medium transition-colors"
+                                    className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition-colors"
                                     title="Đưa mặt cắt về chính giữa tâm (50%)"
                                 >
                                     Tâm
                                 </button>
                                 <button
                                     onClick={() => setSliceOffset(-2.3)}
-                                    className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 font-medium transition-colors"
+                                    className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition-colors"
                                     title="Đưa mặt phẳng ra hẳn bên ngoài, giữ nguyên vẹn 100% mô hình"
                                 >
                                     Nguyên vẹn
@@ -803,9 +992,9 @@ export default function ModelViewer({ modelUrl, hotspots = [], onHotspotClick }:
                             onTouchStart={(e) => e.stopPropagation()}
                             onTouchMove={(e) => e.stopPropagation()}
                             style={{ touchAction: "auto" }}
-                            className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                            className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                         />
-                        <div className="flex justify-between text-[9px] text-gray-400 dark:text-gray-500 font-medium px-0.5">
+                        <div className="flex justify-between text-[9px] text-slate-500 font-medium px-0.5">
                             <span>Nguyên vẹn (0% cắt)</span>
                             <span>Tâm (50%)</span>
                             <span>Cắt sâu (100%)</span>
@@ -813,13 +1002,13 @@ export default function ModelViewer({ modelUrl, hotspots = [], onHotspotClick }:
                     </div>
 
                     {/* Đảo chiều cắt & chú thích y khoa */}
-                    <div className="flex items-center justify-between gap-2 pt-1 border-t border-gray-100 dark:border-gray-800">
+                    <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-800">
                         <button
                             onClick={() => setSliceInverted(!sliceInverted)}
                             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
                                 sliceInverted
-                                    ? "bg-indigo-50 border-indigo-300 text-indigo-700 dark:bg-indigo-950/80 dark:border-indigo-700 dark:text-indigo-300"
-                                    : "bg-gray-50 border-gray-200 text-gray-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
+                                    ? "bg-indigo-950/80 border-indigo-700 text-indigo-300"
+                                    : "bg-slate-800 border-slate-700 text-slate-300 hover:text-white"
                             }`}
                             title="Đổi hướng nhìn sang nửa còn lại của cơ quan"
                         >
@@ -828,47 +1017,118 @@ export default function ModelViewer({ modelUrl, hotspots = [], onHotspotClick }:
                             </svg>
                             <span>Đảo chiều cắt</span>
                         </button>
-                        <span className="text-[10px] text-gray-400 italic truncate max-w-[140px]" title={organConfig.description}>
+                        <span className="text-[10px] text-slate-400 italic truncate max-w-[140px]" title={organConfig.description}>
                             {organConfig.description}
                         </span>
                     </div>
                 </div>
             )}
 
-            {/* Thanh công cụ 3D Tools (Toolbar góc dưới bên phải) */}
-            <div className="absolute bottom-2.5 right-2.5 sm:bottom-6 sm:right-6 flex flex-col gap-1.5 sm:gap-2.5 z-10">
-                <button 
-                    onClick={() => setIsAutoRotate(!isAutoRotate)}
-                    className={`flex items-center gap-2 p-2 sm:px-4 sm:py-2.5 rounded-xl border shadow-sm transition-all duration-200 ${isAutoRotate ? 'bg-blue-500 border-blue-600 text-white shadow-blue-500/25' : 'bg-white/95 dark:bg-gray-800/95 backdrop-blur border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
-                    title="Tự động xoay"
-                >
-                    <svg className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    <span className="hidden sm:inline text-sm font-semibold whitespace-nowrap">Tự xoay</span>
-                </button>
-                <button 
-                    onClick={() => setShowCrossSection(!showCrossSection)}
-                    className={`flex items-center gap-2 p-2 sm:px-4 sm:py-2.5 rounded-xl border shadow-sm transition-all duration-200 ${showCrossSection ? 'bg-indigo-600 border-indigo-700 text-white shadow-indigo-600/30 ring-2 ring-indigo-400/30' : 'bg-white/95 dark:bg-gray-800/95 backdrop-blur border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
-                    title="Cắt lớp giải phẫu y khoa (Medical Cross-section)"
-                >
-                    <svg className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M14.121 14.121L19 19m-7-7l-7-7m7 7l-2.121 2.121M15.536 8.464a2 2 0 11-2.828-2.828 2 2 0 012.828 2.828zM8.464 15.536a2 2 0 11-2.828-2.828 2 2 0 012.828 2.828z" />
-                    </svg>
-                    <span className="hidden sm:inline text-sm font-semibold whitespace-nowrap">
-                        {showCrossSection ? "Tắt cắt lớp" : "Cắt lớp y khoa"}
-                    </span>
-                </button>
-                <button 
-                    onClick={() => setShowWireframe(!showWireframe)}
-                    className={`flex items-center gap-2 p-2 sm:px-4 sm:py-2.5 rounded-xl border shadow-sm transition-all duration-200 ${showWireframe ? 'bg-violet-500 border-violet-600 text-white shadow-violet-500/25' : 'bg-white/95 dark:bg-gray-800/95 backdrop-blur border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
-                    title="Chế độ khung dây (Wireframe)"
-                >
-                    <svg className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                    </svg>
-                    <span className="hidden sm:inline text-sm font-semibold whitespace-nowrap">Khung dây</span>
-                </button>
+            {/* Thanh công cụ Xoay 3D & Chức năng (3D Controls Dock góc dưới bên phải) */}
+            <div className="absolute bottom-2.5 right-2.5 sm:bottom-6 sm:right-6 flex flex-col gap-2 z-10">
+                {/* Bộ nút xoay 3D tức thì */}
+                <div className="flex items-center gap-1 p-1 bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-700/80 shadow-2xl">
+                    <button
+                        onClick={handleRotateLeft}
+                        className="p-2 sm:px-2.5 sm:py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition-all flex items-center gap-1"
+                        title="Xoay sang trái 30°"
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                        </svg>
+                        <span className="text-[10px] font-bold hidden sm:inline">Trái</span>
+                    </button>
+                    <button
+                        onClick={handleResetCamera}
+                        className="p-2 sm:px-2.5 sm:py-2 rounded-xl text-slate-300 hover:text-cyan-400 hover:bg-slate-800 transition-all flex items-center gap-1"
+                        title="Căn giữa / Đặt lại góc nhìn ban đầu"
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <circle cx="12" cy="12" r="3" strokeWidth={2} />
+                            <circle cx="12" cy="12" r="8" strokeWidth={1.5} />
+                        </svg>
+                        <span className="text-[10px] font-bold hidden sm:inline">Căn giữa</span>
+                    </button>
+                    <button
+                        onClick={handleRotateRight}
+                        className="p-2 sm:px-2.5 sm:py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition-all flex items-center gap-1"
+                        title="Xoay sang phải 30°"
+                    >
+                        <span className="text-[10px] font-bold hidden sm:inline">Phải</span>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </button>
+                    <div className="w-[1px] h-4 bg-slate-700 mx-0.5" />
+                    <button
+                        onClick={handleZoomIn}
+                        className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition-all"
+                        title="Phóng to"
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                        </svg>
+                    </button>
+                    <button
+                        onClick={handleZoomOut}
+                        className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition-all"
+                        title="Thu nhỏ"
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
+                        </svg>
+                    </button>
+                </div>
+
+                {/* Các nút chế độ 3D */}
+                <div className="flex flex-col gap-1.5">
+                    <button 
+                        onClick={() => setIsAutoRotate(!isAutoRotate)}
+                        className={`flex items-center gap-2 p-2 sm:px-3.5 sm:py-2 rounded-xl border shadow-xl transition-all duration-200 ${
+                            isAutoRotate 
+                                ? 'bg-cyan-600 border-cyan-500 text-white shadow-cyan-600/30' 
+                                : 'bg-slate-900/90 backdrop-blur-md border-slate-700/80 text-slate-300 hover:text-white hover:bg-slate-800'
+                        }`}
+                        title="Bật/Tắt tự động xoay 360°"
+                    >
+                        <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5 flex-shrink-0 animate-spin-slow" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span className="hidden sm:inline text-xs font-semibold whitespace-nowrap">
+                            {isAutoRotate ? "Đang tự xoay 360°" : "Tự xoay 360°"}
+                        </span>
+                    </button>
+                    <button 
+                        onClick={() => setShowCrossSection(!showCrossSection)}
+                        className={`flex items-center gap-2 p-2 sm:px-3.5 sm:py-2 rounded-xl border shadow-xl transition-all duration-200 ${
+                            showCrossSection 
+                                ? 'bg-indigo-600 border-indigo-500 text-white shadow-indigo-600/30 ring-2 ring-indigo-400/30' 
+                                : 'bg-slate-900/90 backdrop-blur-md border-slate-700/80 text-slate-300 hover:text-white hover:bg-slate-800'
+                        }`}
+                        title="Cắt lớp giải phẫu y khoa (Medical Cross-section)"
+                    >
+                        <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M14.121 14.121L19 19m-7-7l-7-7m7 7l-2.121 2.121M15.536 8.464a2 2 0 11-2.828-2.828 2 2 0 012.828 2.828zM8.464 15.536a2 2 0 11-2.828-2.828 2 2 0 012.828 2.828z" />
+                        </svg>
+                        <span className="hidden sm:inline text-xs font-semibold whitespace-nowrap">
+                            {showCrossSection ? "Tắt cắt lớp" : "Cắt lớp y khoa"}
+                        </span>
+                    </button>
+                    <button 
+                        onClick={() => setShowWireframe(!showWireframe)}
+                        className={`flex items-center gap-2 p-2 sm:px-3.5 sm:py-2 rounded-xl border shadow-xl transition-all duration-200 ${
+                            showWireframe 
+                                ? 'bg-violet-600 border-violet-500 text-white shadow-violet-600/30' 
+                                : 'bg-slate-900/90 backdrop-blur-md border-slate-700/80 text-slate-300 hover:text-white hover:bg-slate-800'
+                        }`}
+                        title="Chế độ khung dây (Wireframe)"
+                    >
+                        <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                        <span className="hidden sm:inline text-xs font-semibold whitespace-nowrap">Khung dây</span>
+                    </button>
+                </div>
             </div>
         </div>
     );

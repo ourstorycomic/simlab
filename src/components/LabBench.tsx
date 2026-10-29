@@ -31,6 +31,7 @@ import ScienceLab from "./ScienceLab";
 import { Tour, TourStep } from "./Tour";
 import LabHeader from "./LabHeader";
 import LabAITutorWidget from "./LabAITutorWidget";
+import { FlaskConical, RotateCcw, X, Sparkles, FolderOpen, Maximize2, Minimize2, BookOpen, Video, Award, Flame, Keyboard } from "lucide-react";
 
 export type ActiveReaction = {
     result: ReactionResult;
@@ -661,8 +662,9 @@ export default function LabBench() {
                         {/* Glassware indicator */}
                         {hasBothChemicals && glassware && (
                             <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800">
+                                <FlaskConical className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                                 <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
-                                    🧪 {glasswareNames[glassware]}
+                                    {glasswareNames[glassware]}
                                 </span>
                             </div>
                         )}
@@ -713,10 +715,10 @@ export default function LabBench() {
                         {hasAnyChemical && (
                             <button
                                 onClick={handleClearAll}
-                                className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-xs flex items-center gap-1 shadow-sm transition-all active:scale-95"
+                                className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm transition-all active:scale-95"
                                 title="Dọn sạch bàn thí nghiệm để bắt đầu bài mới (L)"
                             >
-                                <span className="text-xs">🧹</span>
+                                <RotateCcw className="w-3.5 h-3.5 shrink-0" />
                                 <span className="hidden lg:inline">Xóa bàn</span>
                             </button>
                         )}
@@ -756,7 +758,8 @@ export default function LabBench() {
                     onClick={() => setMobileSidebarOpen(true)}
                     className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-xs active:scale-95 transition-all"
                 >
-                    <span>🧪 Mở kho hóa chất</span>
+                    <FlaskConical className="w-3.5 h-3.5" />
+                    <span>Mở kho hóa chất</span>
                     <span className="text-[10px] bg-blue-700 px-2 py-0.5 rounded-full font-mono font-bold">
                         {[chemical1, chemical2].filter(Boolean).length}/2 đã chọn
                     </span>
@@ -767,7 +770,7 @@ export default function LabBench() {
                         className="p-2 rounded-lg bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 text-xs font-medium"
                         title="Dọn sạch ống nghiệm"
                     >
-                        🧹
+                        <RotateCcw className="w-3.5 h-3.5" />
                     </button>
                 )}
             </div>
@@ -804,14 +807,16 @@ export default function LabBench() {
                         <div className="relative z-10 w-[85%] max-w-xs sm:max-w-sm h-full bg-white dark:bg-gray-800 shadow-2xl flex flex-col border-r border-gray-200 dark:border-gray-700 animate-in slide-in-from-left duration-200">
                             <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-slate-800">
                                 <span className="text-xs font-bold text-gray-800 dark:text-gray-100 flex items-center gap-1.5">
-                                    🧪 Kho hóa chất
+                                    <FlaskConical className="w-3.5 h-3.5 text-blue-500" />
+                                    <span>Kho hóa chất</span>
                                 </span>
                                 <button
                                     onClick={() => setMobileSidebarOpen(false)}
-                                    className="p-1.5 rounded-lg text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-slate-700 text-xs font-bold"
+                                    className="p-1.5 rounded-lg text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-slate-700 text-xs font-bold flex items-center gap-1"
                                     aria-label="Đóng"
                                 >
-                                    ✕ Đóng
+                                    <X className="w-3.5 h-3.5" />
+                                    <span>Đóng</span>
                                 </button>
                             </div>
 
@@ -827,14 +832,12 @@ export default function LabBench() {
                                         <span className="text-gray-400 truncate">{chemical2 ? chemical2.name : "Chất 2: Trống"}</span>
                                     </div>
                                 </div>
-                                {chemical1 && (
-                                    <button
-                                        onClick={() => setMobileSidebarOpen(false)}
-                                        className="w-full py-1.5 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center justify-center gap-1 shadow-sm active:scale-95 transition-all"
-                                    >
-                                        {chemical1 && chemical2 ? "✨ Đóng kho để xem phản ứng ngay!" : "👀 Trở về xem ống nghiệm"}
-                                    </button>
-                                )}
+                                <button
+                                    onClick={() => setMobileSidebarOpen(false)}
+                                    className="w-full py-1.5 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center justify-center gap-1 shadow-sm active:scale-95 transition-all"
+                                >
+                                    {chemical1 && chemical2 ? "Đóng kho để xem phản ứng ngay!" : "Trở về xem ống nghiệm"}
+                                </button>
                             </div>
 
                             <div className="flex-1 overflow-hidden">
@@ -870,7 +873,8 @@ export default function LabBench() {
                                 onClick={() => setMobileSidebarOpen(true)}
                                 className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg hover:shadow-xl active:scale-95 transition-all"
                             >
-                                <span>🧪 Mở kho hóa chất</span>
+                                <FlaskConical className="w-3.5 h-3.5" />
+                                <span>Mở kho hóa chất</span>
                                 <span className="text-[10px] bg-blue-700 px-2 py-0.5 rounded-full font-mono">
                                     {[chemical1, chemical2].filter(Boolean).length}/2 đã chọn
                                 </span>
@@ -883,7 +887,8 @@ export default function LabBench() {
                                 className="px-3 py-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium flex items-center gap-1.5 shadow-md backdrop-blur transition-all"
                                 title="Hiện lại bảng kho bên cạnh"
                             >
-                                <span>📂 Hiện bảng kho bên cạnh</span>
+                                <FolderOpen className="w-3.5 h-3.5" />
+                                <span>Hiện bảng kho bên cạnh</span>
                             </button>
                         </div>
                     )}
@@ -915,8 +920,9 @@ export default function LabBench() {
                                     <span className="text-xs sm:text-sm font-bold text-gray-800 dark:text-gray-100 flex items-center gap-1.5">
                                         Bàn thí nghiệm Hóa học
                                         {isTheaterMode && (
-                                            <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 text-[10px] font-bold border border-amber-500/30">
-                                                🖥️ Chế độ Trình chiếu
+                                            <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 text-[10px] font-bold border border-amber-500/30 inline-flex items-center gap-1">
+                                                <Maximize2 className="w-3 h-3" />
+                                                <span>Chế độ Trình chiếu</span>
                                             </span>
                                         )}
                                     </span>
@@ -931,22 +937,34 @@ export default function LabBench() {
                                         }`}
                                         title={isTheaterMode ? "Thu nhỏ về kích thước chuẩn" : "Phóng to toàn màn hình cho học sinh/khán giả quan sát"}
                                     >
-                                        <span>{isTheaterMode ? "🔍 Thu nhỏ lại" : "🖥️ Phóng to Trình chiếu"}</span>
+                                        {isTheaterMode ? (
+                                            <>
+                                                <Minimize2 className="w-3.5 h-3.5" />
+                                                <span>Thu nhỏ</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Maximize2 className="w-3.5 h-3.5" />
+                                                <span>Trình chiếu</span>
+                                            </>
+                                        )}
                                     </button>
                                     <button
                                         onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
                                         className="hidden md:flex px-2.5 py-1.5 rounded-xl text-xs font-medium bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-200 items-center gap-1.5 transition-all"
                                         title={sidebarCollapsed ? "Mở kho hóa chất bên cạnh" : "Thu gọn kho hóa chất"}
                                     >
-                                        <span>{sidebarCollapsed ? "📂 Mở kho bên" : "📁 Ẩn kho bên"}</span>
+                                        <FolderOpen className="w-3.5 h-3.5" />
+                                        <span>{sidebarCollapsed ? "Mở kho" : "Ẩn kho"}</span>
                                     </button>
                                     {hasAnyChemical && (
                                         <button
                                             onClick={handleClearAll}
-                                            className="px-2.5 py-1.5 rounded-xl text-xs font-medium bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/40 flex items-center gap-1 transition-all"
+                                            className="px-2.5 py-1.5 rounded-xl text-xs font-medium bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/40 flex items-center gap-1.5 transition-all"
                                             title="Dọn sạch ống nghiệm"
                                         >
-                                            🧹 Dọn bàn
+                                            <RotateCcw className="w-3.5 h-3.5" />
+                                            <span>Dọn bàn</span>
                                         </button>
                                     )}
                                 </div>
@@ -985,19 +1003,22 @@ export default function LabBench() {
                                                 onClick={() => setMobileSidebarOpen(true)}
                                                 className="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-bold flex items-center gap-2 shadow-lg active:scale-95 transition-all"
                                             >
-                                                <span>🧪 Mở kho chọn hóa chất</span>
+                                                <FlaskConical className="w-4 h-4" />
+                                                <span>Mở kho chọn hóa chất</span>
                                             </button>
                                             <button
                                                 onClick={() => setShowExperiments(true)}
                                                 className="px-5 py-3 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 dark:hover:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-xs active:scale-95 transition-all"
                                             >
-                                                <span>📚 Xem thí nghiệm mẫu</span>
+                                                <BookOpen className="w-4 h-4" />
+                                                <span>Xem thí nghiệm mẫu</span>
                                             </button>
                                             <button
                                                 onClick={() => setIsTheaterMode(!isTheaterMode)}
                                                 className="px-4 py-3 rounded-xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-xs active:scale-95 transition-all"
                                             >
-                                                <span>🖥️ {isTheaterMode ? "Thu nhỏ lại" : "Chế độ Trình chiếu"}</span>
+                                                <Maximize2 className="w-4 h-4" />
+                                                <span>{isTheaterMode ? "Thu nhỏ lại" : "Chế độ Trình chiếu"}</span>
                                             </button>
                                         </div>
                                     </div>
@@ -1066,10 +1087,8 @@ export default function LabBench() {
                                                 className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold flex items-center gap-2 shadow-md hover:shadow-lg hover:shadow-blue-500/25 active:scale-95 transition-all"
                                                 title="Dọn sạch bàn thí nghiệm để bắt đầu làm bài thí nghiệm mới"
                                             >
-                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 0 0-3.7-3.7 48.678 48.678 0 0 0-7.324 0 4.006 4.006 0 0 0-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 0 0 3.7 3.7 48.656 48.656 0 0 0 7.324 0 4.006 4.006 0 0 0 3.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3-3 3" />
-                                                </svg>
-                                                <span>🧪 Làm thí nghiệm khác (Dọn bàn)</span>
+                                                <RotateCcw className="w-4 h-4" />
+                                                <span>Làm thí nghiệm khác (Dọn bàn)</span>
                                             </button>
 
                                             {activeReaction && (
@@ -1090,7 +1109,8 @@ export default function LabBench() {
                                                 className="px-3.5 py-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 dark:hover:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 border border-purple-200 dark:border-purple-800 shadow-xs"
                                                 title="Khám phá các bài thí nghiệm mẫu"
                                             >
-                                                <span>📚 Đổi bài mẫu</span>
+                                                <BookOpen className="w-3.5 h-3.5" />
+                                                <span>Đổi bài mẫu</span>
                                             </button>
                                         </div>
 
@@ -1100,8 +1120,8 @@ export default function LabBench() {
                                                 href="#reaction-details-area"
                                                 className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-50 hover:bg-red-100 dark:bg-red-950/50 dark:hover:bg-red-900/60 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 text-xs font-bold shadow-sm transition-all animate-bounce"
                                             >
-                                                <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
-                                                <span>🎬 Kéo xuống dưới để xem Video thí nghiệm thực tế ↓</span>
+                                                <Video className="w-3.5 h-3.5" />
+                                                <span>Kéo xuống dưới để xem Video thí nghiệm thực tế ↓</span>
                                             </a>
                                         )}
                                     </div>
@@ -1238,7 +1258,7 @@ export default function LabBench() {
             {newBadges.length > 0 && (
                 <div className="fixed inset-0 z-[96] flex items-center justify-center p-4 bg-black/40 animate-fade-in">
                     <div className="w-full max-w-sm bg-white dark:bg-gray-800 border border-amber-200 dark:border-amber-700 rounded-2xl shadow-xl p-6 text-center animate-scale-in">
-                        <p className="text-3xl">🏅</p>
+                        <Award className="w-10 h-10 text-amber-500 mx-auto" />
                         <p className="text-sm font-bold text-gray-800 dark:text-gray-100 mt-2">Bạn đã mở khóa huy hiệu mới!</p>
                         <div className="mt-4 space-y-2">
                             {newBadges.map((b) => (
@@ -1246,7 +1266,9 @@ export default function LabBench() {
                                     key={b.id}
                                     className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-left"
                                 >
-                                    <span className="text-2xl">{b.icon}</span>
+                                    <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
+                                        <Award className="w-5 h-5" />
+                                    </div>
                                     <div>
                                         <p className="text-xs font-bold text-gray-800 dark:text-gray-100">{b.label}</p>
                                         <p className="text-[10px] text-gray-500 dark:text-gray-400">{b.desc}</p>
@@ -1273,7 +1295,10 @@ export default function LabBench() {
                         </p>
                         {walkthroughStep === 0 && (
                             <>
-                                <p className="text-base font-bold text-gray-800 dark:text-gray-100 mt-2">🧪 Kéo thả hóa chất</p>
+                                <p className="text-base font-bold text-gray-800 dark:text-gray-100 mt-2 flex items-center gap-1.5">
+                                    <FlaskConical className="w-4 h-4 text-blue-500" />
+                                    <span>Kéo thả hóa chất</span>
+                                </p>
                                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1.5 leading-relaxed">
                                     Chọn hóa chất ở bảng bên trái và kéo vào 2 vị trí (ống nghiệm). Khi đủ 2 hóa chất,
                                     phản ứng sẽ tự động diễn ra — hãy quan sát hiện tượng!
@@ -1282,7 +1307,10 @@ export default function LabBench() {
                         )}
                         {walkthroughStep === 1 && (
                             <>
-                                <p className="text-base font-bold text-gray-800 dark:text-gray-100 mt-2">🔥 Thử nghiệm tự do</p>
+                                <p className="text-base font-bold text-gray-800 dark:text-gray-100 mt-2 flex items-center gap-1.5">
+                                    <Flame className="w-4 h-4 text-amber-500" />
+                                    <span>Thử nghiệm tự do</span>
+                                </p>
                                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1.5 leading-relaxed">
                                     Kéo thả hóa chất và quan sát phản ứng. Nộp bài tập đúng sẽ giúp bạn mở khóa huy hiệu.
                                 </p>
@@ -1290,7 +1318,10 @@ export default function LabBench() {
                         )}
                         {walkthroughStep === 2 && (
                             <>
-                                <p className="text-base font-bold text-gray-800 dark:text-gray-100 mt-2">⌨️ Phím tắt</p>
+                                <p className="text-base font-bold text-gray-800 dark:text-gray-100 mt-2 flex items-center gap-1.5">
+                                    <Keyboard className="w-4 h-4 text-purple-500" />
+                                    <span>Phím tắt</span>
+                                </p>
                                 <div className="mt-3 space-y-2">
                                     {[
                                         ["T", "Mở bảng thí nghiệm mẫu"],
@@ -1342,7 +1373,7 @@ export default function LabBench() {
                     className="fixed z-[9999] pointer-events-none -translate-x-1/2 -translate-y-1/2 flex items-center gap-2.5 px-3 py-2 rounded-xl bg-slate-900/95 text-white border-2 border-emerald-400 shadow-2xl backdrop-blur-md animate-pulse"
                     style={{ left: touchGhostPos.x, top: touchGhostPos.y }}
                 >
-                    <span className="text-xl">🧪</span>
+                    <FlaskConical className="w-5 h-5 text-emerald-300" />
                     <div className="text-left">
                         <div className="font-bold text-xs text-emerald-300">{touchDraggingChem.name}</div>
                         <div className="text-[10px] text-slate-300 font-mono">{touchDraggingChem.formula}</div>

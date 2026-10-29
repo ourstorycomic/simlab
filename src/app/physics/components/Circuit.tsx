@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { Zap, SlidersHorizontal, Maximize2, Minimize2, Tv, Sliders } from "lucide-react";
 
 export default function Circuit() {
     // Physics Parameters
@@ -241,7 +242,10 @@ export default function Circuit() {
                             : "text-slate-400 hover:text-white"
                     }`}
                 >
-                    ⚡ Mạch điện
+                    <span className="inline-flex items-center justify-center gap-1.5">
+                        <Zap className="w-3.5 h-3.5" />
+                        Mạch điện
+                    </span>
                 </button>
                 <button
                     onClick={() => setMobileTab("controls")}
@@ -251,7 +255,10 @@ export default function Circuit() {
                             : "text-slate-400 hover:text-white"
                     }`}
                 >
-                    ⚙️ Bảng điều khiển & Đồng hồ
+                    <span className="inline-flex items-center justify-center gap-1.5">
+                        <SlidersHorizontal className="w-3.5 h-3.5" />
+                        Bảng điều khiển & Đồng hồ
+                    </span>
                 </button>
             </div>
 
@@ -361,10 +368,17 @@ export default function Circuit() {
                         }`}
                         title={isTheaterMode ? "Thu nhỏ lại chế độ tiêu chuẩn" : "Phóng to toàn màn hình thí nghiệm cho khán giả"}
                     >
-                        <svg className="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isTheaterMode ? "M9 9L4 4m0 0l5 0m-5 0l0 5m11 0l5-5m0 0l-5 0m5 0l0 5m-5 11l5 5m0 0l-5 0m5 0l0-5m-11 0l-5 5m0 0l5 0m-5 0l0-5" : "M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"} />
-                        </svg>
-                        <span>{isTheaterMode ? "🔍 Thu nhỏ" : "🖥️ Phóng to Trình chiếu"}</span>
+                        {isTheaterMode ? (
+                            <>
+                                <Minimize2 className="w-3.5 h-3.5 text-amber-400" />
+                                <span>Thu nhỏ</span>
+                            </>
+                        ) : (
+                            <>
+                                <Maximize2 className="w-3.5 h-3.5 text-amber-400" />
+                                <span>Phóng to Trình chiếu</span>
+                            </>
+                        )}
                     </button>
                 </div>
 
@@ -375,13 +389,12 @@ export default function Circuit() {
                             onClick={() => setIsTheaterMode(false)}
                             className="px-3 py-1.5 rounded-xl bg-slate-800/95 hover:bg-slate-700 border border-slate-600 text-amber-300 text-xs font-semibold flex items-center gap-1.5 shadow-xl backdrop-blur transition-all"
                         >
-                            <svg className="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                            </svg>
-                            <span>📂 Hiện bảng chỉnh (U = {voltage}V, R = {resistor}Ω)</span>
+                            <SlidersHorizontal className="w-3.5 h-3.5 text-amber-400" />
+                            <span>Hiện bảng chỉnh (U = {voltage}V, R = {resistor}Ω)</span>
                         </button>
-                        <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                            🖥️ Trình chiếu Mạch điện
+                        <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1.5">
+                            <Tv className="w-3 h-3 text-amber-400" />
+                            Trình chiếu Mạch điện
                         </span>
                     </div>
                 )}
@@ -403,8 +416,9 @@ export default function Circuit() {
                 </div>
 
                 {!isClosed && (
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-blue-600/90 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-full text-xs sm:text-sm font-bold animate-bounce pointer-events-none shadow-lg shadow-blue-500/20 z-20 text-center max-w-[90%]">
-                        ⚡ Hãy bật công tắc (K) để dòng điện chạy qua mạch!
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-blue-600/90 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-full text-xs sm:text-sm font-bold animate-bounce pointer-events-none shadow-lg shadow-blue-500/20 z-20 text-center max-w-[90%] inline-flex items-center gap-2">
+                        <Zap className="w-4 h-4 text-amber-300 shrink-0" />
+                        <span>Hãy bật công tắc (K) để dòng điện chạy qua mạch!</span>
                     </div>
                 )}
                 
@@ -431,13 +445,15 @@ export default function Circuit() {
                             isClosed ? "bg-emerald-600 hover:bg-emerald-500 shadow-md" : "bg-slate-700 hover:bg-slate-600"
                         }`}
                     >
-                        <span>{isClosed ? "🟢 Công tắc ĐANG BẬT" : "🔴 Công tắc ĐANG MỞ (TẮT)"}</span>
+                        <span className={`w-2 h-2 rounded-full ${isClosed ? "bg-emerald-300 animate-ping" : "bg-red-400"}`} />
+                        <span>{isClosed ? "Công tắc ĐANG BẬT" : "Công tắc ĐANG MỞ (TẮT)"}</span>
                     </button>
                     <button
                         onClick={() => setMobileTab("controls")}
-                        className="py-2.5 px-3 rounded-xl bg-slate-800 border border-slate-600 text-amber-400 text-xs font-semibold"
+                        className="py-2.5 px-3 rounded-xl bg-slate-800 border border-slate-600 text-amber-400 text-xs font-semibold flex items-center gap-1.5"
                     >
-                        ⚙️ Chỉnh U/R
+                        <SlidersHorizontal className="w-3.5 h-3.5" />
+                        <span>Chỉnh U/R</span>
                     </button>
                 </div>
             </div>

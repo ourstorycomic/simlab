@@ -27,6 +27,7 @@ import { useToast } from "@/components/toast";
 import { Avatar, BadgeChip, ProfileModal, XPBar } from "@/components/Avatar";
 import { Tour, TourStep } from "@/components/Tour";
 import Footer from "@/components/Footer";
+import { FlaskConical, FileCheck2, Award, Flame, GraduationCap, UserCheck, School, Sparkles, Zap, ArrowRight, Atom, Dna } from "lucide-react";
 function getExperiment(id: string): Experiment | undefined {
     return experiments.find((e) => e.id === id);
 }
@@ -52,13 +53,13 @@ const VIEW_TABS = [
 ] as const;
 
 // Icon + màu cho từng loại hoạt động
-const ACTIVITY_META: Record<ActivityEntry["type"], { icon: string; cls: string }> = {
-    reaction: { icon: "🧪", cls: "border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20" },
-    submit: { icon: "📝", cls: "border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20" },
-    perfect: { icon: "💯", cls: "border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20" },
-    streak: { icon: "🔥", cls: "border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20" },
-    join: { icon: "🚪", cls: "border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/20" },
-    profile: { icon: "👤", cls: "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800" },
+const ACTIVITY_META: Record<ActivityEntry["type"], { icon: React.ReactNode; cls: string }> = {
+    reaction: { icon: <FlaskConical className="w-4 h-4 text-blue-600 dark:text-blue-400" />, cls: "border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20" },
+    submit: { icon: <FileCheck2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />, cls: "border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20" },
+    perfect: { icon: <Award className="w-4 h-4 text-amber-600 dark:text-amber-400" />, cls: "border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20" },
+    streak: { icon: <Flame className="w-4 h-4 text-orange-600 dark:text-orange-400 fill-orange-500/20" />, cls: "border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20" },
+    join: { icon: <GraduationCap className="w-4 h-4 text-violet-600 dark:text-violet-400" />, cls: "border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/20" },
+    profile: { icon: <UserCheck className="w-4 h-4 text-gray-600 dark:text-gray-300" />, cls: "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800" },
 };
 
 function formatActivityTime(at: number): string {
@@ -253,7 +254,7 @@ export default function StudentDashboard() {
                                 </span>
                             </div>
                             <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1.5">
-                                <span>🏫 {user.school || "SimLab Edu"}</span>
+                                <span className="inline-flex items-center gap-1.5"><School className="w-3.5 h-3.5 text-blue-500" /> {user.school || "SimLab Edu"}</span>
                                 <span className="text-gray-300 dark:text-gray-600">•</span>
                                 <span className="font-mono text-gray-400 dark:text-gray-400">{user.email}</span>
                             </p>
@@ -296,8 +297,9 @@ export default function StudentDashboard() {
                             {user.name ? user.name.split(" ").slice(-1)[0][0] : "HS"}
                         </div>
                         <div>
-                            <h2 className="text-base sm:text-lg font-extrabold text-gray-900 dark:text-white">
-                                Không gian học tập của <span className="text-blue-600 dark:text-blue-400">{user.name}</span>! 👋
+                            <h2 className="text-base sm:text-lg font-extrabold text-gray-900 dark:text-white flex items-center">
+                                Không gian học tập của <span className="text-blue-600 dark:text-blue-400 ml-1 mr-1.5">{user.name}</span>!
+                                <Sparkles className="w-5 h-5 text-amber-500 animate-pulse" />
                             </h2>
                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                 Tài khoản: <strong className="text-gray-700 dark:text-gray-200">{user.email}</strong> • Trường: <strong className="text-gray-700 dark:text-gray-200">{user.school || "SimLab Edu"}</strong>
@@ -318,7 +320,6 @@ export default function StudentDashboard() {
                     <div className="md:col-span-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-sm p-5">
                         <div className="flex items-center justify-between mb-3">
                             <h2 className="text-sm font-bold text-gray-800 dark:text-gray-100 inline-flex items-center gap-2">
-                                
                                 Huy hiệu của tôi
                             </h2>
                             <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500">
@@ -342,7 +343,7 @@ export default function StudentDashboard() {
                 <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-amber-500/30 p-5 sm:p-6 text-white shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
                         <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-3xl shadow-lg shadow-amber-500/30 shrink-0">
-                            ⚡
+                            <Zap className="w-7 h-7 text-white fill-current" />
                         </div>
                         <div>
                             <div className="flex items-center gap-2 mb-1">
@@ -364,7 +365,7 @@ export default function StudentDashboard() {
                         className="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-sm shadow-xl shadow-amber-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 shrink-0"
                     >
                         <span>VÀO THI ĐẤU NGAY</span>
-                        <span>➔</span>
+                        <ArrowRight className="w-4 h-4" />
                     </button>
                 </div>
 
@@ -578,9 +579,9 @@ export default function StudentDashboard() {
                                                         : "Chưa có bài giao — hãy vào lớp bằng mã mời từ giáo viên."}
                                         </p>
                                         <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
-                                            <button onClick={() => router.push("/lab")} className="lab-btn-primary px-3 py-2 text-xs rounded-lg inline-flex items-center gap-1.5">🧪 Lab Hóa học</button>
-                                            <button onClick={() => router.push("/physics")} className="px-3 py-2 text-xs rounded-lg inline-flex items-center gap-1.5 bg-indigo-500 hover:bg-indigo-600 text-white shadow">⚡ Lab Vật lý</button>
-                                            <button onClick={() => router.push("/biology")} className="px-3 py-2 text-xs rounded-lg inline-flex items-center gap-1.5 bg-green-500 hover:bg-green-600 text-white shadow">🧬 Lab Sinh học</button>
+                                            <button onClick={() => router.push("/lab")} className="lab-btn-primary px-3 py-2 text-xs rounded-lg inline-flex items-center gap-1.5"><FlaskConical className="w-3.5 h-3.5" /> Lab Hóa học</button>
+                                            <button onClick={() => router.push("/physics")} className="px-3 py-2 text-xs rounded-lg inline-flex items-center gap-1.5 bg-indigo-500 hover:bg-indigo-600 text-white shadow"><Atom className="w-3.5 h-3.5" /> Lab Vật lý</button>
+                                            <button onClick={() => router.push("/biology")} className="px-3 py-2 text-xs rounded-lg inline-flex items-center gap-1.5 bg-green-500 hover:bg-green-600 text-white shadow"><Dna className="w-3.5 h-3.5" /> Lab Sinh học</button>
                                         </div>
                                     </div>
                                 ) : (
@@ -602,8 +603,9 @@ export default function StudentDashboard() {
                                                                 {a.title}
                                                             </p>
                                                             {exp && (
-                                                                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
-                                                                    {exp.emoji} {exp.name} · Lớp {exp.grade}
+                                                                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 inline-flex items-center gap-1.5">
+                                                                    {exp.subject === "biology" ? <Dna className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> : exp.subject === "physics" ? <Atom className="w-3.5 h-3.5 text-indigo-500 shrink-0" /> : <FlaskConical className="w-3.5 h-3.5 text-blue-500 shrink-0" />}
+                                                                    <span>{exp.name} · Lớp {exp.grade}</span>
                                                                 </p>
                                                             )}
                                                             {exp && (

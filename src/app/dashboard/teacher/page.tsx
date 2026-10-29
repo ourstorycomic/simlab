@@ -26,6 +26,7 @@ import { useToast } from "@/components/toast";
 import { Avatar, ProfileModal, ProgressBar } from "@/components/Avatar";
 import { Tour, TourStep } from "@/components/Tour";
 import Footer from "@/components/Footer";
+import { School, Sparkles, ClipboardList, Lightbulb, MessageSquareQuote, X } from "lucide-react";
 type Tab = "classes" | "assignments" | "results";
 
 function getExperiment(id: string): Experiment | undefined {
@@ -482,7 +483,7 @@ export default function TeacherDashboard() {
                                 </span>
                             </div>
                             <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1.5">
-                                <span>🏫 {user.school || "SimLab Edu"}</span>
+                                <span className="inline-flex items-center gap-1.5"><School className="w-3.5 h-3.5 text-blue-500" /> {user.school || "SimLab Edu"}</span>
                                 <span className="text-gray-300 dark:text-gray-600">•</span>
                                 <span className="font-mono text-gray-400 dark:text-gray-400">{user.email}</span>
                             </p>
@@ -1013,7 +1014,7 @@ export default function TeacherDashboard() {
                                                     <div>
                                                         <p className="text-sm font-bold text-gray-800 dark:text-gray-100">{a.title}</p>
                                                         <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
-                                                            {exp ? `${exp.emoji} ${exp.name} · Lớp ${exp.grade}` : "Không rõ thí nghiệm"}
+                                                            {exp ? `${exp.name} · Lớp ${exp.grade}` : "Không rõ thí nghiệm"}
                                                         </p>
                                                         {a.dueDate && (
                                                             <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 inline-flex items-center gap-1">
@@ -1089,7 +1090,7 @@ export default function TeacherDashboard() {
                                             {selectedAssignment.title}
                                         </h2>
                                         <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
-                                            {selectedExp ? `${selectedExp.emoji} ${selectedExp.name} · ${selectedExp.lesson}` : "Thí nghiệm"}
+                                            {selectedExp ? `${selectedExp.name} · ${selectedExp.lesson}` : "Thí nghiệm"}
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-2 no-print">
@@ -1101,7 +1102,7 @@ export default function TeacherDashboard() {
                                             disabled={resultsSubmissions.length === 0 || aiLoading}
                                             className="px-3 py-1.5 text-[11px] font-semibold rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-sm inline-flex items-center gap-1.5 disabled:opacity-50 transition-all"
                                         >
-                                            <span>✨</span>
+                                            <Sparkles className="w-3.5 h-3.5" />
                                             <span>{aiLoading ? "Đang phân tích..." : "AI Điểm mù lớp học"}</span>
                                         </button>
                                         <button
@@ -1109,7 +1110,7 @@ export default function TeacherDashboard() {
                                             disabled={resultsSubmissions.length === 0 || aiLoading}
                                             className="px-3 py-1.5 text-[11px] font-semibold rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white shadow-sm inline-flex items-center gap-1.5 disabled:opacity-50 transition-all"
                                         >
-                                            <span>📋</span>
+                                            <ClipboardList className="w-3.5 h-3.5" />
                                             <span>Báo cáo năng lực (B2B)</span>
                                         </button>
                                         <button
@@ -1185,7 +1186,7 @@ export default function TeacherDashboard() {
                                     <div className="rounded-xl border border-purple-500/30 bg-purple-950/20 p-4 mb-5 no-print animate-fade-in">
                                         <div className="flex items-center justify-between mb-3">
                                             <div className="flex items-center gap-2">
-                                                <span className="text-xl">✨</span>
+                                                <Sparkles className="w-5 h-5 text-purple-400" />
                                                 <div>
                                                     <h3 className="text-xs font-bold text-purple-200 uppercase tracking-wider">
                                                         AI Cảnh Báo Điểm Mù Kiến Thức Lớp Học (GDPT 2018)
@@ -1218,7 +1219,7 @@ export default function TeacherDashboard() {
                                                             <strong className="text-slate-400">Nguyên nhân gốc rễ:</strong> {b.rootCause}
                                                         </p>
                                                         <div className="p-2 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] flex items-center gap-2">
-                                                            <span>💡</span>
+                                                            <Lightbulb className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                                                             <span><strong>Hành động sư phạm:</strong> {b.actionPlan}</span>
                                                         </div>
                                                     </div>
@@ -1229,8 +1230,9 @@ export default function TeacherDashboard() {
                                         )}
 
                                         {aiBlindspots.quickTeacherNote && (
-                                            <p className="mt-3 text-[11px] text-slate-300 italic border-t border-purple-500/20 pt-2">
-                                                💬 <strong>Nhắn gửi giáo viên:</strong> &ldquo;{aiBlindspots.quickTeacherNote}&rdquo;
+                                            <p className="mt-3 text-[11px] text-slate-300 italic border-t border-purple-500/20 pt-2 flex items-center gap-1.5">
+                                                <MessageSquareQuote className="w-4 h-4 text-purple-400 shrink-0 not-italic" />
+                                                <span><strong>Nhắn gửi giáo viên:</strong> &ldquo;{aiBlindspots.quickTeacherNote}&rdquo;</span>
                                             </p>
                                         )}
                                     </div>
@@ -1371,7 +1373,7 @@ export default function TeacherDashboard() {
                     <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden text-gray-800 dark:text-slate-100">
                         <div className="p-5 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
                             <div className="flex items-center gap-2.5">
-                                <span className="text-2xl">📋</span>
+                                <ClipboardList className="w-5 h-5 text-blue-500 shrink-0" />
                                 <div>
                                     <h3 className="font-bold text-sm text-gray-900 dark:text-white">
                                         Báo Cáo Đánh Giá Năng Lực Học Sinh (Learning Gain Report)
@@ -1385,15 +1387,16 @@ export default function TeacherDashboard() {
                                 onClick={() => setShowAiReportModal(false)}
                                 className="w-8 h-8 rounded-lg bg-gray-200 dark:bg-slate-800 hover:bg-gray-300 dark:hover:bg-slate-700 flex items-center justify-center text-xs transition-colors"
                             >
-                                ✕
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
                         <div className="flex-1 overflow-y-auto p-6 text-xs leading-relaxed whitespace-pre-wrap font-sans text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-900">
                             {aiReport}
                         </div>
                         <div className="p-4 border-t border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/40 flex items-center justify-between">
-                            <span className="text-[11px] text-gray-500 dark:text-slate-400">
-                                ✨ Sinh bởi mô hình AI Groq Llama 3.1 &bull; Chuẩn hóa SGK 2018
+                            <span className="text-[11px] text-gray-500 dark:text-slate-400 inline-flex items-center gap-1.5">
+                                <Sparkles className="w-3.5 h-3.5 text-blue-500" />
+                                <span>Sinh bởi mô hình AI Groq Llama 3.1 &bull; Chuẩn hóa SGK 2018</span>
                             </span>
                             <div className="flex gap-2">
                                 <button

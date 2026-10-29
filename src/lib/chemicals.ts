@@ -1989,7 +1989,11 @@ export const chemicalCategories = [
 ] as const;
 
 export function getChemicalById(id: string): Chemical | undefined {
-  return chemicals.find((c) => c.id === id);
+  if (!id) return undefined;
+  const direct = chemicals.find((c) => c.id === id);
+  if (direct) return direct;
+  const norm = id.toLowerCase().replace(/[^a-z0-9]/g, "");
+  return chemicals.find((c) => c.id.toLowerCase().replace(/[^a-z0-9]/g, "") === norm);
 }
 
 // Lấy màu gradient của dung dịch

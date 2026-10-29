@@ -13,7 +13,7 @@ export type QuizQuestion = {
 export interface Experiment {
   id: string;
   name: string;
-  emoji: string;
+  emoji?: string;
   description: string;
   /** ID các hóa chất cần cho vào (theo thứ tự) */
   chemicalIds: string[];
@@ -53,7 +53,6 @@ export const experiments: Experiment[] = [
   {
     id: "exp-optics-lens",
     name: "Khảo sát thấu kính hội tụ",
-    emoji: "🔍",
     subject: "physics",
     description: "Khảo sát sự tạo ảnh của vật qua thấu kính hội tụ, xác định tiêu cự bằng công thức thấu kính mỏng.",
     chemicalIds: ["lens", "screen", "light-source"],
@@ -118,7 +117,6 @@ export const experiments: Experiment[] = [
   {
     id: "exp-pendulum",
     name: "Con lắc đơn — Chu kỳ dao động",
-    emoji: "⏱️",
     subject: "physics",
     description: "Đo chu kỳ dao động của con lắc đơn và kiểm chứng công thức T = 2π√(L/g).",
     chemicalIds: ["pendulum", "ruler", "stopwatch"],
@@ -178,7 +176,6 @@ export const experiments: Experiment[] = [
   {
     id: "exp-ohm-law",
     name: "Định luật Ohm — Mạch điện",
-    emoji: "⚡",
     subject: "physics",
     description: "Khảo sát mối quan hệ giữa hiệu điện thế U, cường độ dòng điện I và điện trở R trong mạch điện một chiều.",
     chemicalIds: ["battery", "resistor", "ammeter", "voltmeter"],
@@ -240,7 +237,6 @@ export const experiments: Experiment[] = [
   {
     id: "exp-mg-hcl",
     name: "Kim loại + Axit (Mg + HCl)",
-    emoji: "🔥",
     subject: "chemistry",
     description: "Cho dải Magie (Mg) vào dung dịch axit clohidric (HCl).",
     chemicalIds: ["hcl", "mg"],
@@ -286,7 +282,6 @@ export const experiments: Experiment[] = [
   {
     id: "exp-hcl-zn",
     name: "Kẽm + Axit Clohidric",
-    emoji: "🫧",
     subject: "chemistry",
     description: "Cho kẽm vào dung dịch axit clohidric, quan sát bọt khí thoát ra.",
     chemicalIds: ["hcl", "zn"],
@@ -340,7 +335,6 @@ export const experiments: Experiment[] = [
   {
     id: "exp-cuso4-naoh",
     name: "Đồng(II) Sunfat + NaOH",
-    emoji: "🩵",
     subject: "chemistry",
     description: "Nhỏ dung dịch natri hidroxit vào dung dịch đồng(II) sunfat màu xanh.",
     chemicalIds: ["cuso4", "naoh"],
@@ -382,7 +376,6 @@ export const experiments: Experiment[] = [
   {
     id: "exp-caco3-hcl",
     name: "Đá vôi + Axit Clohidric",
-    emoji: "💨",
     subject: "chemistry",
     description: "Cho mẩu đá vôi (CaCO₃) vào dung dịch axit clohidric.",
     chemicalIds: ["caco3", "hcl"],
@@ -430,7 +423,6 @@ export const experiments: Experiment[] = [
   {
     id: "exp-agno3-nacl",
     name: "Bạc Nitrat + Natri Clorua",
-    emoji: "🤍",
     subject: "chemistry",
     description: "Nhỏ dung dịch bạc nitrat vào dung dịch natri clorua.",
     chemicalIds: ["agno3", "nacl"],
@@ -477,7 +469,6 @@ export const experiments: Experiment[] = [
   {
     id: "exp-bacl2-na2so4",
     name: "Bari Clorua + Natri Sunfat",
-    emoji: "⚪",
     subject: "chemistry",
     description: "Nhỏ dung dịch bari clorua vào dung dịch natri sunfat.",
     chemicalIds: ["bacl2", "na2so4"],
@@ -518,7 +509,6 @@ export const experiments: Experiment[] = [
   {
     id: "exp-feso4-kmno4",
     name: "FeSO₄ + KMnO₄ trong H₂SO₄",
-    emoji: "🟣",
     subject: "chemistry",
     description: "Nhỏ dung dịch KMnO₄ loãng vào dung dịch FeSO₄ có mặt H₂SO₄.",
     chemicalIds: ["feso4", "kmno4"],
@@ -565,7 +555,6 @@ export const experiments: Experiment[] = [
   {
     id: "exp-fecl3-kscn",
     name: "Sắt(III) + KSCN",
-    emoji: "🔴",
     subject: "chemistry",
     description: "Nhỏ dung dịch kali thioxyanat vào dung dịch sắt(III) clorua.",
     chemicalIds: ["fecl3", "kscn"],
@@ -611,7 +600,6 @@ export const experiments: Experiment[] = [
   {
     id: "exp-pbno32-ki",
     name: "Chì(II) Nitrat + Kali Iodua",
-    emoji: "🟡",
     subject: "chemistry",
     description: "Nhỏ dung dịch kali iodua vào dung dịch chì(II) nitrat.",
     chemicalIds: ["pbno32", "ki"],
@@ -652,7 +640,6 @@ export const experiments: Experiment[] = [
   {
     id: "exp-h2o2-mno2",
     name: "Điều chế Oxi từ H₂O₂",
-    emoji: "🫧",
     subject: "chemistry",
     description: "Cho mangan dioxit (chất xúc tác) vào dung dịch hidro peroxit.",
     chemicalIds: ["h2o2", "mno2"],
@@ -700,7 +687,6 @@ export const experiments: Experiment[] = [
   {
     id: "exp-etanol-heat",
     name: "Đốt cháy Etanol",
-    emoji: "🔥",
     subject: "chemistry",
     description: "Cho etanol vào ống nghiệm rồi dùng đèn cồn đốt nóng.",
     chemicalIds: ["etanol"],
@@ -752,7 +738,6 @@ export const experiments: Experiment[] = [
   {
     id: "exp-mg-burn",
     name: "Đốt cháy Magie",
-    emoji: "✨",
     subject: "chemistry",
     description: "Đưa dải magie vào ngọn lửa đèn cồn.",
     chemicalIds: ["mg"],
@@ -798,7 +783,6 @@ export const experiments: Experiment[] = [
   {
     id: "exp-quytim-naoh",
     name: "Quỳ tím + NaOH",
-    emoji: "💙",
     subject: "chemistry",
     description: "Nhúng giấy quỳ tím vào dung dịch natri hidroxit.",
     chemicalIds: ["quytim", "naoh"],
@@ -839,7 +823,6 @@ export const experiments: Experiment[] = [
   {
     id: "exp-nh3-hcl",
     name: "Amoniac + Axit Clohidric",
-    emoji: "☁️",
     subject: "chemistry",
     description: "Trộn dung dịch amoniac với dung dịch axit clohidric.",
     chemicalIds: ["nh3", "hcl"],
@@ -880,7 +863,6 @@ export const experiments: Experiment[] = [
   {
     id: "exp-fe-cuso4",
     name: "Sắt + Đồng(II) Sunfat",
-    emoji: "🟠",
     subject: "chemistry",
     description: "Thả đinh sắt vào dung dịch đồng(II) sunfat màu xanh.",
     chemicalIds: ["fe", "cuso4"],
@@ -931,7 +913,6 @@ export const experiments: Experiment[] = [
   {
     id: "exp-caco3-heat",
     name: "Nhiệt phân CaCO₃",
-    emoji: "🔥",
     subject: "chemistry",
     description: "Nung nóng canxi cacbonat ở nhiệt độ cao.",
     chemicalIds: ["caco3"],
@@ -972,7 +953,6 @@ export const experiments: Experiment[] = [
   {
     id: "exp-iot-tinhbot",
     name: "Nhận biết Hồ tinh bột",
-    emoji: "🍠",
     subject: "chemistry",
     description: "Dùng dung dịch iot để nhận biết hồ tinh bột.",
     chemicalIds: ["i2", "tinh_bot"],
@@ -1013,7 +993,6 @@ export const experiments: Experiment[] = [
   {
     id: "exp-cu-hno3",
     name: "Đồng + Axit Nitric (Cu + HNO₃)",
-    emoji: "🧪",
     subject: "chemistry",
     description: "Thả mảnh đồng kim loại vào dung dịch axit nitric đặc, quan sát khí NO₂ màu nâu đỏ và dung dịch xanh lam.",
     chemicalIds: ["cu", "hno3"],
@@ -1060,7 +1039,6 @@ export const experiments: Experiment[] = [
   {
     id: "exp-cu-h2so4",
     name: "Đồng + Axit Sunfuric đặc nóng (Cu + H₂SO₄)",
-    emoji: "🔥",
     subject: "chemistry",
     description: "Đun nóng mảnh đồng với axit sunfuric đặc, quan sát đồng tan, sinh khí SO₂ có mùi hắc và dung dịch hóa xanh lam.",
     chemicalIds: ["cu", "h2so4"],
@@ -1106,7 +1084,6 @@ export const experiments: Experiment[] = [
   {
     id: "exp-al-naoh",
     name: "Nhôm + Dung dịch Kiềm (Al + NaOH)",
-    emoji: "⚗️",
     subject: "chemistry",
     description: "Thả mảnh nhôm vào dung dịch kiềm NaOH, quan sát hiện tượng tan và sủi bọt khí hiđro dữ dội.",
     chemicalIds: ["al", "naoh"],
@@ -1146,7 +1123,6 @@ export const experiments: Experiment[] = [
   {
     id: "exp-cuoh2-acid",
     name: "Đồng(II) Hidroxit + Axit (Cu(OH)₂ + H₂SO₄)",
-    emoji: "🔷",
     subject: "chemistry",
     description: "Hòa tan kết tủa Cu(OH)₂ màu xanh lam bằng axit sunfuric.",
     chemicalIds: ["cuoh2", "h2so4"],
@@ -1185,7 +1161,6 @@ export const experiments: Experiment[] = [
   {
     id: "exp-al-cucl2",
     name: "Nhôm đẩy Đồng (2Al + 3CuCl₂)",
-    emoji: "🪙",
     subject: "chemistry",
     description: "Thả dây nhôm vào dung dịch CuCl₂ màu xanh, quan sát đồng đỏ bám trên bề mặt nhôm.",
     chemicalIds: ["al", "cucl2"],
@@ -1228,7 +1203,6 @@ export const experiments: Experiment[] = [
   {
     id: "exp-bio-cell-structure",
     name: "Khảo sát cấu trúc siêu hiển vi tế bào thực vật",
-    emoji: "🔬",
     subject: "biology",
     description: "Khám phá không gian 3D cấu tạo tế bào thực vật: lục lạp, không bào trung tâm, thành tế bào xenlulozo, nhân và các bào quan chuyển hóa năng lượng.",
     chemicalIds: ["microscope", "plant-cell-slice", "staining-solution"],
@@ -1319,7 +1293,6 @@ export const experiments: Experiment[] = [
   {
     id: "exp-bio-human-systems",
     name: "Khám phá giải phẫu tổng thể & 14 hệ cơ quan người",
-    emoji: "🧍",
     subject: "biology",
     description: "Thực hành bóc tách trực quan không gian 3D toàn thân cơ thể người: khảo sát cấu trúc giải phẫu học và mối liên hệ phối hợp sinh lý giữa 14 hệ cơ quan.",
     chemicalIds: ["atlas-male", "atlas-female", "layer-isolator"],
@@ -1410,7 +1383,6 @@ export const experiments: Experiment[] = [
   {
     id: "exp-bio-cardiovascular",
     name: "Khảo sát hoạt động tim và hệ tuần hoàn máu người",
-    emoji: "🫀",
     subject: "biology",
     description: "Nghiên cứu cơ chế bơm máu tự động của tim, cấu tạo 4 buồng tim, hệ thống van tim và chu trình vận chuyển máu trong vòng tuần hoàn lớn và nhỏ.",
     chemicalIds: ["heart-model", "flow-tracer", "stethoscope"],
@@ -1501,7 +1473,6 @@ export const experiments: Experiment[] = [
   {
     id: "exp-bio-internal-organs",
     name: "Khảo sát giải phẫu hệ hô hấp & tiêu hóa người",
-    emoji: "🫁",
     subject: "biology",
     description: "Tìm hiểu cấu trúc cây phế quản, túi phế nang trao đổi khí ở phổi cùng các trạm phân giải thức ăn then chốt: gan, tuyến tụy, dạ dày và ruột non.",
     chemicalIds: ["lungs-model", "liver-pancreas", "intestine-model"],

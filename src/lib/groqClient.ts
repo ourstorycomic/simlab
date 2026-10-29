@@ -126,7 +126,7 @@ function generateSmartFallback(messages: ChatMessage[]): string {
 
   // 1. Toán học
   if (lastUserMsg.includes("pythagor") || lastUserMsg.includes("pitago") || lastUserMsg.includes("tam giác vuông")) {
-    return `### 📐 ĐỊNH LÝ PYTHAGORAS (TOÁN 8 - GDPT 2018):
+    return `### ĐỊNH LÝ PYTHAGORAS (TOÁN 8 - GDPT 2018):
 Trong một tam giác vuông, bình phương của cạnh huyền bằng tổng bình phương hai cạnh góc vuông:
 $$a^2 + b^2 = c^2$$
 
@@ -137,7 +137,7 @@ $$a^2 + b^2 = c^2$$
   }
 
   if (lastUserMsg.includes("đạo hàm") || lastUserMsg.includes("tiếp tuyến")) {
-    return `### 📐 Ý NGHĨA & CÔNG THỨC ĐẠO HÀM (TOÁN 11):
+    return `### Ý NGHĨA & CÔNG THỨC ĐẠO HÀM (TOÁN 11):
 - **Ý nghĩa hình học:** Đạo hàm $f'(x_0)$ chính là **hệ số góc $k$** của tiếp tuyến với đồ thị hàm số tại tiếp điểm $M_0(x_0; y_0)$:
   $$y - y_0 = f'(x_0)(x - x_0)$$
 - **Bảng đạo hàm cơ bản:**
@@ -148,7 +148,7 @@ $$a^2 + b^2 = c^2$$
 
   // 2. Vật lý
   if (lastUserMsg.includes("newton") || lastUserMsg.includes("định luật 2") || lastUserMsg.includes("f=ma")) {
-    return `### ⚡ ĐỊNH LUẬT II NEWTON (VẬT LÝ 10):
+    return `### ĐỊNH LUẬT II NEWTON (VẬT LÝ 10):
 - **Nội dung định luật:** Gia tốc của một vật cùng hướng với lực tác dụng. Độ lớn gia tốc tỉ lệ thuận với lực tác dụng và tỉ lệ nghịch với khối lượng của vật:
   $$\\vec{a} = \\frac{\\vec{F}}{m} \\iff \\vec{F} = m \\cdot \\vec{a}$$
 - **Đơn vị chuẩn:** Lực $F$ đo bằng Newton (N), khối lượng $m$ đo bằng kilogram (kg), gia tốc $a$ đo bằng $m/s^2$.`;
@@ -156,7 +156,7 @@ $$a^2 + b^2 = c^2$$
 
   // 3. Sinh học
   if (lastUserMsg.includes("quang hợp") || lastUserMsg.includes("pha sáng") || lastUserMsg.includes("pha tối")) {
-    return `### 🧬 BẢN CHẤT QUÁ TRÌNH QUANG HỢP (SINH HỌC 10):
+    return `### BẢN CHẤT QUÁ TRÌNH QUANG HỢP (SINH HỌC 10):
 Quang hợp diễn ra tại **lục lạp** ở lá cây với phương trình tổng quát:
 $$6CO_2 + 12H_2O + \\text{Ánh sáng} \\rightarrow C_6H_{12}O_6 + 6O_2 + 6H_2O$$
 
@@ -166,7 +166,7 @@ $$6CO_2 + 12H_2O + \\text{Ánh sáng} \\rightarrow C_6H_{12}O_6 + 6O_2 + 6H_2O$$
 
   // 4. Ngữ văn
   if (lastUserMsg.includes("tây tiến") || lastUserMsg.includes("quang dũng")) {
-    return `### 📖 PHÂN TÍCH THI TƯỢNG BÀI THƠ TÂY TIẾN (QUANG DŨNG):
+    return `### PHÂN TÍCH THI TƯỢNG BÀI THƠ TÂY TIẾN (QUANG DŨNG):
 - **Cảm hứng chủ đạo:** Kết hợp nhuần nhuyễn giữa **bút pháp lãng mạn** và **tinh thần bi tráng**.
 - **Hình tượng người lính:** Hiện lên với vẻ đẹp kiêu hùng, hào hoa nhưng sẵn sàng cống hiến tuổi xuân cho đất nước:
   > *"Chiến trường đi chẳng tiếc đời xanh / Áo bào thay chiếu anh về đất / Sông Mã gầm lên khúc độc hành"*
@@ -175,7 +175,7 @@ $$6CO_2 + 12H_2O + \\text{Ánh sáng} \\rightarrow C_6H_{12}O_6 + 6O_2 + 6H_2O$$
 
   // 5. Hóa học
   if (lastUserMsg.includes("nước vào axit") || lastUserMsg.includes("h2so4")) {
-    return `### ⚠️ CẢNH BÁO AN TOÀN SGK HÓA 10 (GDPT 2018):
+    return `### CẢNH BÁO AN TOÀN SGK HÓA 10 (GDPT 2018):
 Tuyệt đối không rót nước vào axit sunfuric đặc ($H_2SO_4$)!
 
 - **Nguyên nhân khoa học:** Axit $H_2SO_4$ đặc háo nước cực mạnh và tỏa lượng nhiệt khổng lồ ($\\Delta H < 0$). Nước nhẹ hơn sẽ nổi lên trên, sôi đột ngột và bắn tung tóe axit gây bỏng nghiêm trọng.
@@ -183,7 +183,7 @@ Tuyệt đối không rót nước vào axit sunfuric đặc ($H_2SO_4$)!
   }
 
   if (lastUserMsg.includes("cu") && (lastUserMsg.includes("hno3") || lastUserMsg.includes("axit nitric"))) {
-    return `### 🔬 HIỆN TƯỢNG PHẢN ỨNG (HÓA HỌC 11):
+    return `### HIỆN TƯỢNG PHẢN ỨNG (HÓA HỌC 11):
 Phản ứng giữa đồng kim loại (Cu) và axit nitric đặc ($HNO_3$):
 - **Hiện tượng quan sát:** Mảnh đồng tan dần, sủi bọt khí màu **nâu đỏ** ($NO_2$), dung dịch chuyển sang **màu xanh lam** của ion $Cu^{2+}$.
 - **Phương trình hóa học:**
@@ -191,5 +191,5 @@ Phản ứng giữa đồng kim loại (Cu) và axit nitric đặc ($HNO_3$):
 - **Lưu ý an toàn:** Khí $NO_2$ rất độc, cần làm thí nghiệm trong tủ hút hoặc nút bông tẩm kiềm NaOH.`;
   }
 
-  return `💡 **SimLab AI Mentor:** Câu hỏi của bạn đã được tiếp nhận! Dù là kiến thức **Toán học, Vật lý, Hóa học, Sinh học, Ngữ văn** hay phương pháp thực hành trên SimLab, mình luôn sẵn sàng đồng hành và giải thích chi tiết từng bước cho bạn.`;
+  return `**SimLab AI Mentor:** Câu hỏi của bạn đã được tiếp nhận! Dù là kiến thức **Toán học, Vật lý, Hóa học, Sinh học, Ngữ văn** hay phương pháp thực hành trên SimLab, mình luôn sẵn sàng đồng hành và giải thích chi tiết từng bước cho bạn.`;
 }

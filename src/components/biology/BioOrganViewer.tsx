@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import ModelViewer, { HotspotData } from "../ModelViewer";
+import { HandState } from "@/lib/handTracking";
+import { Lightbulb } from "lucide-react";
 
 export interface Organ {
   id: string;
@@ -251,6 +253,7 @@ interface BioOrganViewerProps {
   selectedId?: string;
   onBackToBody?: () => void;
   className?: string;
+  handStateRef?: React.MutableRefObject<HandState>;
 }
 
 export default function BioOrganViewer({
@@ -258,6 +261,7 @@ export default function BioOrganViewer({
   selectedId: controlledSelectedId,
   onBackToBody,
   className = "",
+  handStateRef,
 }: BioOrganViewerProps) {
   const [internalSelectedId, setInternalSelectedId] = useState<string>("heart");
   const selectedOrganId = controlledSelectedId || internalSelectedId;
@@ -277,7 +281,7 @@ export default function BioOrganViewer({
       {/* Left / Center: 3D Viewport Area */}
       <div className="flex-1 relative h-full flex flex-col overflow-hidden">
         {/* Top Organ Navigation Bar (Ảnh 5) */}
-        <div className="px-4 py-2.5 bg-slate-900/90 border-b border-slate-800 z-10 flex items-center justify-between gap-3 flex-shrink-0">
+        <div className="px-4 py-2.5 bg-slate-900/90 border-b border-slate-800 z-[65] relative pointer-events-auto flex items-center justify-between gap-3 flex-shrink-0">
           <div className="flex items-center gap-3">
             {onBackToBody && (
               <button
@@ -329,6 +333,7 @@ export default function BioOrganViewer({
             modelUrl={selectedOrgan.file}
             hotspots={selectedOrgan.hotspots}
             onHotspotClick={(hotspot) => setActiveHotspotInfo(hotspot)}
+            handStateRef={handStateRef}
           />
 
           {/* Floating Hotspot Callout on 3D Viewport if active (Ảnh 5) */}
@@ -436,7 +441,7 @@ export default function BioOrganViewer({
           {selectedOrgan.note && (
             <div className="p-3.5 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 text-indigo-200">
               <div className="flex items-start gap-2.5">
-                <span className="text-base leading-none">💡</span>
+                <Lightbulb className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <div className="text-[11px] leading-relaxed">
                   <strong className="text-indigo-300 font-semibold block mb-0.5">Ghi chú</strong>
                   <p className="text-indigo-200">{selectedOrgan.note}</p>

@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { BadgeDef, User, getLevel, getLevelTitle, updateUser } from "@/lib/storage";
 import { useToast } from "@/components/toast";
+import { Flame, FlaskConical, Sparkles, Award, CheckCircle2, Target, Star, Trophy, Zap } from "lucide-react";
 
 // ─── Avatar ───
 // Hiển thị avatar: ký tự (avatarIcon) trên nền màu (avatarColor).
@@ -81,6 +82,21 @@ export function ProgressBar({
 }
 
 // ─── BadgeChip ───
+function getBadgeIcon(id: string) {
+    switch (id) {
+        case "first-reaction": return <FlaskConical className="w-3 h-3 text-blue-500 shrink-0" />;
+        case "reactions-10": return <Sparkles className="w-3 h-3 text-emerald-500 shrink-0" />;
+        case "reactions-25": return <Award className="w-3 h-3 text-purple-500 shrink-0" />;
+        case "first-submit": return <CheckCircle2 className="w-3 h-3 text-cyan-500 shrink-0" />;
+        case "submit-5": return <Target className="w-3 h-3 text-amber-500 shrink-0" />;
+        case "good-score": return <Star className="w-3 h-3 text-yellow-500 shrink-0" />;
+        case "perfect-score": return <Trophy className="w-3 h-3 text-amber-500 shrink-0" />;
+        case "streak-3": return <Flame className="w-3 h-3 text-orange-500 shrink-0 fill-orange-500/20" />;
+        case "streak-7": return <Zap className="w-3 h-3 text-rose-500 shrink-0" />;
+        default: return <Award className="w-3 h-3 text-blue-500 shrink-0" />;
+    }
+}
+
 // Huy hiệu: sáng màu khi đã đạt, mờ khi chưa đạt.
 interface BadgeChipProps {
     badge: BadgeDef;
@@ -101,12 +117,13 @@ export function BadgeChip({ badge, earned, size = "sm" }: BadgeChipProps) {
             <span
                 title={earned ? `${badge.label}: ${badge.desc}` : `Chưa đạt — ${badge.desc}`}
                 aria-label={badge.label}
-                className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-all ${earned
-                        ? "border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
-                        : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500 opacity-70"
+                className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-all ${earned
+                        ? "border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 shadow-xs"
+                        : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500 opacity-60"
                     } ${size === "md" ? "px-2.5 py-1 text-[11px]" : ""}`}
             >
-                {badge.label}
+                {getBadgeIcon(badge.id)}
+                <span>{badge.label}</span>
             </span>
             {open && (
                 <span
@@ -154,8 +171,9 @@ export function XPBar({ xp, streak = 0, compact = false }: XPBarProps) {
                 <div className="flex items-center justify-between mt-2.5">
                     <span className="text-[10px] text-gray-400 dark:text-gray-500">Tổng {xp} XP</span>
                     {streak > 0 && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-orange-600 dark:text-orange-400">
-                            <span aria-hidden="true">🔥</span> Streak {streak} ngày
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-orange-600 dark:text-orange-400">
+                            <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500/20 shrink-0" />
+                            <span>Streak {streak} ngày</span>
                         </span>
                     )}
                 </div>

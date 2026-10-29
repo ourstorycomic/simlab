@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import confetti from "canvas-confetti";
 import { QuizQuestion } from "@/lib/experiments";
 import { Assignment, submitAssignment, recordSubmission, getCurrentUser } from "@/lib/storage";
+import { CheckCircle2, XCircle, Lightbulb } from "lucide-react";
 
 interface BioQuizModalProps {
   isOpen: boolean;
@@ -204,13 +205,15 @@ export default function BioQuizModal({
                       >
                         <span className="flex-1 leading-relaxed">{opt}</span>
                         {isSubmitted && optIdx === q.correctIndex && (
-                          <span className="text-emerald-400 text-xs font-bold flex-shrink-0">
-                            ✓ Đúng
+                          <span className="text-emerald-400 text-xs font-bold flex-shrink-0 flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Đúng</span>
                           </span>
                         )}
                         {isSubmitted && isSelected && !isCorrect && (
-                          <span className="text-red-400 text-xs font-bold flex-shrink-0">
-                            ✗ Sai
+                          <span className="text-red-400 text-xs font-bold flex-shrink-0 flex items-center gap-1">
+                            <XCircle className="w-3.5 h-3.5" />
+                            <span>Sai</span>
                           </span>
                         )}
                       </button>
@@ -221,8 +224,9 @@ export default function BioQuizModal({
                 {/* Explanation */}
                 {isSubmitted && q.explanation && (
                   <div className="mt-3.5 ml-8 p-3 bg-slate-900/80 rounded-xl border border-slate-700/50 text-xs text-slate-300 leading-relaxed">
-                    <span className="text-[11px] font-bold text-emerald-400 block mb-0.5">
-                      💡 Giải thích khoa học:
+                    <span className="text-[11px] font-bold text-emerald-400 flex items-center gap-1.5 mb-1">
+                      <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Giải thích khoa học:</span>
                     </span>
                     {q.explanation}
                   </div>

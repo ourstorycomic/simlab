@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Tour, TourStep } from "@/components/Tour";
+import { Target, SlidersHorizontal, BarChart2, Maximize2, Minimize2, Lightbulb, X, Tv, Play, Pause, RotateCcw } from "lucide-react";
 
 const InfoTooltip = ({ title, content }: { title: string; content: React.ReactNode }) => (
     <div className="relative group ml-2 inline-block">
@@ -450,7 +451,10 @@ export default function Pendulum() {
                             : "text-slate-400 hover:text-white"
                     }`}
                 >
-                    🎯 Con lắc
+                    <span className="inline-flex items-center justify-center gap-1.5">
+                        <Target className="w-3.5 h-3.5" />
+                        Con lắc
+                    </span>
                 </button>
                 <button
                     onClick={() => setMobileTab("controls")}
@@ -460,7 +464,10 @@ export default function Pendulum() {
                             : "text-slate-400 hover:text-white"
                     }`}
                 >
-                    ⚙️ Bảng điều khiển
+                    <span className="inline-flex items-center justify-center gap-1.5">
+                        <SlidersHorizontal className="w-3.5 h-3.5" />
+                        Bảng điều khiển
+                    </span>
                 </button>
                 {showEnergy && (
                     <button
@@ -471,7 +478,10 @@ export default function Pendulum() {
                                 : "text-slate-400 hover:text-white"
                         }`}
                     >
-                        📊 Năng lượng
+                        <span className="inline-flex items-center justify-center gap-1.5">
+                            <BarChart2 className="w-3.5 h-3.5" />
+                            Năng lượng
+                        </span>
                     </button>
                 )}
             </div>
@@ -652,10 +662,17 @@ export default function Pendulum() {
                         }`}
                         title={isTheaterMode ? "Thu nhỏ lại chế độ tiêu chuẩn" : "Phóng to toàn màn hình thí nghiệm cho khán giả"}
                     >
-                        <svg className="w-3.5 h-3.5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isTheaterMode ? "M9 9L4 4m0 0l5 0m-5 0l0 5m11 0l5-5m0 0l-5 0m5 0l0 5m-5 11l5 5m0 0l-5 0m5 0l0-5m-11 0l-5 5m0 0l5 0m-5 0l0-5" : "M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"} />
-                        </svg>
-                        <span>{isTheaterMode ? "🔍 Thu nhỏ" : "🖥️ Phóng to Trình chiếu"}</span>
+                        {isTheaterMode ? (
+                            <>
+                                <Minimize2 className="w-3.5 h-3.5 text-indigo-400" />
+                                <span>Thu nhỏ</span>
+                            </>
+                        ) : (
+                            <>
+                                <Maximize2 className="w-3.5 h-3.5 text-indigo-400" />
+                                <span>Phóng to Trình chiếu</span>
+                            </>
+                        )}
                     </button>
 
                     <button
@@ -663,9 +680,7 @@ export default function Pendulum() {
                         className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-indigo-300 text-xs font-semibold flex items-center gap-1.5 shadow-lg backdrop-blur"
                         title="Hướng dẫn làm thí nghiệm"
                     >
-                        <svg className="w-3.5 h-3.5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                        <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
                         <span className="hidden sm:inline">Hướng dẫn</span>
                     </button>
                 </div>
@@ -675,9 +690,13 @@ export default function Pendulum() {
                     <div className="absolute top-12 right-2.5 sm:top-20 sm:right-6 z-30 w-72 sm:w-80 bg-slate-800/95 backdrop-blur-md border border-slate-700 rounded-2xl shadow-2xl p-4 sm:p-5">
                         <div className="flex items-center justify-between mb-2 pb-1 border-b border-slate-700">
                             <h3 className="font-bold text-white text-xs sm:text-sm flex items-center gap-1.5">
-                                💡 Hướng dẫn Thí nghiệm
+                                <Lightbulb className="w-4 h-4 text-amber-400" />
+                                Hướng dẫn Thí nghiệm
                             </h3>
-                            <button onClick={() => setShowGuideModal(false)} className="text-slate-400 hover:text-white text-xs p-1">✕ Đóng</button>
+                            <button onClick={() => setShowGuideModal(false)} className="text-slate-400 hover:text-white text-xs p-1 flex items-center gap-1">
+                                <X className="w-3.5 h-3.5" />
+                                Đóng
+                            </button>
                         </div>
                         <ul className="text-xs sm:text-sm text-slate-300 space-y-2">
                             <li className="flex items-start gap-1.5">
@@ -703,13 +722,12 @@ export default function Pendulum() {
                             onClick={() => setIsTheaterMode(false)}
                             className="px-3.5 py-2 rounded-xl bg-slate-800/95 hover:bg-slate-700 border border-slate-600 text-indigo-300 text-xs font-semibold flex items-center gap-2 shadow-xl backdrop-blur transition-all"
                         >
-                            <svg className="w-4 h-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                            </svg>
-                            <span>📂 Hiện bảng cài đặt ({length.toFixed(1)}m, {gravity}m/s²)</span>
+                            <SlidersHorizontal className="w-4 h-4 text-indigo-400" />
+                            <span>Hiện bảng cài đặt ({length.toFixed(1)}m, {gravity}m/s²)</span>
                         </button>
-                        <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                            🖥️ Chế độ Trình chiếu
+                        <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-1.5">
+                            <Tv className="w-3 h-3 text-indigo-400" />
+                            Chế độ Trình chiếu
                         </span>
                     </div>
                 )}
@@ -754,20 +772,31 @@ export default function Pendulum() {
                             isPlaying ? "bg-rose-500 hover:bg-rose-600" : "bg-indigo-600 hover:bg-indigo-500"
                         }`}
                     >
-                        {isPlaying ? "⏸️ Tạm dừng" : "▶️ Bắt đầu dao động"}
+                        {isPlaying ? (
+                            <>
+                                <Pause className="w-3.5 h-3.5 fill-current" />
+                                <span>Tạm dừng</span>
+                            </>
+                        ) : (
+                            <>
+                                <Play className="w-3.5 h-3.5 fill-current" />
+                                <span>Bắt đầu dao động</span>
+                            </>
+                        )}
                     </button>
                     <button 
                         onClick={resetSimulation}
                         className="px-3 py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-1 active:scale-95"
                         title="Làm lại từ đầu"
                     >
-                        🔄
+                        <RotateCcw className="w-3.5 h-3.5" />
                     </button>
                     <button 
                         onClick={() => setMobileTab("controls")}
-                        className="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-indigo-300 text-xs font-semibold rounded-xl flex items-center justify-center gap-1 active:scale-95"
+                        className="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-indigo-300 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 active:scale-95"
                     >
-                        ⚙️ Cài đặt
+                        <SlidersHorizontal className="w-3.5 h-3.5" />
+                        <span>Cài đặt</span>
                     </button>
                 </div>
 

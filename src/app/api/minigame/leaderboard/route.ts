@@ -176,7 +176,7 @@ export async function POST(req: Request) {
       user_name: userName.trim(),
       user_school: userSchool?.trim() || null,
       avatar_color: avatarColor || "#3b82f6",
-      avatar_icon: avatarIcon || "⚡",
+      avatar_icon: avatarIcon || "HS",
       score,
       max_combo: maxCombo || 0,
       accuracy: accuracy || 100,

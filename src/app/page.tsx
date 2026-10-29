@@ -16,6 +16,7 @@ import {
 } from "@/lib/storage";
 import { useToast } from "@/components/toast";
 import Footer, { LogoMark } from "@/components/Footer";
+import { Zap, Trophy, CheckCircle2, FlaskConical, Dna, Atom } from "lucide-react";
 
 type AuthMode = "login" | "register";
 
@@ -165,8 +166,9 @@ export default function Home() {
                         <button onClick={() => router.push("/physics")} className="lab-btn px-4 py-2 text-sm rounded-full bg-indigo-500 text-white border-transparent hover:bg-indigo-600 dark:bg-indigo-600 dark:hover:bg-indigo-700">
                             Lab Vật lý
                         </button>
-                        <button onClick={() => router.push("/minigame")} className="lab-btn px-4 py-2 text-sm rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold border-transparent hover:from-amber-600 hover:to-orange-600 shadow-sm">
-                            ⚡ Minigame
+                        <button onClick={() => router.push("/minigame")} className="lab-btn px-4 py-2 text-sm rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold border-transparent hover:from-amber-600 hover:to-orange-600 shadow-sm inline-flex items-center gap-1.5">
+                            <Zap className="w-4 h-4 fill-current" />
+                            Minigame
                         </button>
                     </div>
                     {/* Mobile Navigation */}
@@ -180,8 +182,9 @@ export default function Home() {
                         <button onClick={() => router.push("/physics")} className="lab-btn px-2.5 py-1.5 text-xs rounded-full bg-indigo-500 text-white border-transparent font-semibold">
                             Lý
                         </button>
-                        <button onClick={() => router.push("/minigame")} className="lab-btn px-2.5 py-1.5 text-xs rounded-full bg-amber-500 text-white font-bold border-transparent">
-                            Game ⚡
+                        <button onClick={() => router.push("/minigame")} className="lab-btn px-2.5 py-1.5 text-xs rounded-full bg-amber-500 text-white font-bold border-transparent inline-flex items-center gap-1">
+                            <Zap className="w-3 h-3 fill-current" />
+                            Game
                         </button>
                     </div>
                 </div>
@@ -221,7 +224,7 @@ export default function Home() {
                             Vào phòng thực hành Hóa học
                         </button>
                         <button onClick={() => router.push("/minigame")} className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-yellow-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-400/40 px-6 py-3.5 text-sm font-bold rounded-full inline-flex items-center gap-2 shadow-sm transition-all duration-300 hover:-translate-y-0.5">
-                            <span className="text-base">🏆</span>
+                            <Trophy className="w-4 h-4 text-amber-500 shrink-0" />
                             Đấu Trường Nối Phương Trình
                         </button>
                     </div>
@@ -266,10 +269,10 @@ export default function Home() {
                                 </svg>
                                 Dành cho giáo viên
                             </h3>
-                            <ul className="text-[13px] text-gray-500 dark:text-gray-400 space-y-1.5">
-                                <li className="flex gap-2"><span className="text-blue-500 dark:text-blue-400 font-bold">✓</span> Tạo lớp học với mã mời học sinh</li>
-                                <li className="flex gap-2"><span className="text-blue-500 dark:text-blue-400 font-bold">✓</span> Giao thí nghiệm theo đúng bài học SGK</li>
-                                <li className="flex gap-2"><span className="text-blue-500 dark:text-blue-400 font-bold">✓</span> Chấm điểm tự động, xuất CSV, in bảng điểm</li>
+                            <ul className="text-[13px] text-gray-500 dark:text-gray-400 space-y-2">
+                                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0" /> Tạo lớp học với mã mời học sinh</li>
+                                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0" /> Giao thí nghiệm theo đúng bài học SGK</li>
+                                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0" /> Chấm điểm tự động, xuất CSV, in bảng điểm</li>
                             </ul>
                         </div>
                         <div className="bg-white dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow duration-200">
@@ -279,10 +282,10 @@ export default function Home() {
                                 </svg>
                                 Dành cho học sinh
                             </h3>
-                            <ul className="text-[13px] text-gray-500 dark:text-gray-400 space-y-1.5">
-                                <li className="flex gap-2"><span className="text-violet-500 dark:text-violet-400 font-bold">✓</span> Vào lớp bằng mã mời</li>
-                                <li className="flex gap-2"><span className="text-violet-500 dark:text-violet-400 font-bold">✓</span> Làm thí nghiệm ảo an toàn, có hướng dẫn từng bước</li>
-                                <li className="flex gap-2"><span className="text-violet-500 dark:text-violet-400 font-bold">✓</span> Trả lời câu hỏi và nộp bài ngay trong phòng lab</li>
+                            <ul className="text-[13px] text-gray-500 dark:text-gray-400 space-y-2">
+                                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-violet-500 shrink-0" /> Vào lớp bằng mã mời</li>
+                                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-violet-500 shrink-0" /> Làm thí nghiệm ảo an toàn, có hướng dẫn từng bước</li>
+                                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-violet-500 shrink-0" /> Trả lời câu hỏi và nộp bài ngay trong phòng lab</li>
                             </ul>
                         </div>
                     </div>

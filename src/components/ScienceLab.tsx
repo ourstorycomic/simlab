@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import { Experiment, QuizQuestion } from "@/lib/experiments";
 import { Assignment, Submission } from "@/lib/storage";
 import confetti from "canvas-confetti";
+import { Link as LinkIcon, Lightbulb, Download, BookOpen, FlaskConical, FileQuestion, Zap, Target, CheckCircle2, ShieldAlert, ClipboardList, Check, Atom, Dna } from "lucide-react";
 
 // Dynamically import ModelViewer to prevent SSR issues with Three.js
 const ModelViewer = dynamic(() => import("./ModelViewer"), {
@@ -355,9 +356,10 @@ function PendulumSimulation({ onStepComplete }: { onStepComplete?: (idx: number)
                     {!isAttached ? (
                         <button
                             onClick={() => setIsAttached(true)}
-                            className="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 font-bold text-sm text-white shadow-md transition-all"
+                            className="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 font-bold text-sm text-white shadow-md transition-all flex items-center justify-center gap-2"
                         >
-                            🔗 Buộc dây vào giá đỡ
+                            <LinkIcon className="w-4 h-4" />
+                            <span>Buộc dây vào giá đỡ</span>
                         </button>
                     ) : (
                         <div className="flex gap-2">
@@ -419,7 +421,10 @@ function PendulumSimulation({ onStepComplete }: { onStepComplete?: (idx: number)
                 </div>
 
                 <div className="p-3 bg-slate-900 rounded-xl border border-slate-800/80 text-xs text-slate-300 space-y-1">
-                    <p className="font-semibold text-cyan-400">💡 Ghi chú khoa học:</p>
+                    <p className="font-semibold text-cyan-400 flex items-center gap-1.5">
+                        <Lightbulb className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>Ghi chú khoa học:</span>
+                    </p>
                     <p>Chu kỳ dao động điều hòa của con lắc đơn phụ thuộc vào chiều dài l và gia tốc trọng trường g, không phụ thuộc vào khối lượng m của vật nặng!</p>
                 </div>
             </div>
@@ -576,7 +581,8 @@ function OhmSimulation({ onStepComplete }: { onStepComplete?: (idx: number) => v
                         onClick={handleRecord}
                         className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-sm text-white transition-all shadow-md flex items-center justify-center gap-2"
                     >
-                        <span>📥</span> Ghi lại số liệu thực nghiệm
+                        <Download className="w-4 h-4" />
+                        <span>Ghi lại số liệu thực nghiệm</span>
                     </button>
                 </div>
 
@@ -951,7 +957,11 @@ export default function ScienceLab({
                             <span className="text-xs text-slate-400">{experiment.chapter}</span>
                         </div>
                         <h1 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                            <span>{experiment.emoji}</span>
+                            {isPhysics ? (
+                                <Atom className="w-5 h-5 text-indigo-400 shrink-0" />
+                            ) : (
+                                <Dna className="w-5 h-5 text-teal-400 shrink-0" />
+                            )}
                             <span>{experiment.name}</span>
                         </h1>
                     </div>
@@ -961,35 +971,38 @@ export default function ScienceLab({
                 <div className="flex items-center bg-slate-800/80 p-1 rounded-xl border border-slate-700/80">
                     <button
                         onClick={() => setActiveTab("theory")}
-                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
                             activeTab === "theory"
                                 ? "bg-indigo-600 text-white shadow-md"
                                 : "text-slate-400 hover:text-white"
                         }`}
                     >
-                        📘 Lý thuyết & Mục tiêu
+                        <BookOpen className="w-3.5 h-3.5" />
+                        <span>Lý thuyết & Mục tiêu</span>
                     </button>
                     <button
                         onClick={() => setActiveTab("experiment")}
-                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
                             activeTab === "experiment"
                                 ? isPhysics
-                                    ? "bg-cyan-600 text-white shadow-md"
-                                    : "bg-emerald-600 text-white shadow-md"
+                                ? "bg-cyan-600 text-white shadow-md"
+                                : "bg-emerald-600 text-white shadow-md"
                                 : "text-slate-400 hover:text-white"
                         }`}
                     >
-                        🔬 Thí nghiệm tương tác
+                        <FlaskConical className="w-3.5 h-3.5" />
+                        <span>Thí nghiệm tương tác</span>
                     </button>
                     <button
                         onClick={() => setActiveTab("quiz")}
-                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
                             activeTab === "quiz"
                                 ? "bg-amber-600 text-white shadow-md"
                                 : "text-slate-400 hover:text-white"
                         }`}
                     >
-                        📝 Đánh giá kiểm tra ({quizList.length})
+                        <FileQuestion className="w-3.5 h-3.5" />
+                        <span>Đánh giá kiểm tra ({quizList.length})</span>
                     </button>
                 </div>
 
@@ -1018,7 +1031,8 @@ export default function ScienceLab({
                         <div className="md:col-span-2 space-y-6">
                             <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl">
                                 <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
-                                    <span className="text-indigo-400">📖</span> Bản chất khoa học & Cơ sở lý thuyết
+                                    <BookOpen className="w-5 h-5 text-indigo-400 shrink-0" />
+                                    <span>Bản chất khoa học & Cơ sở lý thuyết</span>
                                 </h2>
                                 <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-line">
                                     {experiment.theory}
@@ -1028,7 +1042,8 @@ export default function ScienceLab({
                             {experiment.equations && experiment.equations.length > 0 && (
                                 <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl">
                                     <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
-                                        <span className="text-amber-400">⚡</span> Công thức & Phương trình trọng tâm
+                                        <Zap className="w-5 h-5 text-amber-400 shrink-0" />
+                                        <span>Công thức & Phương trình trọng tâm</span>
                                     </h2>
                                     <div className="space-y-2">
                                         {experiment.equations.map((eq, idx) => (
@@ -1048,12 +1063,13 @@ export default function ScienceLab({
                         <div className="space-y-6">
                             <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl">
                                 <h2 className="text-base font-bold text-white mb-3 flex items-center gap-2">
-                                    <span className="text-emerald-400">🎯</span> Mục tiêu cần đạt (GDPT 2018)
+                                    <Target className="w-4 h-4 text-emerald-400 shrink-0" />
+                                    <span>Mục tiêu cần đạt (GDPT 2018)</span>
                                 </h2>
                                 <ul className="space-y-2.5 text-xs text-slate-300">
                                     {experiment.objectives?.map((obj, idx) => (
                                         <li key={idx} className="flex items-start gap-2">
-                                            <span className="text-emerald-400 font-bold mt-0.5">✓</span>
+                                            <Check className="w-3.5 h-3.5 text-emerald-400 font-bold mt-0.5 shrink-0" />
                                             <span>{obj}</span>
                                         </li>
                                     ))}
@@ -1062,7 +1078,8 @@ export default function ScienceLab({
 
                             <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl">
                                 <h2 className="text-base font-bold text-white mb-2 flex items-center gap-2">
-                                    <span className="text-rose-400">⚠️</span> Lưu ý an toàn & Dụng cụ
+                                    <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0" />
+                                    <span>Lưu ý an toàn & Dụng cụ</span>
                                 </h2>
                                 <p className="text-xs text-slate-400 leading-relaxed">
                                     {experiment.note || "Thực hiện theo đúng hướng dẫn của giáo viên và quy tắc an toàn phòng thí nghiệm."}
@@ -1143,7 +1160,8 @@ export default function ScienceLab({
                             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                                 <div>
                                     <h3 className="text-base font-bold text-white flex items-center gap-2">
-                                        <span className="text-cyan-400">📋</span> Quy trình thao tác thực nghiệm từng bước
+                                        <ClipboardList className="w-4 h-4 text-cyan-400 shrink-0" />
+                                        <span>Quy trình thao tác thực nghiệm từng bước</span>
                                     </h3>
                                     <p className="text-xs text-slate-400 mt-0.5">
                                         Đánh dấu từng bước sau khi đã hoàn thành để ghi nhận quy trình an toàn
@@ -1173,7 +1191,7 @@ export default function ScienceLab({
                                                         : "border border-slate-600 text-slate-500"
                                                 }`}
                                             >
-                                                {isDone ? "✓" : idx + 1}
+                                                {isDone ? <Check className="w-3.5 h-3.5" /> : idx + 1}
                                             </div>
                                             <div className="flex-1 text-xs sm:text-sm leading-relaxed">
                                                 <span className="font-semibold text-slate-400 mr-2">Bước {idx + 1}:</span>
@@ -1193,7 +1211,8 @@ export default function ScienceLab({
                         <div className="border-b border-slate-800 pb-4 mb-6 flex flex-wrap items-center justify-between gap-3">
                             <div>
                                 <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                                    <span>📝</span> Bài kiểm tra đánh giá kiến thức thí nghiệm
+                                    <FileQuestion className="w-5 h-5 text-amber-400 shrink-0" />
+                                    <span>Bài kiểm tra đánh giá kiến thức thí nghiệm</span>
                                 </h2>
                                 <p className="text-xs text-slate-400 mt-1">
                                     Trả lời các câu hỏi trắc nghiệm dưới đây để hoàn thành chỉ tiêu bài tập.
@@ -1268,7 +1287,10 @@ export default function ScienceLab({
 
                                             {quizSubmitted && q.explanation && (
                                                 <div className="mt-3 p-3 bg-slate-900/80 border border-slate-800 rounded-lg text-xs text-slate-400">
-                                                    <span className="font-bold text-amber-400">💡 Giải thích chi tiết: </span>
+                                                    <span className="font-bold text-amber-400 flex items-center gap-1.5 mb-1">
+                                                        <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
+                                                        <span>Giải thích chi tiết:</span>
+                                                    </span>
                                                     <span>{q.explanation}</span>
                                                 </div>
                                             )}

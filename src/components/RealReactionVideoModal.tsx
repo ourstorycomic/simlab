@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { RealVideoDemo, ReactionResult } from "@/lib/reactions";
+import { CheckCircle2 } from "lucide-react";
 
 interface RealReactionVideoModalProps {
   isOpen: boolean;
@@ -303,17 +304,17 @@ export default function RealReactionVideoModal({
                 </svg>
                 Đối chiếu với Mô phỏng SimLab 3D
               </h4>
-              <ul className="space-y-1.5 text-xs text-gray-300">
+              <ul className="space-y-2 text-xs text-gray-300">
                 <li className="flex items-start gap-2">
-                  <span className="text-emerald-400 font-bold">✓</span>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                   <span><strong>Bọt khí & khói:</strong> Hiệu ứng sủi bọt khí cuồn cuộn mô phỏng chính xác khí NO₂ màu nâu đỏ.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-emerald-400 font-bold">✓</span>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                   <span><strong>Đổi màu dung dịch:</strong> Chuyển từ trong suốt sang màu xanh lam ngọc đặc trưng của ion Cu²⁺.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-emerald-400 font-bold">✓</span>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                   <span><strong>Hòa tan chất rắn:</strong> Mảnh đồng Cu màu đỏ cam tan dần vào dung dịch axit.</span>
                 </li>
               </ul>

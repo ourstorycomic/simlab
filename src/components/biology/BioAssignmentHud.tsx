@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Assignment, Submission, getSubmission, getCurrentUser } from "@/lib/storage";
 import { Experiment } from "@/lib/experiments";
 import BioQuizModal from "./BioQuizModal";
+import { Check } from "lucide-react";
 
 interface BioAssignmentHudProps {
   assignment: Assignment;
@@ -51,7 +52,8 @@ export default function BioAssignmentHud({
 
                 {submission ? (
                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-600 text-white flex items-center gap-1">
-                    ✓ Đã hoàn thành · {submission.correctCount}/{submission.totalQuestions} câu đúng
+                    <Check className="w-3 h-3" />
+                    <span>Đã hoàn thành · {submission.correctCount}/{submission.totalQuestions} câu đúng</span>
                   </span>
                 ) : (
                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/30">

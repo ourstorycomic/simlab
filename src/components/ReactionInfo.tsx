@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ReactionResult, REACTION_TYPE_LABELS, REACTION_TYPE_BORDER } from "@/lib/reactions";
 import RealReactionVideoModal from "./RealReactionVideoModal";
+import { FlaskConical, ShieldAlert } from "lucide-react";
 
 interface ReactionInfoProps {
     reaction: ReactionResult;
@@ -93,7 +94,7 @@ export default function ReactionInfo({
                                             className="text-xs font-bold px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-md hover:shadow-blue-500/30 transition-all flex items-center gap-1.5 flex-shrink-0 active:scale-95"
                                             title="Dọn sạch bàn thí nghiệm để bắt đầu làm thí nghiệm khác (Phím tắt: L)"
                                         >
-                                            <span className="text-sm">🧪</span>
+                                            <FlaskConical className="w-3.5 h-3.5 shrink-0" />
                                             <span>Làm thí nghiệm khác</span>
                                         </button>
                                     )}
@@ -232,8 +233,9 @@ export default function ReactionInfo({
 
                             {/* Footer bên video */}
                             <div className="mt-3 pt-2.5 border-t border-gray-800 flex items-center justify-between text-[11px]">
-                                <span className="text-amber-400/90 flex items-center gap-1 text-[10px]">
-                                    ⚠️ Thí nghiệm cần thực hiện trong tủ hút độc
+                                <span className="text-amber-400/90 flex items-center gap-1.5 text-[10px]">
+                                    <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
+                                    <span>Thí nghiệm cần thực hiện trong tủ hút độc</span>
                                 </span>
                                 <button
                                     onClick={() => setShowVideoModal(true)}
@@ -274,7 +276,7 @@ export default function ReactionInfo({
                                     className="text-xs font-bold px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-md hover:shadow-blue-500/30 transition-all flex items-center gap-1.5 flex-shrink-0 active:scale-95"
                                     title="Dọn sạch bàn thí nghiệm để bắt đầu làm thí nghiệm khác (Phím tắt: L)"
                                 >
-                                    <span className="text-sm">🧪</span>
+                                    <FlaskConical className="w-3.5 h-3.5 shrink-0" />
                                     <span>Làm thí nghiệm khác</span>
                                 </button>
                             )}
@@ -333,7 +335,7 @@ export default function ReactionInfo({
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 0 0-3.7-3.7 48.678 48.678 0 0 0-7.324 0 4.006 4.006 0 0 0-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 0 0 3.7 3.7 48.656 48.656 0 0 0 7.324 0 4.006 4.006 0 0 0 3.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3-3 3" />
                                 </svg>
-                                <span>🧪 Làm thí nghiệm khác (Dọn bàn)</span>
+                                <span>Làm thí nghiệm khác (Dọn bàn)</span>
                             </button>
                         )}
 
@@ -359,7 +361,7 @@ export default function ReactionInfo({
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
                             </svg>
-                            <span>📚 Chọn bài thí nghiệm khác</span>
+                            <span>Chọn bài thí nghiệm khác</span>
                         </button>
                     )}
                 </div>

@@ -10,6 +10,7 @@ import {
   CELL_TYPE_CATALOG,
   OrganelleItem,
 } from "./data/organellesData";
+import { playLabSound } from "@/components/lab3d/ChemistryRealisticModels";
 
 interface PlantCellViewerProps {
   onOrganelleSelect?: (organelle: OrganelleItem | null) => void;
@@ -69,6 +70,7 @@ export default function PlantCellViewer({
     progress: number;
   } | null>(null);
   const pointerDownPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const cellPillsContainerRef = useRef<HTMLDivElement>(null);
 
   const uniformsRef = useRef<{
     organelleSelected: { value: number };
@@ -149,9 +151,23 @@ export default function PlantCellViewer({
       }
 
       // 3. Giữ nguyên góc nhìn và khoảng cách zoom hiện tại của người dùng khi chọn bào quan
+      if (org) {
+        window.dispatchEvent(
+          new CustomEvent("bio-hand-hover-info", {
+            detail: { name: org.name, color: org.color },
+          })
+        );
+      }
     },
     [currentCellType.maskKeys, glowEnabled, onOrganelleSelect, organellesList]
   );
+
+  const selectOrganelleRef = useRef(selectOrganelle);
+  selectOrganelleRef.current = selectOrganelle;
+  const organellesListRef = useRef(organellesList);
+  organellesListRef.current = organellesList;
+  const selectedIdRef = useRef(selectedId);
+  selectedIdRef.current = selectedId;
 
   // Pin Texture Generator for Hotspots
   const createPinTexture = (colorHex: string) => {
@@ -419,6 +435,7 @@ export default function PlantCellViewer({
     let animId: number;
 
     const scene = new THREE.Scene();
+    scene.background = new THREE.Color("#070b13");
     sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(
@@ -430,16 +447,21 @@ export default function PlantCellViewer({
     camera.position.set(0.08, 1.55, 2.75);
     cameraRef.current = camera;
 
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      alpha: true,
-      powerPreference: "high-performance",
-    });
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true,
+        powerPreference: "high-performance",
+      });
+    } catch {
+      setLoadError("Không thể khởi tạo WebGL. Vui lòng tải lại trang hoặc đóng bớt tab 3D khác.");
+      return;
+    }
     renderer.setSize(container.clientWidth || 1000, container.clientHeight || 700);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    // Độ phơi sáng cao tạo cảm giác trong trẻo, rực rỡ và tươi sáng
     renderer.toneMappingExposure = 1.35;
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
@@ -486,6 +508,178 @@ export default function PlantCellViewer({
     };
     window.addEventListener("resize", handleResize);
 
+    const handleHandRotate = (e: Event) => {
+      const customEvent = e as CustomEvent<{ dx: number; dy: number }>;
+      if (!controlsRef.current || !cameraRef.current) return;
+      const { dx, dy } = customEvent.detail;
+      const offset = new THREE.Vector3().subVectors(cameraRef.current.position, controlsRef.current.target);
+      const spherical = new THREE.Spherical().setFromVector3(offset);
+      spherical.theta -= dx * 0.007;
+      spherical.phi = Math.max(0.05, Math.min(Math.PI - 0.05, spherical.phi - dy * 0.007));
+      offset.setFromSpherical(spherical);
+      cameraRef.current.position.addVectors(controlsRef.current.target, offset);
+      cameraRef.current.lookAt(controlsRef.current.target);
+      controlsRef.current.update();
+    };
+    const handleHandZoom = (e: Event) => {
+      const customEvent = e as CustomEvent<{ factor: number | "reset" }>;
+      if (!cameraRef.current || !controlsRef.current) return;
+      const { factor } = customEvent.detail;
+      if (factor === "reset") {
+        controlsRef.current.reset();
+        return;
+      }
+      const target = controlsRef.current.target;
+      const dir = cameraRef.current.position.clone().sub(target);
+      const newDist = Math.max(0.5, Math.min(25.0, dir.length() * factor));
+      cameraRef.current.position.copy(target).add(dir.normalize().multiplyScalar(newDist));
+      controlsRef.current.update();
+    };
+    window.addEventListener("bio-hand-rotate", handleHandRotate);
+    window.addEventListener("bio-hand-zoom", handleHandZoom);
+
+    let hoveredOrgId: string | null = null;
+    let hoverStartTime = 0;
+    let pointSelectCooldown = 0;
+
+    const handleHandPoint = (e: Event) => {
+      const now = performance.now();
+      const customEvent = e as CustomEvent<{
+        screenX: number;
+        screenY: number;
+        normalizedX: number;
+        normalizedY: number;
+      }>;
+      if (!container || !cameraRef.current || !cellRootRef.current) return;
+      const { screenX, screenY } = customEvent.detail;
+
+      // 1. Kiểm tra vị trí ngón tay có đang nằm trong khung nhìn 3D (không nằm trên sidebar hoặc header)
+      const rect = container.getBoundingClientRect();
+      if (
+        screenX < rect.left ||
+        screenX > rect.right ||
+        screenY < rect.top ||
+        screenY > rect.bottom
+      ) {
+        return;
+      }
+
+      const localX = screenX - rect.left;
+      const localY = screenY - rect.top;
+
+      // Chuẩn hóa tọa độ NDC (-1 đến 1) chính xác tuyệt đối theo kích thước khung nhìn 3D thực tế
+      // Đảm bảo tia raycast bắn thẳng từ chóp ngón tay 3D vào đúng vị trí trên mô hình, triệt tiêu hoàn toàn lệch tọa độ do sidebar
+      const viewNdcX = (localX / rect.width) * 2 - 1;
+      const viewNdcY = -(localY / rect.height) * 2 + 1;
+
+      let hitId: string | null = null;
+
+      // 2. ƯU TIÊN SỐ 1 TUYỆT ĐỐI: Bắt chính xác các bào quan nhỏ qua khoảng cách màn hình (Screen-Space Proximity)
+      // Giúp ngón tay chỉ vào các cục nhỏ (Ti thể, Lục lạp, Bộ máy Golgi, Ribosome...) không bao giờ bị đè bởi cục to (Không bào, Tế bào chất)
+      let closestPinOrgId: string | null = null;
+      let minPinDist = 45; // Bán kính 45px quanh mút đầu ngón tay (chuẩn xác cao, ngón trỏ chỉ thẳng vào mới nhận)
+
+      for (const sprite of spritesRef.current) {
+        const spriteWorldPos = new THREE.Vector3();
+        sprite.getWorldPosition(spriteWorldPos);
+        const proj = spriteWorldPos.project(cameraRef.current);
+        if (proj.z < 1) {
+          const pinX = ((proj.x + 1) * rect.width) / 2;
+          const pinY = ((-proj.y + 1) * rect.height) / 2;
+          const dist = Math.hypot(localX - pinX, localY - pinY);
+          if (dist < minPinDist) {
+            minPinDist = dist;
+            closestPinOrgId = sprite.userData.organelleId;
+          }
+        }
+      }
+
+      if (closestPinOrgId) {
+        hitId = closestPinOrgId;
+      }
+
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(new THREE.Vector2(viewNdcX, viewNdcY), cameraRef.current);
+
+      // 3. Kiểm tra bề mặt 3D Mesh & Texture Mask (Chỉ khi không ở gần bất kỳ điểm ghim nhỏ nào)
+      if (!hitId) {
+        const intersects = raycaster.intersectObjects(cellRootRef.current.children, true);
+        if (intersects.length > 0) {
+          const hit = intersects[0];
+          // A. Texture Mask
+          if (maskDataRef.current && hit.uv) {
+            const mask = maskDataRef.current;
+            const px = Math.min(Math.max(0, Math.floor(hit.uv.x * mask.width)), mask.width - 1);
+            const py = Math.min(Math.max(0, Math.floor(hit.uv.y * mask.height)), mask.height - 1);
+            const organelleIdIndex = mask.ids[py * mask.width + px];
+            if (organelleIdIndex > 0 && mask.keys[organelleIdIndex - 1]) {
+              hitId = mask.keys[organelleIdIndex - 1];
+            }
+          }
+
+          // B. Mesh riêng lẻ
+          if (!hitId) {
+            let mId =
+              (hit.object.userData && hit.object.userData.organelleId) ||
+              (hit.object.parent && hit.object.parent.userData && hit.object.parent.userData.organelleId);
+
+            if (!mId && hit.object.name) {
+              const hitName = hit.object.name.toLowerCase();
+              const matched = organellesListRef.current.find(
+                (o) => hitName.includes(o.id.toLowerCase()) || (o.nameEn && hitName.includes(o.nameEn.toLowerCase()))
+              );
+              if (matched) mId = matched.id;
+            }
+            hitId = mId || null;
+          }
+
+          // C. Vùng không gian 3D gần nhất với điểm chạm (hit.point)
+          if (!hitId && hit.point && cellRootRef.current) {
+            const localPoint = cellRootRef.current.worldToLocal(hit.point.clone());
+            let closestOrgId: string | null = null;
+            let minDistance = 0.28; // Giảm xuống 0.28 để ngón tay phải thực sự chỉ vào cấu trúc đó
+
+            for (const org of organellesListRef.current) {
+              if (!org.hotspots || org.hotspots.length === 0) continue;
+              for (const hs of org.hotspots) {
+                const hsPos = new THREE.Vector3(hs.position[0], hs.position[1], hs.position[2]);
+                const dist = localPoint.distanceTo(hsPos);
+                if (dist < minDistance) {
+                  minDistance = dist;
+                  closestOrgId = org.id;
+                }
+              }
+            }
+            hitId = closestOrgId;
+          }
+        }
+      }
+
+      if (hitId) {
+        const org = organellesListRef.current.find((o) => o.id === hitId);
+        if (org) {
+          window.dispatchEvent(
+            new CustomEvent("bio-hand-hover-info", {
+              detail: { name: org.name, color: org.color },
+            })
+          );
+        }
+        if (hitId === hoveredOrgId) {
+          if (now - hoverStartTime > 650 && now > pointSelectCooldown) {
+            pointSelectCooldown = now + 1200;
+            selectOrganelleRef.current(hitId);
+            playLabSound("pick");
+          }
+        } else {
+          hoveredOrgId = hitId;
+          hoverStartTime = now;
+        }
+      } else {
+        hoveredOrgId = null;
+      }
+    };
+    window.addEventListener("bio-hand-point", handleHandPoint);
+
     const resizeObserver = new ResizeObserver(() => {
       handleResize();
     });
@@ -531,15 +725,20 @@ export default function PlantCellViewer({
       controls.update();
       renderer.render(scene, camera);
     };
-
     animate();
 
     return () => {
       isDisposed = true;
       cancelAnimationFrame(animId);
       window.removeEventListener("resize", handleResize);
+      window.removeEventListener("bio-hand-rotate", handleHandRotate);
+      window.removeEventListener("bio-hand-zoom", handleHandZoom);
+      window.removeEventListener("bio-hand-point", handleHandPoint);
       resizeObserver.disconnect();
       renderer.dispose();
+      try {
+        renderer.forceContextLoss();
+      } catch {}
       if (container && renderer.domElement.parentNode === container) {
         container.removeChild(renderer.domElement);
       }
@@ -688,33 +887,70 @@ export default function PlantCellViewer({
       )}
 
       {/* Thanh chọn 8 loại tế bào */}
-      <div className="w-full px-4 py-2 bg-[#0b0f19] border-b border-slate-800 flex items-center justify-between gap-3 overflow-x-auto custom-scrollbar flex-shrink-0 z-20">
-        <div className="flex items-center gap-1.5 flex-nowrap">
-          {CELL_TYPES.map((c) => {
-            const isActive = c.id === currentCellTypeId;
-            return (
-              <button
-                key={c.id}
-                onClick={() => {
-                  if (c.id !== currentCellTypeId) {
-                    setCurrentCellTypeId(c.id);
-                    loadCellAssets(c.id);
-                  }
-                }}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
-                  isActive
-                    ? "bg-slate-800 text-white border border-slate-700 shadow-sm"
-                    : "bg-slate-950/60 text-slate-400 hover:text-slate-200 border border-transparent hover:border-slate-800"
-                }`}
-              >
-                <span className={`w-2 h-2 rounded-full ${isActive ? "bg-emerald-400 shadow-sm" : "bg-slate-600"}`} />
-                {c.name}
-              </button>
-            );
-          })}
+      <div className="w-full px-3 py-2 bg-[#0b0f19] border-b border-slate-800 flex items-center justify-between gap-2 overflow-hidden flex-shrink-0 z-20">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          {/* Nút cuộn sang trái */}
+          <button
+            onClick={() => {
+              if (cellPillsContainerRef.current) {
+                cellPillsContainerRef.current.scrollBy({ left: -220, behavior: "smooth" });
+              }
+            }}
+            className="flex-shrink-0 p-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700 transition-all active:scale-95 shadow-sm"
+            title="Cuộn sang trái (◀)"
+            aria-label="Cuộn sang trái"
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+            </svg>
+          </button>
+
+          <div
+            ref={cellPillsContainerRef}
+            className="flex items-center gap-1.5 flex-nowrap overflow-x-auto scroll-smooth custom-scrollbar no-scrollbar flex-1 py-0.5"
+          >
+            {CELL_TYPES.map((c) => {
+              const isActive = c.id === currentCellTypeId;
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => {
+                    if (c.id !== currentCellTypeId) {
+                      setCurrentCellTypeId(c.id);
+                      loadCellAssets(c.id);
+                    }
+                  }}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 flex-shrink-0 ${
+                    isActive
+                      ? "bg-slate-800 text-white border border-slate-700 shadow-sm ring-1 ring-emerald-500/40"
+                      : "bg-slate-950/60 text-slate-400 hover:text-slate-200 border border-transparent hover:border-slate-800"
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${isActive ? "bg-emerald-400 shadow-sm" : "bg-slate-600"}`} />
+                  {c.name}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Nút cuộn sang phải */}
+          <button
+            onClick={() => {
+              if (cellPillsContainerRef.current) {
+                cellPillsContainerRef.current.scrollBy({ left: 220, behavior: "smooth" });
+              }
+            }}
+            className="flex-shrink-0 p-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700 transition-all active:scale-95 shadow-sm"
+            title="Cuộn sang phải (▶)"
+            aria-label="Cuộn sang phải"
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+            </svg>
+          </button>
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0 pl-2">
           <span className="text-[11px] text-slate-400 font-mono hidden md:inline">
             {organellesList.length} Cấu trúc bào quan
           </span>

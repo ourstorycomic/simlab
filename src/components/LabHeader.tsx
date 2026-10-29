@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { LogoMark } from "./Footer";
 import { getCurrentUser, User } from "@/lib/storage";
+import { Box, Gamepad2 } from "lucide-react";
 
 export type LabSubject = "chemistry" | "physics" | "biology";
 
@@ -117,13 +118,26 @@ export default function LabHeader({
                     })}
                 </nav>
 
+                {/* 3D Lab Mode */}
+                <Link
+                    href={`/lab/3d?subject=${currentSubject || "chemistry"}`}
+                    className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-500/15 via-cyan-500/15 to-blue-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 hover:border-emerald-500/60 hover:bg-emerald-500/20 transition-all shadow-xs shrink-0"
+                    title="Chuyển sang Không gian Lab 3D tương tác với Camera Hand Tracking"
+                >
+                    <Box className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    <span className="hidden sm:inline">Lab 3D</span>
+                    <span className="px-1.5 py-0.5 text-[9px] bg-gradient-to-r from-emerald-500 to-cyan-500 text-slate-950 rounded-full font-black uppercase tracking-wider shadow-xs">
+                        NEW
+                    </span>
+                </Link>
+
                 {/* Minigame Shortcut */}
                 <Link
                     href="/minigame"
                     className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-yellow-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 hover:border-amber-500/60 hover:bg-amber-500/20 transition-all shadow-xs shrink-0"
                     title="Đấu trường Nối Phương Trình Hóa Học — Đua Top Nhận Quà"
                 >
-                    <span className="text-sm">⚡</span>
+                    <Gamepad2 className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                     <span className="hidden sm:inline">Minigame Nối PT</span>
                     <span className="px-1.5 py-0.5 text-[9px] bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 rounded-full font-black uppercase tracking-wider shadow-xs">
                         HOT

@@ -259,6 +259,14 @@ function IconZap({ className = "w-4 h-4" }: { className?: string }) {
   );
 }
 
+function IconX({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 6 6 18M6 6l12 12" />
+    </svg>
+  );
+}
+
 export default function EquationMinigame() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
@@ -658,7 +666,7 @@ export default function EquationMinigame() {
       setScore((prev) => prev + pointsEarned);
 
       setFloatingScore({
-        text: `+${pointsEarned}đ! ${nextCombo >= 2 ? `🔥 ${nextCombo}x Combo` : ""}`,
+        text: `+${pointsEarned}đ! ${nextCombo >= 2 ? `${nextCombo}x Combo` : ""}`,
       });
       setTimeout(() => setFloatingScore(null), 900);
 
@@ -754,7 +762,7 @@ export default function EquationMinigame() {
   const progressToTop = Math.min(100, Math.round((score / targetLeaderScore) * 100));
 
   const handleShareChallenge = () => {
-    const text = `🔥 Tôi vừa ghi được ${score} điểm trong Đấu Trường Nối Phương Trình Hóa Học trên SimLab Edu! Danh hiệu: ${currentRankTier.badge} ${currentRankTier.title}. Hãy thử vượt kỷ lục của tôi tại: https://simlab.vercel.app/minigame`;
+    const text = `Tôi vừa ghi được ${score} điểm trong Đấu Trường Nối Phương Trình Hóa Học trên SimLab Edu! Danh hiệu: ${currentRankTier.title}. Hãy thử vượt kỷ lục của tôi tại: https://simlab.vercel.app/minigame`;
     if (navigator.clipboard) {
       navigator.clipboard.writeText(text);
       setCopySuccess(true);
@@ -1243,7 +1251,7 @@ export default function EquationMinigame() {
                 </span>
                 {mode === "campaign" && (
                   <span className="text-xs text-purple-400 font-medium bg-purple-500/10 px-2.5 py-0.5 rounded border border-purple-500/30 w-fit">
-                    Lộ trình tự động: Lớp 8 ➔ Lớp 12
+                    Lộ trình tự động: Lớp 8 → Lớp 12
                   </span>
                 )}
               </div>
@@ -1259,7 +1267,7 @@ export default function EquationMinigame() {
                         Lộ trình Vượt Ải Cấp Lớp Tự Động
                       </div>
                       <div className="text-xs text-purple-400/80 mt-0.5">
-                        Ải 1 (Lớp 8) ➔ Ải 2 (Lớp 9) ➔ Ải 3 (Lớp 10) ➔ Ải 4 (Lớp 11) ➔ Ải 5 (Lớp 12). Hoàn thành mỗi ải được +30s và thăng cấp.
+                        Ải 1 (Lớp 8) → Ải 2 (Lớp 9) → Ải 3 (Lớp 10) → Ải 4 (Lớp 11) → Ải 5 (Lớp 12). Hoàn thành mỗi ải được +30s và thăng cấp.
                       </div>
                     </div>
                   </div>
@@ -1336,7 +1344,9 @@ export default function EquationMinigame() {
 
               {/* Bám đuổi Top 1 Leaderboard Đối thủ */}
               <div className="hidden sm:flex items-center gap-2.5 text-xs bg-slate-950/60 px-3 py-1 rounded-lg border border-slate-800">
-                <span className="text-amber-400/90 font-medium">🎯 Kỷ lục Top 1 đối thủ:</span>
+                <span className="text-amber-400/90 font-medium inline-flex items-center gap-1">
+                  <IconTarget className="w-3.5 h-3.5 text-amber-400" /> Kỷ lục Top 1 đối thủ:
+                </span>
                 <span className="font-semibold text-amber-300">
                   {topLeader.userName} ({targetLeaderScore} điểm)
                 </span>
@@ -1679,7 +1689,7 @@ export default function EquationMinigame() {
                   onClick={() => setLeaderboardOpen(false)}
                   className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-xs"
                 >
-                  ✕
+                  <IconX className="w-3.5 h-3.5" />
                 </button>
               </div>
 
@@ -1840,9 +1850,13 @@ export default function EquationMinigame() {
                                 </span>
                               )}
                             </div>
-                            <p className="text-[10px] text-slate-400 truncate max-w-[155px]">
-                              {entry.userSchool || "SimLab Edu"} • Cấp {entry.level}
-                              {entry.streak > 0 && ` • 🔥 ${entry.streak} ngày`}
+                            <p className="text-[10px] text-slate-400 truncate max-w-[155px] inline-flex items-center gap-1">
+                              <span>{entry.userSchool || "SimLab Edu"} • Cấp {entry.level}</span>
+                              {entry.streak > 0 && (
+                                <span className="inline-flex items-center gap-0.5 text-orange-400 font-medium">
+                                  • <IconFlame className="w-2.5 h-2.5 inline" /> {entry.streak} ngày
+                                </span>
+                              )}
                             </p>
                           </div>
                         </div>

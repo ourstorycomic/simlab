@@ -837,12 +837,12 @@ export interface RankTier {
 }
 
 export const RANK_TIERS: RankTier[] = [
-  { minScore: 4000, title: "Viện Sĩ Hóa Học", badge: "👑", color: "#f59e0b", bgGradient: "from-amber-500 to-yellow-600" },
-  { minScore: 2800, title: "Phù Thủy Phản Ứng", badge: "🔮", color: "#a855f7", bgGradient: "from-purple-500 to-indigo-600" },
-  { minScore: 1800, title: "Bậc Thầy Cân Bằng", badge: "⚡", color: "#3b82f6", bgGradient: "from-blue-500 to-cyan-600" },
-  { minScore: 1000, title: "Nhà Nghiên Cứu", badge: "🔬", color: "#10b981", bgGradient: "from-emerald-500 to-teal-600" },
-  { minScore: 500, title: "Trợ Lý Phòng Lab", badge: "⚗️", color: "#06b6d4", bgGradient: "from-cyan-500 to-blue-500" },
-  { minScore: 0, title: "Tập Sự Pha Chế", badge: "🧪", color: "#64748b", bgGradient: "from-slate-500 to-gray-600" },
+  { minScore: 4000, title: "Viện Sĩ Hóa Học", badge: "crown", color: "#f59e0b", bgGradient: "from-amber-500 to-yellow-600" },
+  { minScore: 2800, title: "Phù Thủy Phản Ứng", badge: "sparkles", color: "#a855f7", bgGradient: "from-purple-500 to-indigo-600" },
+  { minScore: 1800, title: "Bậc Thầy Cân Bằng", badge: "zap", color: "#3b82f6", bgGradient: "from-blue-500 to-cyan-600" },
+  { minScore: 1000, title: "Nhà Nghiên Cứu", badge: "search", color: "#10b981", bgGradient: "from-emerald-500 to-teal-600" },
+  { minScore: 500, title: "Trợ Lý Phòng Lab", badge: "flask", color: "#06b6d4", bgGradient: "from-cyan-500 to-blue-500" },
+  { minScore: 0, title: "Tập Sự Pha Chế", badge: "test-tube", color: "#64748b", bgGradient: "from-slate-500 to-gray-600" },
 ];
 
 export function getRankTier(score: number): RankTier {

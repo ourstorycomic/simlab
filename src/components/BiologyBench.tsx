@@ -11,10 +11,24 @@ import { OrganelleItem } from "./biology/data/organellesData";
 import PlantCellViewer from "./biology/PlantCellViewer";
 import HumanBodyAtlasViewer from "./biology/HumanBodyAtlasViewer";
 import BioOrganViewer from "./biology/BioOrganViewer";
+import BioHandOverlay from "./biology/BioHandOverlay";
+import BioLive3DHandCanvas from "./biology/BioLive3DHandCanvas";
+
+import { HandState } from "@/lib/handTracking";
+import { playLabSound } from "@/components/lab3d/ChemistryRealisticModels";
+import { MousePointer, Hand } from "lucide-react";
 
 export type BioTabMode = "cell" | "human" | "organs";
 
-export default function BiologyBench() {
+interface BiologyBenchProps {
+  externalHandStateRef?: React.MutableRefObject<HandState>;
+  hideHandTracker?: boolean;
+}
+
+export default function BiologyBench({
+  externalHandStateRef,
+  hideHandTracker = false,
+}: BiologyBenchProps = {}) {
   const searchParams = useSearchParams();
   const assignmentId = searchParams.get("assignment");
 
@@ -110,26 +124,48 @@ export default function BiologyBench() {
         />
       )}
 
-      {/* Main Mode Navigation Bar */}
-      <div id="tour-bio-tabs" className="bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-3 py-2 sm:px-5 sm:py-2 z-20 flex flex-wrap items-center justify-between gap-3 flex-shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-            </svg>
+      {/* Main Mode Navigation Bar (Sleek Sub-Navigation, Zero Overlap) */}
+      <div id="tour-bio-tabs" className={`bg-slate-900/90 backdrop-blur-md border-b border-slate-800/80 px-3 py-1 z-[65] relative pointer-events-auto flex flex-wrap items-center ${hideHandTracker ? "justify-center" : "justify-between"} gap-3 flex-shrink-0`}>
+        {!hideHandTracker && (
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-xs font-bold text-slate-200 tracking-wide uppercase">
+                Mô phỏng Sinh học 3D
+              </h2>
+              <p className="text-[10px] text-slate-400 font-medium">Chương trình GDPT 2018</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-xs font-bold text-slate-200 tracking-wide uppercase">
-              Mô phỏng Sinh học 3D
-            </h2>
-            <p className="text-[10px] text-slate-400 font-medium">Chương trình GDPT 2018</p>
-          </div>
-        </div>
+        )}
 
         {/* 3 Main Mode Switcher Pills */}
-        <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800">
+        <div className="flex items-center bg-slate-950/90 p-1 rounded-xl border border-slate-800 shadow-lg gap-1">
+          {/* Prev Mode Button */}
           <button
-            onClick={() => setTabMode("cell")}
+            onClick={() => {
+              const modes: BioTabMode[] = ["cell", "human", "organs"];
+              const idx = modes.indexOf(tabMode);
+              setTabMode(modes[(idx - 1 + modes.length) % modes.length]);
+              playLabSound("pick");
+            }}
+            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all active:scale-90"
+            title="Chuyển chế độ trước (◀)"
+            aria-label="Chế độ trước"
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+            </svg>
+          </button>
+
+          <button
+            onClick={() => {
+              setTabMode("cell");
+              playLabSound("pick");
+            }}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 ${
               tabMode === "cell"
                 ? "bg-emerald-600 text-white shadow-sm"
@@ -145,7 +181,10 @@ export default function BiologyBench() {
           </button>
 
           <button
-            onClick={() => setTabMode("human")}
+            onClick={() => {
+              setTabMode("human");
+              playLabSound("pick");
+            }}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 ${
               tabMode === "human"
                 ? "bg-sky-600 text-white shadow-sm"
@@ -153,14 +192,17 @@ export default function BiologyBench() {
             }`}
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
             <span>Giải phẫu toàn thân</span>
             <span className="text-[10px] px-1.5 py-0.2 rounded bg-black/30 font-mono">14 hệ</span>
           </button>
 
           <button
-            onClick={() => setTabMode("organs")}
+            onClick={() => {
+              setTabMode("organs");
+              playLabSound("pick");
+            }}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 ${
               tabMode === "organs"
                 ? "bg-rose-600 text-white shadow-sm"
@@ -173,12 +215,51 @@ export default function BiologyBench() {
             <span>Nội tạng chuyên biệt</span>
             <span className="text-[10px] px-1.5 py-0.2 rounded bg-black/30 font-mono">9</span>
           </button>
+
+          {/* Next Mode Button */}
+          <button
+            onClick={() => {
+              const modes: BioTabMode[] = ["cell", "human", "organs"];
+              const idx = modes.indexOf(tabMode);
+              setTabMode(modes[(idx + 1) % modes.length]);
+              playLabSound("pick");
+            }}
+            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all active:scale-90"
+            title="Chuyển chế độ tiếp theo (▶)"
+            aria-label="Chế độ tiếp theo"
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+            </svg>
+          </button>
         </div>
 
-        {/* Status indicator */}
-        <div className="hidden lg:flex items-center gap-2 text-[11px] text-slate-400">
-          <span className="w-2 h-2 rounded-full bg-emerald-400" />
-          <span>Mô hình 3D tương tác</span>
+        {/* Hand Tracking Toggle & Status */}
+        <div className="flex items-center gap-3">
+          <BioHandOverlay
+            currentTab={tabMode}
+            onTabChange={setTabMode}
+            externalHandStateRef={externalHandStateRef}
+            hideTracker={hideHandTracker}
+          />
+          {!hideHandTracker && (
+            <div className="hidden xl:flex items-center gap-2 text-[11px] bg-slate-950/80 px-2.5 py-1 rounded-lg border border-slate-800 text-slate-300">
+              <span className="text-emerald-400 font-medium inline-flex items-center gap-1.5">
+                <MousePointer className="w-3 h-3" />
+                <span>Kéo để xoay 360°</span>
+              </span>
+              <span className="text-slate-600">•</span>
+              <span className="text-amber-400 font-medium inline-flex items-center gap-1.5">
+                <Hand className="w-3 h-3" />
+                <span>Nắm tay để xoay</span>
+              </span>
+              <span className="text-slate-600">•</span>
+              <span className="text-sky-400 font-medium inline-flex items-center gap-1.5">
+                <Hand className="w-3 h-3" />
+                <span>Phất tay đổi tab</span>
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -209,6 +290,16 @@ export default function BiologyBench() {
             selectedId={selectedOrganId}
             onBackToBody={() => setTabMode("human")}
             onOrganSelect={(org) => setSelectedOrganId(org.id)}
+            handStateRef={externalHandStateRef}
+          />
+        )}
+
+        {/* Unified 3D Hand Overlay for Cell and Human Atlas */}
+        {externalHandStateRef && (
+          <BioLive3DHandCanvas
+            handStateRef={externalHandStateRef}
+            active={tabMode !== "organs"}
+            tabMode={tabMode}
           />
         )}
       </div>

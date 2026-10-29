@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from "react";
 import { User, syncUser, setSession } from "@/lib/storage";
+import { X, ShieldCheck, AlertCircle } from "lucide-react";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -106,16 +107,17 @@ export default function AuthModal({
         {/* Nút đóng */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors text-lg"
+          className="absolute top-4 right-4 w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors"
           aria-label="Đóng"
         >
-          ✕
+          <X className="w-4 h-4" />
         </button>
 
         {/* Header */}
         <div className="mb-5 text-left">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-semibold mb-2">
-            <span>🛡️ Xác thực SimLab Edu</span>
+            <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
+            <span>Xác thực SimLab Edu</span>
           </div>
           <h3 className="text-xl font-bold text-white tracking-tight">{title}</h3>
           <p className="text-xs text-slate-400 mt-1 leading-relaxed">{subtitle}</p>
@@ -254,8 +256,9 @@ export default function AuthModal({
           </div>
 
           {error && (
-            <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
-              ⚠️ {error}
+            <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>{error}</span>
             </div>
           )}
 
