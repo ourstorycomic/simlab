@@ -346,23 +346,24 @@ function Lab3DContent() {
             {/* ─── Top Unified Navigation Bar (Fixed Header at top-0, h-14, Zero Overlap) ─── */}
             <header
                 id="top-unified-nav"
-                className="fixed top-0 left-0 right-0 h-14 bg-slate-950/90 backdrop-blur-xl border-b border-slate-800/80 z-[70] pointer-events-auto px-3 sm:px-6 flex items-center justify-between select-none shadow-lg"
+                className="fixed top-0 left-0 right-0 h-14 bg-slate-950/90 backdrop-blur-xl border-b border-slate-800/80 z-[70] pointer-events-auto px-2 sm:px-6 flex items-center justify-between gap-1 select-none shadow-lg"
             >
                 {/* Left: Back to 2D Mode */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
                     <Link
                         href={back2DRoute}
-                        className="flex items-center gap-2 bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white px-3 py-1.5 rounded-xl border border-slate-700/60 transition-all text-xs font-semibold shadow-md active:scale-95"
+                        className="flex items-center gap-1.5 bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white px-2.5 py-1.5 rounded-xl border border-slate-700/60 transition-all text-xs font-semibold shadow-md active:scale-95 flex-shrink-0"
                     >
-                        <svg className="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                        <svg className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
                         </svg>
-                        <span>Về Lab 2D</span>
+                        <span className="hidden sm:inline">Về Lab 2D</span>
+                        <span className="sm:hidden">2D</span>
                     </Link>
                 </div>
 
                 {/* Center: 3 Unified Lab Subject Tabs */}
-                <nav className="flex items-center bg-slate-900/95 backdrop-blur-xl p-1 rounded-xl border border-slate-800 shadow-xl gap-1">
+                <nav className="flex items-center bg-slate-900/95 backdrop-blur-xl p-1 rounded-xl border border-slate-800 shadow-xl gap-0.5 sm:gap-1 flex-shrink-0">
                     {/* Prev Subject Button */}
                     <button
                         onClick={() => {
@@ -370,11 +371,11 @@ function Lab3DContent() {
                             const curIdx = order.indexOf(subject);
                             switchSubject(order[(curIdx - 1 + order.length) % order.length]);
                         }}
-                        className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-lg transition-all active:scale-90"
+                        className="p-1 sm:p-1.5 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-lg transition-all active:scale-90 flex-shrink-0"
                         title="Chuyển môn trước (◀)"
                         aria-label="Môn trước"
                     >
-                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                        <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
                         </svg>
                     </button>
@@ -382,14 +383,15 @@ function Lab3DContent() {
                     {/* Chemistry Tab */}
                     <button
                         onClick={() => switchSubject("chemistry")}
-                        className={`flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-bold transition-all duration-200 ${
+                        className={`flex items-center gap-1 sm:gap-2 px-2 py-1 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-bold transition-all duration-200 flex-shrink-0 ${
                             subject === "chemistry"
                                 ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-600/30 ring-1 ring-emerald-400/50"
                                 : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
                         }`}
                     >
-                        <FlaskConical className="w-4 h-4 text-emerald-400" />
-                        <span>Hóa Học 3D</span>
+                        <FlaskConical className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 flex-shrink-0" />
+                        <span className="sm:hidden">Hóa</span>
+                        <span className="hidden sm:inline">Hóa Học 3D</span>
                         {subject === "chemistry" && (
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse hidden sm:inline-block" />
                         )}
@@ -398,14 +400,15 @@ function Lab3DContent() {
                     {/* Physics Tab */}
                     <button
                         onClick={() => switchSubject("physics")}
-                        className={`flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-bold transition-all duration-200 ${
+                        className={`flex items-center gap-1 sm:gap-2 px-2 py-1 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-bold transition-all duration-200 flex-shrink-0 ${
                             subject === "physics"
                                 ? "bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md shadow-indigo-600/30 ring-1 ring-indigo-400/50"
                                 : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
                         }`}
                     >
-                        <Atom className="w-4 h-4 text-indigo-400" />
-                        <span>Vật Lý 3D</span>
+                        <Atom className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-400 flex-shrink-0" />
+                        <span className="sm:hidden">Lý</span>
+                        <span className="hidden sm:inline">Vật Lý 3D</span>
                         {subject === "physics" && (
                             <span className="w-1.5 h-1.5 rounded-full bg-indigo-300 animate-pulse hidden sm:inline-block" />
                         )}
@@ -414,14 +417,15 @@ function Lab3DContent() {
                     {/* Biology Tab */}
                     <button
                         onClick={() => switchSubject("biology")}
-                        className={`flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-bold transition-all duration-200 ${
+                        className={`flex items-center gap-1 sm:gap-2 px-2 py-1 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-bold transition-all duration-200 flex-shrink-0 ${
                             subject === "biology"
                                 ? "bg-gradient-to-r from-rose-600 to-teal-600 text-white shadow-md shadow-rose-600/30 ring-1 ring-rose-400/50"
                                 : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
                         }`}
                     >
-                        <Dna className="w-4 h-4 text-rose-400" />
-                        <span>Sinh Học 3D</span>
+                        <Dna className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-400 flex-shrink-0" />
+                        <span className="sm:hidden">Sinh</span>
+                        <span className="hidden sm:inline">Sinh Học 3D</span>
                         {subject === "biology" && (
                             <span className="w-1.5 h-1.5 rounded-full bg-teal-300 animate-pulse hidden sm:inline-block" />
                         )}
@@ -434,11 +438,11 @@ function Lab3DContent() {
                             const curIdx = order.indexOf(subject);
                             switchSubject(order[(curIdx + 1) % order.length]);
                         }}
-                        className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-lg transition-all active:scale-90"
+                        className="p-1 sm:p-1.5 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-lg transition-all active:scale-90 flex-shrink-0"
                         title="Chuyển môn tiếp theo (▶)"
                         aria-label="Môn tiếp theo"
                     >
-                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                        <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                         </svg>
                     </button>

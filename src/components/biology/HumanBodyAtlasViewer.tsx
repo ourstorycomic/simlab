@@ -59,6 +59,7 @@ export default function HumanBodyAtlasViewer({
   const [isIsolated, setIsIsolated] = useState<boolean>(false);
   const [smartLabels, setSmartLabels] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [mobileActiveTab, setMobileActiveTab] = useState<"3d" | "systems" | "details">("3d");
 
   // Three.js References
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -334,6 +335,7 @@ export default function HumanBodyAtlasViewer({
       };
 
       setSelectedStructure(info);
+      setMobileActiveTab("details");
       if (onStructureSelect) onStructureSelect(info);
 
       window.dispatchEvent(
@@ -1170,8 +1172,28 @@ export default function HumanBodyAtlasViewer({
 
       {/* Main 3-Column Lab Layout: Regions/Systems (Left) + Viewport (Center) + Inspector (Right) */}
       <div className="w-full h-full flex flex-col lg:flex-row overflow-hidden relative">
-        {/* Left: Navigation Panel (Ảnh 2 & Ảnh 4) */}
-        <div className="w-full lg:w-72 xl:w-80 flex-shrink-0 bg-[#0b0f19] border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col h-auto lg:h-full z-20 overflow-hidden">
+        {/* Left: Navigation Panel (Desktop: Sidebar, Mobile: Full slide-up / drawer) */}
+        <div
+          className={`fixed lg:relative inset-x-0 bottom-14 top-0 lg:top-0 z-30 lg:z-20 w-full lg:w-72 xl:w-80 flex-shrink-0 bg-[#0b0f19] border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col h-[calc(100%-3.5rem)] lg:h-full overflow-hidden transition-transform duration-300 ease-in-out ${
+            mobileActiveTab === "systems" ? "translate-x-0 shadow-2xl" : "-translate-x-full lg:translate-x-0"
+          }`}
+        >
+          {/* Mobile Sheet Close Bar */}
+          <div className="lg:hidden flex items-center justify-between px-4 py-2.5 bg-slate-900 border-b border-slate-800 flex-shrink-0">
+            <span className="text-xs font-bold text-sky-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-sky-400 animate-pulse" />
+              <span>Hệ cơ quan & Vùng cơ thể</span>
+            </span>
+            <button
+              onClick={() => setMobileActiveTab("3d")}
+              className="p-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white flex items-center gap-1 text-xs px-2 active:scale-95 transition-all"
+            >
+              <span>Đóng</span>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
           {/* Header Title & Subtitle (Ảnh 2) */}
           <div className="p-3.5 border-b border-slate-800/80 flex items-center justify-between flex-shrink-0">
             <div>
@@ -1774,8 +1796,28 @@ export default function HumanBodyAtlasViewer({
           />
         </div>
 
-        {/* Right: Structure Inspector Sidebar (Ảnh 2 & Ảnh 4) */}
-        <div className="w-full lg:w-80 xl:w-88 flex-shrink-0 bg-[#0b0f19] border-t lg:border-t-0 lg:border-l border-slate-800 flex flex-col h-auto lg:h-full z-20 overflow-hidden">
+        {/* Right: Structure Inspector Sidebar (Desktop: Sidebar, Mobile: Slide-up Drawer) */}
+        <div
+          className={`fixed lg:relative inset-x-0 bottom-14 top-0 lg:top-0 z-30 lg:z-20 w-full lg:w-80 xl:w-88 flex-shrink-0 bg-[#0b0f19] border-t lg:border-t-0 lg:border-l border-slate-800 flex flex-col h-[calc(100%-3.5rem)] lg:h-full overflow-hidden transition-transform duration-300 ease-in-out ${
+            mobileActiveTab === "details" ? "translate-x-0 shadow-2xl" : "translate-x-full lg:translate-x-0"
+          }`}
+        >
+          {/* Mobile Sheet Close Bar */}
+          <div className="lg:hidden flex items-center justify-between px-4 py-2.5 bg-slate-900 border-b border-slate-800 flex-shrink-0">
+            <span className="text-xs font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-rose-400 animate-pulse" />
+              <span>Chi tiết cấu trúc giải phẫu</span>
+            </span>
+            <button
+              onClick={() => setMobileActiveTab("3d")}
+              className="p-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white flex items-center gap-1 text-xs px-2 active:scale-95 transition-all"
+            >
+              <span>Đóng</span>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
           {/* Header */}
           <div className="p-3.5 border-b border-slate-800 bg-[#0b0f19] flex items-center justify-between flex-shrink-0">
             {selectedStructure ? (
@@ -2011,6 +2053,40 @@ export default function HumanBodyAtlasViewer({
             <span className="text-sky-400 font-medium">Atlas Giải phẫu</span>
           </div>
         </div>
+      </div>
+
+      {/* Mobile Navigation Dock (Switch between 3D Canvas, Systems List, Structure Details) */}
+      <div className="lg:hidden absolute bottom-2 left-3 right-3 z-40 bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 rounded-2xl p-1 shadow-2xl flex items-center justify-around text-xs select-none">
+        <button
+          onClick={() => setMobileActiveTab("3d")}
+          className={`flex-1 py-2 rounded-xl font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 ${
+            mobileActiveTab === "3d" ? "bg-cyan-600 text-white shadow-md shadow-cyan-600/30" : "text-slate-400 hover:text-white"
+          }`}
+        >
+          <Activity className="w-3.5 h-3.5" />
+          <span>Cơ thể 3D</span>
+        </button>
+        <button
+          onClick={() => setMobileActiveTab("systems")}
+          className={`flex-1 py-2 rounded-xl font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 ${
+            mobileActiveTab === "systems" ? "bg-sky-600 text-white shadow-md shadow-sky-600/30" : "text-slate-400 hover:text-white"
+          }`}
+        >
+          <Layers className="w-3.5 h-3.5" />
+          <span>Hệ cơ quan ({activeSystems.size})</span>
+        </button>
+        <button
+          onClick={() => setMobileActiveTab("details")}
+          className={`flex-1 py-2 rounded-xl font-bold transition-all flex items-center justify-center gap-1.5 relative active:scale-95 ${
+            mobileActiveTab === "details" ? "bg-rose-600 text-white shadow-md shadow-rose-600/30" : "text-slate-400 hover:text-white"
+          }`}
+        >
+          <Bone className="w-3.5 h-3.5" />
+          <span>Chi tiết</span>
+          {selectedStructure && (
+            <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping absolute top-1.5 right-3" />
+          )}
+        </button>
       </div>
     </div>
   );

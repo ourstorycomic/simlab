@@ -266,6 +266,7 @@ export default function BioOrganViewer({
   const [internalSelectedId, setInternalSelectedId] = useState<string>("heart");
   const selectedOrganId = controlledSelectedId || internalSelectedId;
   const [activeHotspotInfo, setActiveHotspotInfo] = useState<HotspotData | null>(null);
+  const [isMobileInfoOpen, setIsMobileInfoOpen] = useState<boolean>(false);
 
   const selectedOrgan = ORGANS.find((o) => o.id === selectedOrganId) || ORGANS[0];
 
@@ -280,23 +281,24 @@ export default function BioOrganViewer({
     <div className={`w-full h-full flex flex-col lg:flex-row overflow-hidden bg-slate-950 ${className}`}>
       {/* Left / Center: 3D Viewport Area */}
       <div className="flex-1 relative h-full flex flex-col overflow-hidden">
-        {/* Top Organ Navigation Bar (Ảnh 5) */}
-        <div className="px-4 py-2.5 bg-slate-900/90 border-b border-slate-800 z-[65] relative pointer-events-auto flex items-center justify-between gap-3 flex-shrink-0">
-          <div className="flex items-center gap-3">
+        {/* Top Organ Navigation Bar */}
+        <div className="px-2.5 sm:px-4 py-2 bg-slate-900/90 border-b border-slate-800 z-[65] relative pointer-events-auto flex items-center justify-between gap-2 overflow-x-auto scrollbar-none flex-shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             {onBackToBody && (
               <button
                 onClick={onBackToBody}
-                className="px-3 py-1.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 border border-slate-700 transition-all hover:scale-105"
+                className="px-2.5 sm:px-3 py-1.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 border border-slate-700 transition-all hover:scale-105 flex-shrink-0"
               >
-                <svg className="w-4 h-4 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-3.5 h-3.5 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
-                <span>Quay lại cơ thể</span>
+                <span className="hidden sm:inline">Quay lại cơ thể</span>
+                <span className="sm:hidden">Cơ thể</span>
               </button>
             )}
 
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider hidden sm:inline">
                 CÁC CƠ QUAN 3D
               </span>
               <span className="text-xs font-bold text-white flex items-center gap-1">
@@ -307,14 +309,14 @@ export default function BioOrganViewer({
           </div>
 
           {/* Quick Organ Selector Pills */}
-          <div className="flex items-center gap-1 overflow-x-auto custom-scrollbar">
+          <div className="flex items-center gap-1 overflow-x-auto scrollbar-none flex-nowrap">
             {ORGANS.map((organ) => {
               const isSel = organ.id === selectedOrganId;
               return (
                 <button
                   key={organ.id}
                   onClick={() => handleSelect(organ.id)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-all border ${
+                  className={`px-2 sm:px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-all border flex-shrink-0 ${
                     isSel
                       ? "bg-rose-600 text-white border-rose-500 shadow-sm"
                       : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
@@ -325,6 +327,18 @@ export default function BioOrganViewer({
               );
             })}
           </div>
+
+          {/* Mobile Info Toggle Button */}
+          <button
+            onClick={() => setIsMobileInfoOpen((prev) => !prev)}
+            className="lg:hidden px-2.5 py-1 rounded-xl bg-slate-800 border border-rose-500/50 text-rose-300 text-xs font-semibold flex items-center gap-1 shadow-md flex-shrink-0 active:scale-95 transition-all"
+            title="Xem chi tiết giải phẫu cơ quan"
+          >
+            <span>Chi tiết</span>
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
         </div>
 
         {/* 3D Model View */}
@@ -353,16 +367,62 @@ export default function BioOrganViewer({
             </div>
           )}
 
-          {/* Bottom Hint Overlay */}
-          <div className="absolute bottom-3 left-4 pointer-events-none bg-slate-900/80 backdrop-blur-sm border border-slate-800 px-3 py-1.5 rounded-lg text-[10px] text-slate-400 flex items-center gap-2">
+          {/* Mobile Bottom Summary Pill */}
+          {!isMobileInfoOpen && (
+            <div
+              onClick={() => setIsMobileInfoOpen(true)}
+              className="lg:hidden absolute bottom-3 left-3 right-3 z-10 p-2.5 rounded-2xl bg-slate-900/95 backdrop-blur-md border border-rose-500/40 shadow-2xl flex items-center justify-between gap-3 cursor-pointer active:scale-98 transition-all"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="w-3 h-3 rounded-full bg-rose-500 flex-shrink-0 animate-pulse" />
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-white truncate">
+                    {selectedOrgan.name} {selectedOrgan.latin && `(${selectedOrgan.latin})`}
+                  </div>
+                  <div className="text-[10px] text-slate-300 truncate">
+                    {selectedOrgan.specs?.role || selectedOrgan.function}
+                  </div>
+                </div>
+              </div>
+              <span className="text-[10px] text-rose-400 font-semibold flex items-center gap-1 flex-shrink-0 bg-rose-950/80 px-2.5 py-1 rounded-lg border border-rose-700/60">
+                <span>Giải phẫu</span>
+                <span>→</span>
+              </span>
+            </div>
+          )}
+
+          {/* Bottom Hint Overlay (Desktop Only) */}
+          <div className="hidden sm:flex absolute bottom-3 left-4 pointer-events-none bg-slate-900/80 backdrop-blur-sm border border-slate-800 px-3 py-1.5 rounded-lg text-[10px] text-slate-400 items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
             <span>Kéo để xoay 360° · Cuộn chuột để phóng to cấu trúc · Nhấp vào các điểm tròn</span>
           </div>
         </div>
       </div>
 
-      {/* Right: Detailed Organ Inspector Sidebar (Ảnh 5) */}
-      <div className="w-full lg:w-80 xl:w-96 flex-shrink-0 flex flex-col bg-slate-900/95 border-t lg:border-t-0 lg:border-l border-slate-800 h-auto lg:h-full z-20 overflow-hidden">
+      {/* Right: Detailed Organ Inspector Sidebar (Desktop: Sidebar, Mobile: Slide-up Drawer) */}
+      <div
+        className={`fixed lg:relative inset-x-0 bottom-0 top-14 lg:top-0 z-30 lg:z-20 w-full lg:w-80 xl:w-96 h-[calc(100%-3.5rem)] lg:h-full flex-shrink-0 flex flex-col bg-slate-900/95 border-t lg:border-t-0 lg:border-l border-slate-800 overflow-hidden transition-transform duration-300 ease-in-out ${
+          isMobileInfoOpen ? "translate-y-0 shadow-2xl" : "translate-y-full lg:translate-y-0"
+        }`}
+      >
+        {/* Mobile Header Bar with Close Button */}
+        <div className="lg:hidden flex items-center justify-between px-4 py-2.5 bg-slate-950 border-b border-slate-800 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse" />
+            <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+              {selectedOrgan.name} ({selectedOrgan.latin || "Giải phẫu y khoa"})
+            </h4>
+          </div>
+          <button
+            onClick={() => setIsMobileInfoOpen(false)}
+            className="p-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white flex items-center gap-1 text-xs px-2 active:scale-95 transition-all"
+          >
+            <span>Đóng</span>
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
         {/* Content Body */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar text-xs">
           {/* Header Title with Latin name (Ảnh 5) */}

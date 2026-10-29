@@ -32,7 +32,9 @@ declare module 'lucide-react' {
   export const Check: LucideIcon;
   export const CheckCircle2: LucideIcon;
   export const ChevronDown: LucideIcon;
+  export const ChevronLeft: LucideIcon;
   export const ChevronRight: LucideIcon;
+  export const ChevronUp: LucideIcon;
   export const CircleAlert: LucideIcon;
   export const ClipboardList: LucideIcon;
   export const Compass: LucideIcon;

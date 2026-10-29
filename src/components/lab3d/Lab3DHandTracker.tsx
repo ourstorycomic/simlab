@@ -14,7 +14,7 @@
  */
 
 import React, { useRef, useEffect, useState, useCallback, MutableRefObject } from "react";
-import { Camera, Hand, AlertCircle } from "lucide-react";
+import { Camera, Hand, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import {
     HandState,
     DEFAULT_HAND_STATE,
@@ -55,6 +55,7 @@ export default function Lab3DHandTracker({
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [gestureLabel, setGestureLabel] = useState<string>("Đang khởi tạo camera...");
+    const [isMinimized, setIsMinimized] = useState<boolean>(false);
 
     // ─── Initialize MediaPipe HandLandmarker ───
     const initHandLandmarker = useCallback(async () => {
@@ -301,37 +302,76 @@ export default function Lab3DHandTracker({
 
     // ─── Render ───
     return (
-        <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-2 select-none">
-            {/* Camera preview */}
-            {showPreview && (
-                <div
-                    onClick={!cameraActive && !loading ? startCamera : undefined}
-                    className={`relative rounded-2xl overflow-hidden border-2 transition-all duration-300 shadow-2xl backdrop-blur-md group ${
-                        cameraActive
-                            ? "border-emerald-500/80 shadow-emerald-500/25 ring-2 ring-emerald-500/20"
-                            : "border-cyan-500/50 hover:border-cyan-400 cursor-pointer shadow-cyan-500/10 hover:scale-[1.02]"
-                    }`}
-                    style={{ width: 256, height: 192 }}
-                    title={!cameraActive ? "Bấm vào để kích hoạt Camera Hand Tracking" : "Camera Hand Tracking đang hoạt động"}
-                >
+        <div className="fixed bottom-14 sm:bottom-4 left-3 sm:left-4 z-40 flex flex-col gap-1.5 select-none max-w-[calc(100vw-24px)]">
+            {isMinimized ? (
+                <div className="flex items-center gap-1.5 bg-slate-900/95 backdrop-blur-md border border-slate-700/80 p-1.5 px-3 rounded-2xl shadow-xl ring-1 ring-white/10">
+                    <button
+                        onClick={() => setIsMinimized(false)}
+                        className="flex items-center gap-2 text-xs font-bold text-white hover:text-emerald-300 transition-colors cursor-pointer"
+                        title="Mở rộng camera"
+                    >
+                        <Camera className="w-3.5 h-3.5 text-cyan-400" />
+                        <span className="text-[11px]">Camera AI</span>
+                        {cameraActive ? (
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                        ) : (
+                            <span className="text-[9px] text-slate-400 font-normal">(Tắt)</span>
+                        )}
+                        <ChevronUp className="w-3.5 h-3.5 text-slate-400 ml-1" />
+                    </button>
+                    {cameraActive && (
+                        <button
+                            onClick={stopCamera}
+                            className="p-1 rounded-lg bg-red-600/80 hover:bg-red-500 text-white text-[10px] font-bold px-2 ml-1 cursor-pointer"
+                            title="Tắt Camera"
+                        >
+                            Tắt
+                        </button>
+                    )}
+                </div>
+            ) : (
+                <>
+                    {/* Camera preview */}
+                    {showPreview && (
+                        <div
+                            onClick={!cameraActive && !loading ? startCamera : undefined}
+                            className={`w-44 h-32 sm:w-64 sm:h-48 relative rounded-2xl overflow-hidden border-2 transition-all duration-300 shadow-2xl backdrop-blur-md group ${
+                                cameraActive
+                                    ? "border-emerald-500/80 shadow-emerald-500/25 ring-2 ring-emerald-500/20"
+                                    : "border-cyan-500/50 hover:border-cyan-400 cursor-pointer shadow-cyan-500/10 hover:scale-[1.02]"
+                            }`}
+                            title={!cameraActive ? "Bấm vào để kích hoạt Camera Hand Tracking" : "Camera Hand Tracking đang hoạt động"}
+                        >
                     {/* Top bar header */}
-                    <div className="absolute top-0 left-0 right-0 z-10 px-2.5 py-1.5 bg-gradient-to-b from-black/80 via-black/40 to-transparent flex items-center justify-between pointer-events-none">
-                        <div className="flex items-center gap-1.5">
+                    <div className="absolute top-0 left-0 right-0 z-10 px-2.5 py-1.5 bg-gradient-to-b from-black/80 via-black/40 to-transparent flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 pointer-events-none">
                             <Camera className="w-3.5 h-3.5 text-cyan-400" />
                             <span className="text-[11px] font-bold text-white tracking-wide">
                                 Camera Hand AI
                             </span>
                         </div>
-                        {cameraActive ? (
-                            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/60">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                                <span className="text-[9px] font-black text-emerald-300 tracking-wider">LIVE</span>
-                            </span>
-                        ) : (
-                            <span className="text-[9px] font-semibold text-cyan-300 bg-cyan-950/80 px-1.5 py-0.5 rounded border border-cyan-500/40">
-                                CHẠM ĐỂ BẬT
-                            </span>
-                        )}
+                        <div className="flex items-center gap-1">
+                            {cameraActive ? (
+                                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/60 pointer-events-none">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                                    <span className="text-[9px] font-black text-emerald-300 tracking-wider">LIVE</span>
+                                </span>
+                            ) : (
+                                <span className="text-[9px] font-semibold text-cyan-300 bg-cyan-950/80 px-1.5 py-0.5 rounded border border-cyan-500/40 pointer-events-none">
+                                    CHẠM ĐỂ BẬT
+                                </span>
+                            )}
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsMinimized(true);
+                                }}
+                                className="p-0.5 rounded-md bg-black/60 hover:bg-black text-slate-300 hover:text-white transition-colors cursor-pointer ml-1"
+                                title="Thu nhỏ cửa sổ camera"
+                            >
+                                <ChevronDown className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
                     </div>
 
                     <video
@@ -405,7 +445,7 @@ export default function Lab3DHandTracker({
             <button
                 onClick={cameraActive ? stopCamera : startCamera}
                 disabled={loading}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 ${
+                className={`flex items-center justify-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-300 ${
                     cameraActive
                         ? "bg-red-600/90 hover:bg-red-500 text-white shadow-lg shadow-red-500/25"
                         : "bg-emerald-600/90 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/25"
@@ -432,6 +472,8 @@ export default function Lab3DHandTracker({
                     </>
                 )}
             </button>
+                </>
+            )}
         </div>
     );
 }

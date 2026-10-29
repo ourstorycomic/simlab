@@ -877,15 +877,16 @@ export default function ModelViewer({
             </Canvas>
             
             {/* Hướng dẫn thao tác nổi góc trên bên trái */}
-            <div className="absolute top-2.5 left-2.5 sm:top-4 sm:left-4 pointer-events-none z-10">
-                <span className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold bg-slate-900/90 backdrop-blur-md text-slate-200 border border-slate-700/80 shadow-2xl">
-                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse flex-shrink-0" />
+            <div className="absolute top-2.5 left-2.5 sm:top-4 sm:left-4 pointer-events-none z-10 max-w-[85vw]">
+                <span className="inline-flex items-center gap-2 px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-semibold bg-slate-900/90 backdrop-blur-md text-slate-200 border border-slate-700/80 shadow-2xl">
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-cyan-400 animate-pulse flex-shrink-0" />
                     <span className="inline-flex items-center gap-1.5">
-                        <MousePointer className="w-3.5 h-3.5 text-cyan-400" />
-                        <span>Kéo để xoay 360° • Cuộn thu phóng</span>
+                        <MousePointer className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-cyan-400" />
+                        <span>Kéo để xoay 360°</span>
+                        <span className="hidden sm:inline">• Cuộn thu phóng</span>
                     </span>
-                    <span className="text-slate-600">|</span>
-                    <span className="inline-flex items-center gap-1.5">
+                    <span className="text-slate-600 hidden md:inline">|</span>
+                    <span className="hidden md:inline-flex items-center gap-1.5">
                         <Hand className="w-3.5 h-3.5 text-amber-400" />
                         <span>Nắm tay di chuyển để xoay</span>
                     </span>

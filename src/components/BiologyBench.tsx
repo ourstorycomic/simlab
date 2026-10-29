@@ -124,10 +124,10 @@ export default function BiologyBench({
         />
       )}
 
-      {/* Main Mode Navigation Bar (Sleek Sub-Navigation, Zero Overlap) */}
-      <div id="tour-bio-tabs" className={`bg-slate-900/90 backdrop-blur-md border-b border-slate-800/80 px-3 py-1 z-[65] relative pointer-events-auto flex flex-wrap items-center ${hideHandTracker ? "justify-center" : "justify-between"} gap-3 flex-shrink-0`}>
+      {/* Main Mode Navigation Bar (Sleek Sub-Navigation, Zero Overlap, Mobile-Optimized) */}
+      <div id="tour-bio-tabs" className={`bg-slate-900/90 backdrop-blur-md border-b border-slate-800/80 px-2 sm:px-4 py-1.5 z-[65] relative pointer-events-auto flex items-center ${hideHandTracker ? "justify-center" : "justify-between"} gap-2 overflow-x-auto scrollbar-none flex-shrink-0`}>
         {!hideHandTracker && (
-          <div className="flex items-center gap-2.5">
+          <div className="hidden md:flex items-center gap-2.5 flex-shrink-0">
             <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
@@ -143,7 +143,7 @@ export default function BiologyBench({
         )}
 
         {/* 3 Main Mode Switcher Pills */}
-        <div className="flex items-center bg-slate-950/90 p-1 rounded-xl border border-slate-800 shadow-lg gap-1">
+        <div className="flex items-center bg-slate-950/90 p-1 rounded-xl border border-slate-800 shadow-lg gap-1 flex-nowrap overflow-x-auto scrollbar-none">
           {/* Prev Mode Button */}
           <button
             onClick={() => {
@@ -152,7 +152,7 @@ export default function BiologyBench({
               setTabMode(modes[(idx - 1 + modes.length) % modes.length]);
               playLabSound("pick");
             }}
-            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all active:scale-90"
+            className="p-1 sm:p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all active:scale-90 flex-shrink-0"
             title="Chuyển chế độ trước (◀)"
             aria-label="Chế độ trước"
           >
@@ -166,18 +166,19 @@ export default function BiologyBench({
               setTabMode("cell");
               playLabSound("pick");
             }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 ${
+            className={`px-2 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 flex-shrink-0 ${
               tabMode === "cell"
                 ? "bg-emerald-600 text-white shadow-sm"
                 : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
             }`}
           >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <circle cx="12" cy="12" r="9" strokeWidth={2} />
               <circle cx="12" cy="12" r="4" strokeWidth={2} />
             </svg>
-            <span>Thế giới Tế bào 3D</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded bg-black/30 font-mono">8 loại</span>
+            <span className="sm:hidden">Tế bào</span>
+            <span className="hidden sm:inline">Thế giới Tế bào 3D</span>
+            <span className="text-[10px] px-1 py-0.2 rounded bg-black/30 font-mono">8</span>
           </button>
 
           <button
@@ -185,17 +186,18 @@ export default function BiologyBench({
               setTabMode("human");
               playLabSound("pick");
             }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 ${
+            className={`px-2 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 flex-shrink-0 ${
               tabMode === "human"
                 ? "bg-sky-600 text-white shadow-sm"
                 : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
             }`}
           >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
-            <span>Giải phẫu toàn thân</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded bg-black/30 font-mono">14 hệ</span>
+            <span className="sm:hidden">Toàn thân</span>
+            <span className="hidden sm:inline">Giải phẫu toàn thân</span>
+            <span className="text-[10px] px-1 py-0.2 rounded bg-black/30 font-mono">14</span>
           </button>
 
           <button
@@ -203,17 +205,18 @@ export default function BiologyBench({
               setTabMode("organs");
               playLabSound("pick");
             }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 ${
+            className={`px-2 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 flex-shrink-0 ${
               tabMode === "organs"
                 ? "bg-rose-600 text-white shadow-sm"
                 : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
             }`}
           >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
-            <span>Nội tạng chuyên biệt</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded bg-black/30 font-mono">9</span>
+            <span className="sm:hidden">Nội tạng</span>
+            <span className="hidden sm:inline">Nội tạng chuyên biệt</span>
+            <span className="text-[10px] px-1 py-0.2 rounded bg-black/30 font-mono">9</span>
           </button>
 
           {/* Next Mode Button */}
@@ -224,7 +227,7 @@ export default function BiologyBench({
               setTabMode(modes[(idx + 1) % modes.length]);
               playLabSound("pick");
             }}
-            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all active:scale-90"
+            className="p-1 sm:p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all active:scale-90 flex-shrink-0"
             title="Chuyển chế độ tiếp theo (▶)"
             aria-label="Chế độ tiếp theo"
           >

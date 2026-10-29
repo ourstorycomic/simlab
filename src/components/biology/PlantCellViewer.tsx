@@ -44,6 +44,7 @@ export default function PlantCellViewer({
   const [autoRotate, setAutoRotate] = useState<boolean>(false);
   const [glowEnabled, setGlowEnabled] = useState<boolean>(true);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [isMobilePanelOpen, setIsMobilePanelOpen] = useState<boolean>(false);
 
   // Three.js References
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -957,8 +958,8 @@ export default function PlantCellViewer({
         </div>
       </div>
 
-      {/* 3D Canvas Area */}
-      <div className="relative flex-1 w-full min-h-0 overflow-hidden flex">
+      {/* 3D Canvas Area & Responsive Details Panel */}
+      <div className="relative flex-1 w-full min-h-0 overflow-hidden flex flex-col lg:flex-row">
         {/* Main 3D Viewport */}
         <div
           ref={containerRef}
@@ -970,7 +971,7 @@ export default function PlantCellViewer({
         >
           {/* Badge Bào quan đang chọn trên góc trái */}
           {selectedOrganelle && (
-            <div className="absolute top-4 left-4 z-10 pointer-events-none flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/80 backdrop-blur-md border border-slate-700/60 shadow-lg">
+            <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-10 pointer-events-none flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/80 backdrop-blur-md border border-slate-700/60 shadow-lg">
               <span
                 className="w-2.5 h-2.5 rounded-full shadow-sm animate-pulse"
                 style={{ backgroundColor: selectedOrganelle.color }}
@@ -978,8 +979,47 @@ export default function PlantCellViewer({
               <span className="text-xs font-bold text-white tracking-wide">
                 {selectedOrganelle.name}
               </span>
-              <span className="text-[10px] text-slate-400 font-mono">
+              <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">
                 ({selectedOrganelle.nameEn})
+              </span>
+            </div>
+          )}
+
+          {/* Nút bật Panel chi tiết trên Mobile (Góc phải trên) */}
+          <button
+            onClick={() => setIsMobilePanelOpen((prev) => !prev)}
+            className="lg:hidden absolute top-3 right-3 z-20 px-3 py-1.5 rounded-full bg-slate-900/90 backdrop-blur-md border border-emerald-500/50 text-emerald-400 text-xs font-bold flex items-center gap-1.5 shadow-xl active:scale-95 transition-all"
+            title="Mở danh sách và chi tiết bào quan"
+          >
+            <span>Bào quan ({organellesList.length})</span>
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {/* Thẻ tóm tắt thông tin trên Mobile khi chạm vào bào quan */}
+          {selectedOrganelle && !isMobilePanelOpen && (
+            <div
+              onClick={() => setIsMobilePanelOpen(true)}
+              className="lg:hidden absolute bottom-16 left-3 right-3 z-10 p-2.5 rounded-2xl bg-slate-900/95 backdrop-blur-md border border-emerald-500/40 shadow-2xl flex items-center justify-between gap-3 cursor-pointer active:scale-98 transition-all"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span
+                  className="w-3.5 h-3.5 rounded-full flex-shrink-0 shadow"
+                  style={{ backgroundColor: selectedOrganelle.color }}
+                />
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-white truncate">
+                    {selectedOrganelle.name}
+                  </div>
+                  <div className="text-[10px] text-slate-300 truncate">
+                    {selectedOrganelle.role}
+                  </div>
+                </div>
+              </div>
+              <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1 flex-shrink-0 bg-emerald-950/80 px-2 py-1 rounded-lg border border-emerald-700/60">
+                <span>Chi tiết</span>
+                <span>→</span>
               </span>
             </div>
           )}
@@ -1093,8 +1133,28 @@ export default function PlantCellViewer({
           </div>
         </div>
 
-        {/* Right Details Panel */}
-        <div className="w-80 md:w-96 h-full bg-[#0a0e17] border-l border-slate-800 flex flex-col z-10 flex-shrink-0">
+        {/* Right Details Panel (Desktop: Sidebar, Mobile: Full slide-up drawer) */}
+        <div
+          className={`fixed lg:relative inset-x-0 bottom-0 top-14 lg:top-0 z-30 lg:z-10 w-full lg:w-80 xl:w-96 h-[calc(100%-3.5rem)] lg:h-full bg-[#0a0e17] border-t lg:border-t-0 lg:border-l border-slate-800 flex flex-col flex-shrink-0 transition-transform duration-300 ease-in-out ${
+            isMobilePanelOpen ? "translate-y-0 shadow-2xl" : "translate-y-full lg:translate-y-0"
+          }`}
+        >
+          {/* Mobile Sheet Close Bar */}
+          <div className="lg:hidden flex items-center justify-between px-4 py-2.5 bg-slate-900 border-b border-slate-800 flex-shrink-0">
+            <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Chi tiết bào quan ({organellesList.length})</span>
+            </span>
+            <button
+              onClick={() => setIsMobilePanelOpen(false)}
+              className="p-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white flex items-center gap-1 text-xs px-2 active:scale-95 transition-all"
+            >
+              <span>Đóng</span>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
           {/* Header */}
           <div className="p-4 border-b border-slate-800/80 bg-slate-900/40">
             <div className="flex items-center justify-between mb-1">
