@@ -314,6 +314,15 @@ function RemoteControllerContent() {
               <Sparkles className="w-4 h-4 text-amber-300" />
               <span>LẮC TRỘN PHẢN ỨNG (SHAKE)</span>
             </button>
+
+            {/* Phím Rửa Cốc / Làm Mới */}
+            <button
+              onClick={() => sendAction("clean")}
+              className="w-full py-3 rounded-2xl bg-slate-900/90 hover:bg-rose-900/50 text-rose-300 font-bold text-xs shadow-md border border-slate-700/80 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <RotateCcw className="w-4 h-4 text-rose-400" />
+              <span>RỬA SẠCH CỐC / TRỘN LẠI (RESET)</span>
+            </button>
           </div>
 
           <p className="text-[10px] text-slate-500 leading-tight">

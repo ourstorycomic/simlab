@@ -153,6 +153,22 @@ export default function DeviceMotionControlBar({
             </button>
           )}
 
+          {/* Nút Rửa cốc / Làm mới (Clean Workbench) */}
+          {subject === "chemistry" && (
+            <button
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  window.dispatchEvent(new CustomEvent("clean-workbench"));
+                }
+              }}
+              className="px-2.5 py-1 rounded-xl bg-slate-800/90 hover:bg-rose-900/60 active:scale-95 transition-all text-rose-300 hover:text-white font-semibold text-[11px] flex items-center gap-1 border border-slate-700/60 shadow-sm cursor-pointer"
+              title="Đổ sạch và rửa cốc phản ứng để làm lại thí nghiệm"
+            >
+              <RotateCcw className="w-3 h-3 text-rose-400" />
+              <span>Rửa</span>
+            </button>
+          )}
+
           {/* Nút Ghép Nối Điện Thoại (Pairing Remote) */}
           <button
             onClick={() => setShowPairingModal(true)}

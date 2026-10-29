@@ -89,6 +89,7 @@ export default function Lab3DChemicalCabinetModal({
 
     // Refs theo dõi chuyển động, trạng thái bàn tay và cuộn trang (InScroll & Virtual-Mouse Architecture)
     const smoothedPointerRef = useRef({ x: -100, y: -100 });
+    const latestProjectedTipRef = useRef<{ screenX: number; screenY: number; timestamp: number } | null>(null);
     const wasPinchingRef = useRef(true); // Mặc định true để bắt buộc mở tay (unpinch) trước khi nhận lệnh click đầu tiên
     const modalOpenedTimeRef = useRef<number>(0);
     const dwellStartTimeRef = useRef<number | null>(null);
@@ -130,6 +131,21 @@ export default function Lab3DChemicalCabinetModal({
         }
     }, [isOpen]);
 
+    // Nhận tọa độ chiếu 3D chính xác từ đầu ngón trỏ (Three.js Screen Projection)
+    useEffect(() => {
+        const handleTip = (e: any) => {
+            if (e.detail && typeof e.detail.screenX === "number") {
+                latestProjectedTipRef.current = {
+                    screenX: e.detail.screenX,
+                    screenY: e.detail.screenY,
+                    timestamp: performance.now(),
+                };
+            }
+        };
+        window.addEventListener("hand-index-tip", handleTip);
+        return () => window.removeEventListener("hand-index-tip", handleTip);
+    }, []);
+
     // ─── Vòng Lặp Thực Tế Ảo VR Chuẩn Virtual-Mouse & InScroll ───
     useEffect(() => {
         if (!isOpen) return;
@@ -162,9 +178,11 @@ export default function Lab3DChemicalCabinetModal({
                     const pinkyTip = lm[20];
                     const pinkyPip = lm[18];
 
-                    // Tọa độ ngón trỏ (lật gương webcam tự nhiên)
-                    const targetX = (1.0 - indexTip.x) * window.innerWidth;
-                    const targetY = indexTip.y * window.innerHeight;
+                    // Tọa độ ngón trỏ: Ưu tiên tuyệt đối tọa độ 3D chóp ngón tay chiếu trực tiếp từ Three.js (khớp pixel 100%)
+                    const proj = latestProjectedTipRef.current;
+                    const hasFreshProj = proj && now - proj.timestamp < 150;
+                    const targetX = hasFreshProj ? proj.screenX : (1.0 - indexTip.x) * window.innerWidth;
+                    const targetY = hasFreshProj ? proj.screenY : indexTip.y * window.innerHeight;
 
                     // 🎯 BỘ LỌC LÀM MỊN ĐỨNG YÊN (DEADZONE + ADAPTIVE EMA) - TRIỆT TIÊU 100% RUNG GIẬT CON TRỎ:
                     const cur = smoothedPointerRef.current;
@@ -511,7 +529,7 @@ export default function Lab3DChemicalCabinetModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/45 backdrop-blur-[3px] animate-in fade-in duration-200 select-none">
+        <div id="chemical-cabinet-modal" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/45 backdrop-blur-[3px] animate-in fade-in duration-200 select-none">
             {/* Backdrop click to close (Chỉ đóng khi click chuột trực tiếp vào vùng trống ngoài modal) */}
             <div
                 className="absolute inset-0"

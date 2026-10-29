@@ -119,6 +119,19 @@ function Lab3DContent() {
 
     const handleIndexTipUpdate = useCallback((info: IndexTipInfo | null) => {
         lastTipInfoRef.current = info;
+        if (info && typeof window !== "undefined") {
+            window.dispatchEvent(
+                new CustomEvent("hand-index-tip", {
+                    detail: {
+                        screenX: info.screenX,
+                        screenY: info.screenY,
+                        normalizedX: info.ndcX,
+                        normalizedY: info.ndcY,
+                        isPointing: info.isPointing,
+                    },
+                })
+            );
+        }
         if (subject === "biology" && info) {
             window.dispatchEvent(
                 new CustomEvent("bio-hand-point", {
@@ -222,9 +235,15 @@ function Lab3DContent() {
                     const screenY = tipInfo.screenY;
 
                     // Cập nhật vị trí con trỏ ngón tay ảo dính chính xác vào đầu ngón tay 3D (z-[70])
+                    // Ẩn reticle điều hướng nếu tủ hóa chất đang mở (để tủ hóa chất tự quản lý con trỏ riêng)
+                    const isCabinetOpen = typeof document !== "undefined" && !!document.getElementById("chemical-cabinet-modal");
                     if (topReticleRef.current) {
-                        topReticleRef.current.style.transform = `translate3d(${screenX}px, ${screenY}px, 0)`;
-                        topReticleRef.current.style.display = "flex";
+                        if (isCabinetOpen) {
+                            topReticleRef.current.style.display = "none";
+                        } else {
+                            topReticleRef.current.style.transform = `translate3d(${screenX}px, ${screenY}px, 0)`;
+                            topReticleRef.current.style.display = "flex";
+                        }
                     }
 
                     // Air Dwell Tap: CHỈ KÍCH HOẠT KHI CHỈ VÀO THANH ĐIỀU HƯỚNG TRÊN CÙNG (screenY <= 58)

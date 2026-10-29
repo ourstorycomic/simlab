@@ -69,12 +69,21 @@ export default function RemotePairingModal({
         const id = data.room.roomId;
         setRoomId(id);
 
-        const currentHost =
-          typeof window !== "undefined"
-            ? `${window.location.protocol}//${data.lanIp || window.location.hostname}:${
-                window.location.port || "3000"
-              }`
-            : data.baseUrl;
+        let currentHost = "";
+        if (typeof window !== "undefined") {
+          const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+          const isValidLan = data.lanIp && (data.lanIp.startsWith("192.168.") || data.lanIp.startsWith("10.") || /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(data.lanIp));
+
+          // Chỉ dùng LAN IP khi đang chạy local và có IP hợp lệ để điện thoại cùng Wi-Fi vào được
+          if (isLocalhost && isValidLan) {
+            currentHost = `${window.location.protocol}//${data.lanIp}:${window.location.port || "3000"}`;
+          } else {
+            // Trên Vercel hoặc domain online, luôn dùng chính xác domain của web
+            currentHost = window.location.origin;
+          }
+        } else {
+          currentHost = data.baseUrl || "";
+        }
 
         const targetUrl = `${currentHost}/remote?room=${id}`;
         setLanUrl(targetUrl);
@@ -130,6 +139,10 @@ export default function RemotePairingModal({
               deviceSensors.simulatePour(0.9);
             } else if (lastAction.type === "shake") {
               deviceSensors.simulateShake();
+            } else if (lastAction.type === "clean") {
+              if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("clean-workbench"));
+              }
             }
           }
         }

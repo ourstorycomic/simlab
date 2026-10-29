@@ -108,6 +108,9 @@ interface RealisticGlasswareMeshProps {
     scale?: number | [number, number, number];
     renderGlass?: boolean;
     tiltAngle?: number; // Góc nghiêng của bình để mô phỏng mặt nước cân bằng trọng lực
+    isSolid?: boolean; // Hiển thị chất rắn (cục / thỏi kim loại / tinh thể)
+    solidColor?: string; // Màu sắc chất rắn ngoài đời
+    solidType?: "metal" | "crystal" | "chunk" | "powder";
 }
 
 /**
@@ -120,9 +123,22 @@ export function RealisticGlasswareMesh({
     scale = 1.0,
     renderGlass = true,
     tiltAngle = 0,
+    isSolid = false,
+    solidColor = "#94a3b8",
+    solidType = "metal",
 }: RealisticGlasswareMeshProps) {
     const geometries = useChemistryGeometries();
     const { glassMaterial } = useRealisticMaterials();
+
+    // Material chất rắn 3D: Ánh kim loại thực tế cho Fe, Zn, Cu, Al hoặc lấp lánh cho tinh thể muối
+    const solidMaterial = useMemo(() => {
+        const isMetal = solidType === "metal" || !solidType;
+        return new THREE.MeshStandardMaterial({
+            color: new THREE.Color(solidColor || (isMetal ? "#64748b" : "#f8fafc")),
+            metalness: isMetal ? 0.88 : 0.12,
+            roughness: isMetal ? 0.32 : 0.42,
+        });
+    }, [solidColor, solidType]);
 
     // Map loại bình sang submesh tương ứng trong flask.fbx
     const { flaskGeomName, solutionGeomName, defaultScale, yOffset, maxSolutionScaleY, isCylindricalBeaker } = useMemo(() => {
@@ -211,7 +227,7 @@ export function RealisticGlasswareMesh({
         return (
             <group position={[0, yOffset, 0]}>
                 {/* 1. Dung dịch bên trong cốc */}
-                {fillLevel > 0.03 && (
+                {fillLevel > 0.03 && !isSolid && (
                     <group position={[0, liquidH / 2 + 0.004, 0]}>
                         <mesh material={liquidMaterial} renderOrder={0}>
                             <cylinderGeometry args={[beakerR - 0.004, beakerR - 0.005, liquidH, 24]} />
@@ -227,6 +243,47 @@ export function RealisticGlasswareMesh({
                                 transparent
                                 opacity={0.9}
                             />
+                        </mesh>
+                    </group>
+                )}
+
+                {/* Dung dịch kèm theo nếu cốc có cả nước/axit và chất rắn */}
+                {fillLevel > 0.03 && isSolid && (
+                    <group position={[0, liquidH / 2 + 0.004, 0]}>
+                        <mesh material={liquidMaterial} renderOrder={0}>
+                            <cylinderGeometry args={[beakerR - 0.004, beakerR - 0.005, liquidH, 24]} />
+                        </mesh>
+                        <mesh position={[0, liquidH / 2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                            <circleGeometry args={[beakerR - 0.004, 24]} />
+                            <meshStandardMaterial
+                                color={liquidColor}
+                                emissive={liquidColor}
+                                emissiveIntensity={0.25}
+                                roughness={0.05}
+                                transparent
+                                opacity={0.88}
+                            />
+                        </mesh>
+                    </group>
+                )}
+
+                {/* Chất rắn dạng cục / viên kim loại / tinh thể nằm ở đáy cốc */}
+                {isSolid && (
+                    <group position={[0, 0.006, 0]}>
+                        <mesh position={[-0.022, 0.012, 0.01]} rotation={[0.2, 0.5, 0.1]} material={solidMaterial}>
+                            <dodecahedronGeometry args={[0.018, 0]} />
+                        </mesh>
+                        <mesh position={[0.024, 0.014, -0.015]} rotation={[0.4, 0.1, 0.6]} material={solidMaterial}>
+                            <dodecahedronGeometry args={[0.020, 0]} />
+                        </mesh>
+                        <mesh position={[-0.008, 0.012, -0.022]} rotation={[0.1, 0.8, 0.3]} material={solidMaterial}>
+                            <dodecahedronGeometry args={[0.016, 0]} />
+                        </mesh>
+                        <mesh position={[0.012, 0.014, 0.02]} rotation={[0.5, 0.3, 0.2]} material={solidMaterial}>
+                            <dodecahedronGeometry args={[0.017, 0]} />
+                        </mesh>
+                        <mesh position={[0.002, 0.024, 0.002]} rotation={[0.3, 0.6, 0.4]} material={solidMaterial}>
+                            <dodecahedronGeometry args={[0.019, 0]} />
                         </mesh>
                     </group>
                 )}
@@ -261,7 +318,7 @@ export function RealisticGlasswareMesh({
     return (
         <group position={[0, yOffset, 0]}>
             {/* 1. Dung dịch bên trong từ FBX hoặc hình trụ cho ống nghiệm (Khớp khít 100% trong lòng bình) */}
-            {fillLevel > 0.03 && (
+            {fillLevel > 0.03 && !isSolid && (
                 type === "test-tube" ? (
                     <group position={[0, (fillLevel * 0.18) / 2 + 0.005, 0]}>
                         <mesh material={liquidMaterial} renderOrder={0}>
@@ -279,6 +336,27 @@ export function RealisticGlasswareMesh({
                         renderOrder={0}
                     />
                 ) : null
+            )}
+
+            {/* Chất rắn dạng cục / viên kim loại / tinh thể trong lọ hoặc bình */}
+            {isSolid && (
+                <group position={[0, 0.016, 0]}>
+                    <mesh position={[-0.024, 0.016, 0.01]} rotation={[0.2, 0.5, 0.1]} material={solidMaterial}>
+                        <dodecahedronGeometry args={[0.022, 0]} />
+                    </mesh>
+                    <mesh position={[0.025, 0.018, -0.012]} rotation={[0.4, 0.1, 0.6]} material={solidMaterial}>
+                        <dodecahedronGeometry args={[0.024, 0]} />
+                    </mesh>
+                    <mesh position={[-0.008, 0.014, -0.022]} rotation={[0.1, 0.8, 0.3]} material={solidMaterial}>
+                        <dodecahedronGeometry args={[0.018, 0]} />
+                    </mesh>
+                    <mesh position={[0.012, 0.018, 0.02]} rotation={[0.5, 0.3, 0.2]} material={solidMaterial}>
+                        <dodecahedronGeometry args={[0.020, 0]} />
+                    </mesh>
+                    <mesh position={[0.002, 0.032, 0.002]} rotation={[0.3, 0.6, 0.4]} material={solidMaterial}>
+                        <dodecahedronGeometry args={[0.022, 0]} />
+                    </mesh>
+                </group>
             )}
 
             {/* 2. Vỏ thủy tinh thực tế từ FBX (Render sau) */}

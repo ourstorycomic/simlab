@@ -257,14 +257,6 @@ function SingleHandMesh({
                 const worldPos = new THREE.Vector3();
                 tipMesh.getWorldPosition(worldPos);
 
-                // Thêm độ lệch nhẹ ~1.2cm theo hướng ngón trỏ để điểm chấm rơi chuẩn xác vào chóp đầu ngón tay
-                if (currentVecs[8] && currentVecs[7]) {
-                    const tipDir = vA.subVectors(currentVecs[8], currentVecs[7]).normalize();
-                    const scaledOffset = tipDir.multiplyScalar(0.012);
-                    scaledOffset.applyQuaternion(groupRef.current.quaternion);
-                    worldPos.add(scaledOffset);
-                }
-
                 const ndc = worldPos.clone().project(state.camera);
                 const rect = state.gl.domElement.getBoundingClientRect();
                 const screenX = rect.left + ((ndc.x + 1) * state.size.width) / 2;

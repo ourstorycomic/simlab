@@ -16,7 +16,7 @@
 
 import React, { useRef, useState, useCallback, useMemo, MutableRefObject, useEffect } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, PerspectiveCamera, Text } from "@react-three/drei";
+import { OrbitControls, PerspectiveCamera, Text, Html } from "@react-three/drei";
 import * as THREE from "three";
 
 import { HandState, DEFAULT_HAND_STATE, SingleHandData } from "@/lib/handTracking";
@@ -76,6 +76,7 @@ export interface InteractiveWorkbenchItem {
     heldBy: "left" | "right" | null;
     tiltAngle: number;
     pitchAngle?: number;
+    solidChemical?: Chemical | null; // Chất rắn dạng cục / thỏi kim loại / tinh thể nếu có
 }
 
 // ─── Lấy màu hiển thị thực tế cho chất lỏng trong suốt ───
@@ -187,29 +188,29 @@ function InteractiveVessel({
             >
                 {/* Toàn bộ mô hình được dịch xuống -gripY để đáy bình nằm đúng item.position[1] */}
                 <group position={[0, -gripY, 0]}>
-                    {/* 1. Model 3D thủy tinh & chất lỏng chuẩn vật lý với mặt nước cân bằng trọng lực (Tăng scale 1.25 để nhìn to rõ) */}
+                    {/* 1. Model 3D thủy tinh & chất lỏng/rắn chuẩn vật lý với mặt nước cân bằng trọng lực */}
                     <RealisticGlasswareMesh
                         type={item.type}
                         fillLevel={item.fillLevel}
                         liquidColor={item.liquidColor}
                         tiltAngle={item.tiltAngle || 0}
                         scale={1.22}
+                        isSolid={item.chemical?.state === "solid" || !!item.solidChemical}
+                        solidColor={
+                            item.chemical?.solidColor ||
+                            item.solidChemical?.solidColor ||
+                            (item.chemical?.id === "fe" || item.solidChemical?.id === "fe"
+                                ? "#64748b"
+                                : item.chemical?.id === "cu" || item.solidChemical?.id === "cu"
+                                ? "#b45309"
+                                : item.chemical?.id === "zn" || item.solidChemical?.id === "zn"
+                                ? "#94a3b8"
+                                : "#94a3b8")
+                        }
+                        solidType={item.chemical?.solidType || item.solidChemical?.solidType || "metal"}
                     />
 
-                    {/* 2. Nhãn dán công thức hóa học nếu bình đang chứa hóa chất */}
-                    {item.chemical && (
-                        <group position={[0, isReagent ? 0.12 : mouthH * 0.45, isReagent ? 0.088 : 0.065]}>
-                            <mesh>
-                                <planeGeometry args={[isReagent ? 0.11 : 0.12, isReagent ? 0.07 : 0.05]} />
-                                <meshBasicMaterial color="#ffffff" transparent opacity={0.92} />
-                            </mesh>
-                            <Text position={[0, 0, 0.005]} fontSize={0.03} color="#0f172a" anchorX="center" anchorY="middle">
-                                {normalizeChemicalFormula(item.chemical.formula)}
-                            </Text>
-                        </group>
-                    )}
-
-                    {/* 3. Vòng tròn chỉ thị khi là đích rót dung dịch vào */}
+                    {/* 2. Vòng tròn chỉ thị khi là đích rót dung dịch vào */}
                     {isTarget && (
                         <mesh position={[0, mouthH + 0.03, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                             <ringGeometry args={[0.08, 0.12, 24]} />
@@ -217,29 +218,15 @@ function InteractiveVessel({
                         </mesh>
                     )}
 
-                    {/* 4. Chỉ báo trực quan Hover Target: Tay đang đưa tới gần bình (Visual Proximity Guidance) */}
+                    {/* 3. Chỉ báo trực quan Hover Target: Tay đang đưa tới gần bình */}
                     {isHovered && !item.heldBy && (
-                        <group position={[0, mouthH + 0.06, 0]}>
-                            <mesh rotation={[-Math.PI / 2, 0, 0]}>
-                                <ringGeometry args={[0.06, 0.09, 24]} />
-                                <meshBasicMaterial color="#38bdf8" transparent opacity={0.85} side={THREE.DoubleSide} />
-                            </mesh>
-                            <Text position={[0, 0.04, 0]} fontSize={0.032} color="#38bdf8" anchorX="center" anchorY="bottom">
-                                Nắm / Chụm để cầm
-                            </Text>
-                        </group>
+                        <mesh position={[0, mouthH + 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                            <ringGeometry args={[0.07, 0.10, 24]} />
+                            <meshBasicMaterial color="#38bdf8" transparent opacity={0.85} side={THREE.DoubleSide} />
+                        </mesh>
                     )}
 
-                    {/* Hướng dẫn khi đang cầm trên tay: Nhắc xòe tay ra để đặt xuống bàn */}
-                    {item.heldBy && (
-                        <group position={[0, mouthH + 0.06, 0]}>
-                            <Text position={[0, 0.04, 0]} fontSize={0.032} color="#fde047" anchorX="center" anchorY="bottom">
-                                Xòe tay để đặt xuống
-                            </Text>
-                        </group>
-                    )}
-
-                    {/* 5. Vòng hào quang phát sáng ở đế khi đang được chọn, đang cầm hoặc đang hover */}
+                    {/* 4. Vòng hào quang phát sáng ở đế khi đang được chọn, đang cầm hoặc đang hover */}
                     {(isSelected || item.heldBy || isHovered) && (
                         <mesh position={[0, -0.008, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                             <ringGeometry args={[0.075, 0.115, 32]} />
@@ -252,52 +239,50 @@ function InteractiveVessel({
                         </mesh>
                     )}
 
-                    {/* 6. Nhãn Nổi Hologram 3D (Floating Smart Badge) - Siêu To & Dễ Nhìn */}
-                    <group position={[0, mouthH + (item.heldBy ? 0.14 : 0.09), 0]}>
-                        <mesh position={[0, 0, 0]}>
-                            <planeGeometry args={[0.26, 0.08]} />
-                            <meshBasicMaterial 
-                                color="#090d16" 
-                                transparent 
-                                opacity={0.88} 
-                                side={THREE.DoubleSide} 
-                            />
-                        </mesh>
-                        <mesh position={[0, 0, 0.001]}>
-                            <planeGeometry args={[0.264, 0.084]} />
-                            <meshBasicMaterial 
-                                color={isSelected ? "#38bdf8" : item.chemical ? item.liquidColor : "#475569"} 
-                                transparent 
-                                opacity={0.5} 
-                                wireframe 
-                                side={THREE.DoubleSide} 
-                            />
-                        </mesh>
-                        <Text
-                            position={[0, 0.015, 0.005]}
-                            fontSize={0.028}
-                            color={isSelected ? "#38bdf8" : "#ffffff"}
-                            anchorX="center"
-                            anchorY="middle"
+                    {/* 5. Nhãn Nổi Thông Minh HTML 3D - Luôn vuông góc mắt nhìn, siêu sắc nét, triệt tiêu 100% lỗi gạch chéo méo */}
+                    <Html
+                        position={[0, mouthH + (item.heldBy ? 0.16 : 0.11), 0]}
+                        center
+                        distanceFactor={3.6}
+                    >
+                        <div
+                            className={`px-3 py-1.5 rounded-2xl shadow-2xl backdrop-blur-xl border text-center select-none pointer-events-none transition-all duration-200 ring-1 whitespace-nowrap ${
+                                isSelected
+                                    ? "bg-slate-950/95 border-sky-400 text-white ring-sky-400/50 scale-105"
+                                    : item.heldBy
+                                    ? "bg-slate-950/95 border-amber-400 text-white ring-amber-400/50"
+                                    : "bg-slate-900/90 border-slate-700/80 text-slate-200 ring-white/10"
+                            }`}
                         >
-                            {item.chemical 
-                                ? normalizeChemicalFormula(item.chemical.formula) 
-                                : item.label
-                            }
-                        </Text>
-                        <Text
-                            position={[0, -0.016, 0.005]}
-                            fontSize={0.016}
-                            color={item.chemical ? "#93c5fd" : "#94a3b8"}
-                            anchorX="center"
-                            anchorY="middle"
-                        >
-                            {item.chemical 
-                                ? `${item.chemical.name} • ${Math.round(item.fillLevel * 100)}%`
-                                : "(Bình rỗng - Sẵn sàng)"
-                            }
-                        </Text>
-                    </group>
+                            <div className="flex items-center justify-center gap-1.5">
+                                <span className="font-black text-xs text-white tracking-wide">
+                                    {item.chemical
+                                        ? normalizeChemicalFormula(item.chemical.formula)
+                                        : item.solidChemical
+                                        ? normalizeChemicalFormula(item.solidChemical.formula)
+                                        : item.label}
+                                </span>
+                                {(item.chemical || item.solidChemical) && (
+                                    <span
+                                        className={`text-[9px] px-1.5 py-0.2 rounded font-bold uppercase ${
+                                            (item.chemical?.state === "solid" || !!item.solidChemical)
+                                                ? "bg-amber-500/25 text-amber-300 border border-amber-500/40"
+                                                : "bg-cyan-500/25 text-cyan-300 border border-cyan-500/40"
+                                        }`}
+                                    >
+                                        {(item.chemical?.state === "solid" || !!item.solidChemical) ? "Chất rắn" : "Dung dịch"}
+                                    </span>
+                                )}
+                            </div>
+                            <div className="text-[10px] text-slate-300 font-medium mt-0.5">
+                                {item.chemical
+                                    ? `${item.chemical.name} ${item.chemical.state === "solid" ? "• Nguyên chất" : `• ${Math.round(item.fillLevel * 100)}%`}`
+                                    : item.solidChemical
+                                    ? `${item.solidChemical.name} • Đã cho vào cốc`
+                                    : "(Cốc rỗng • Sẵn sàng)"}
+                            </div>
+                        </div>
+                    </Html>
                 </group>
             </group>
 
@@ -918,41 +903,30 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
     const baoh2 = useMemo(() => getChemicalById("ba(oh)2"), []);
     const hcl = useMemo(() => getChemicalById("hcl"), []);
 
-    // ─── Danh sách 3 dụng cụ trên bàn: Vị trí gom trung tâm, to rõ, dễ quan sát phản ứng ───
+    // ─── Đúng 2 dụng cụ trên bàn: 1 lọ/dụng cụ lấy từ tủ ra (trái) + 1 cốc trộn phản ứng chính (phải) ───
     const [items, setItems] = useState<InteractiveWorkbenchItem[]>([
         {
             id: "bottle-reagent",
             type: "reagent-bottle",
-            label: "Lọ hóa chất",
+            label: "Chất lấy từ tủ",
             chemical: activeChemical,
             liquidColor: getDisplayLiquidColor(activeChemical, "#2563eb"),
-            fillLevel: 0.65,
-            position: [0.0, -0.06, 0.36],
-            defaultPosition: [0.0, -0.06, 0.36],
+            fillLevel: activeChemical.state === "solid" ? 0.35 : 0.65,
+            position: [-0.22, -0.06, 0.36],
+            defaultPosition: [-0.22, -0.06, 0.36],
             heldBy: null,
             tiltAngle: 0,
         },
         {
             id: "beaker-1",
             type: "beaker",
-            label: "Cốc thủy tinh",
+            label: "Cốc Trộn Phản Ứng",
             chemical: null, // Ban đầu rỗng theo yêu cầu
+            solidChemical: null,
             liquidColor: "#38bdf8",
             fillLevel: 0, // 0% rỗng
-            position: [-0.36, -0.06, 0.36],
-            defaultPosition: [-0.36, -0.06, 0.36],
-            heldBy: null,
-            tiltAngle: 0,
-        },
-        {
-            id: "flask-1",
-            type: "erlenmeyer",
-            label: "Bình tam giác",
-            chemical: null, // Ban đầu rỗng theo yêu cầu
-            liquidColor: "#38bdf8",
-            fillLevel: 0, // 0% rỗng
-            position: [0.36, -0.06, 0.36],
-            defaultPosition: [0.36, -0.06, 0.36],
+            position: [0.18, -0.06, 0.36],
+            defaultPosition: [0.18, -0.06, 0.36],
             heldBy: null,
             tiltAngle: 0,
         },
@@ -1119,7 +1093,9 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
             // 3. Sau 1.4s: Thực thi phản ứng hóa học hoặc trộn dung dịch, sau đó trả bình về bàn
             setTimeout(() => {
                 const sChem = source.chemical;
-                const tChem = target!.chemical;
+                const tLiquid = target!.chemical;
+                const tSolid = target!.solidChemical;
+                const tChem = tLiquid || tSolid;
                 let reactionResult: ReactionResult | null = null;
 
                 if (sChem && tChem) {
@@ -1131,7 +1107,7 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                     setReactionPosition([target!.position[0], target!.position[1] + 0.12, target!.position[2]]);
                     playLabSound("bubbles");
                     setTeacherMode(reactionResult.type === "combustion" ? "warning" : "success");
-                    setTeacherMessage(`Phản ứng xảy ra! ${reactionResult.equation}\n${reactionResult.description}`);
+                    setTeacherMessage(`Phản ứng hóa học xảy ra!\n${reactionResult.equation}\nHiện tượng: ${reactionResult.description}`);
 
                     const effectColor = reactionResult.effects.find((e) => e.targetColor)?.targetColor;
 
@@ -1140,14 +1116,15 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                             if (it.id === target!.id) {
                                 return {
                                     ...it,
-                                    fillLevel: Math.min(1.0, it.fillLevel + 0.25),
+                                    chemical: sChem?.state !== "solid" ? sChem : it.chemical,
+                                    solidChemical: sChem?.state === "solid" ? sChem : it.solidChemical,
+                                    fillLevel: Math.min(1.0, (it.fillLevel || 0) + 0.35),
                                     liquidColor: effectColor || it.liquidColor,
                                 };
                             }
                             if (it.id === source.id) {
                                 return {
                                     ...it,
-                                    fillLevel: Math.max(0.1, it.fillLevel - 0.2),
                                     position: [...it.defaultPosition] as [number, number, number],
                                     tiltAngle: 0,
                                     heldBy: null,
@@ -1157,49 +1134,28 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                         })
                     );
                 } else if (!tChem && sChem) {
-                    // Rót vào bình rỗng
+                    // Rót vào cốc rỗng
                     setTeacherMode("speaking");
-                    setTeacherMessage(`Đã rót ${sChem.name} vào ${target!.label}.`);
+                    setTeacherMessage(
+                        sChem.state === "solid"
+                            ? `Đã cho chất rắn ${sChem.name} vào ${target!.label}. Bây giờ hãy chọn thêm một dung dịch để tiến hành phản ứng nhé!`
+                            : `Đã rót dung dịch ${sChem.name} vào ${target!.label}. Bây giờ hãy chọn thêm chất thứ hai để tạo phản ứng nhé!`
+                    );
 
                     setItems((prev) =>
                         prev.map((it) => {
                             if (it.id === target!.id) {
                                 return {
                                     ...it,
-                                    chemical: sChem,
-                                    fillLevel: 0.45,
+                                    chemical: sChem.state !== "solid" ? sChem : null,
+                                    solidChemical: sChem.state === "solid" ? sChem : null,
+                                    fillLevel: sChem.state === "solid" ? 0.2 : 0.45,
                                     liquidColor: source.liquidColor || sChem.color || "#38bdf8",
                                 };
                             }
                             if (it.id === source.id) {
                                 return {
                                     ...it,
-                                    fillLevel: Math.max(0.1, it.fillLevel - 0.2),
-                                    position: [...it.defaultPosition] as [number, number, number],
-                                    tiltAngle: 0,
-                                    heldBy: null,
-                                };
-                            }
-                            return it;
-                        })
-                    );
-                } else if (sChem && tChem && sChem.id === tChem.id) {
-                    // Rót cùng chất
-                    setTeacherMode("speaking");
-                    setTeacherMessage(`Đã thêm ${sChem.name} vào ${target!.label}. Để tạo phản ứng, hãy chọn thêm một chất tương thích khác nhé!`);
-
-                    setItems((prev) =>
-                        prev.map((it) => {
-                            if (it.id === target!.id) {
-                                return {
-                                    ...it,
-                                    fillLevel: Math.min(1.0, it.fillLevel + 0.25),
-                                };
-                            }
-                            if (it.id === source.id) {
-                                return {
-                                    ...it,
-                                    fillLevel: Math.max(0.1, it.fillLevel - 0.2),
                                     position: [...it.defaultPosition] as [number, number, number],
                                     tiltAngle: 0,
                                     heldBy: null,
@@ -1209,24 +1165,23 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                         })
                     );
                 } else {
-                    const tName = target!.chemical?.name || target!.label;
+                    const tName = tChem?.name || target!.label;
                     setTeacherMode("speaking");
-                    setTeacherMessage(`Đã hòa trộn ${source.chemical?.name || source.label} vào ${target!.label} (chứa ${tName}). Hai chất này không có phản ứng hóa học trong điều kiện thường.`);
+                    setTeacherMessage(`Đã hòa trộn ${sChem?.name || source.label} vào ${target!.label} (chứa ${tName}). Hai chất này không có phản ứng hóa học trong điều kiện thường.`);
 
                     setItems((prev) =>
                         prev.map((it) => {
                             if (it.id === target!.id) {
                                 return {
                                     ...it,
-                                    chemical: target!.chemical || source.chemical,
-                                    fillLevel: Math.min(1.0, it.fillLevel + 0.25),
-                                    liquidColor: target!.fillLevel > 0 ? target!.liquidColor : source.liquidColor,
+                                    chemical: sChem?.state !== "solid" ? sChem : it.chemical,
+                                    solidChemical: sChem?.state === "solid" ? sChem : it.solidChemical,
+                                    fillLevel: Math.min(1.0, (it.fillLevel || 0) + 0.3),
                                 };
                             }
                             if (it.id === source.id) {
                                 return {
                                     ...it,
-                                    fillLevel: Math.max(0.1, it.fillLevel - 0.2),
                                     position: [...it.defaultPosition] as [number, number, number],
                                     tiltAngle: 0,
                                     heldBy: null,
@@ -1282,10 +1237,51 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
     const handleCleanItem = useCallback((id: string) => {
         playLabSound("place");
         setItems((prev) =>
-            prev.map((it) => (it.id === id ? { ...it, fillLevel: 0, chemical: null, liquidColor: "#a5f3fc" } : it))
+            prev.map((it) => (it.id === id ? { ...it, fillLevel: 0, chemical: null, solidChemical: null, liquidColor: "#a5f3fc" } : it))
         );
         setActiveReaction(null);
     }, []);
+
+    // Rửa sạch toàn bộ cốc phản ứng & làm mới trộn lại từ đầu
+    const handleResetWorkbench = useCallback(() => {
+        playLabSound("place");
+        setActiveReaction(null);
+        setPourState(null);
+        setSelectedItemId("bottle-reagent");
+        setItems((prev) =>
+            prev.map((it) => {
+                if (it.id === "beaker-1") {
+                    return {
+                        ...it,
+                        chemical: null,
+                        solidChemical: null,
+                        fillLevel: 0,
+                        liquidColor: "#38bdf8",
+                        heldBy: null,
+                        tiltAngle: 0,
+                        pitchAngle: 0,
+                        position: [...it.defaultPosition] as [number, number, number],
+                    };
+                }
+                return {
+                    ...it,
+                    heldBy: null,
+                    tiltAngle: 0,
+                    pitchAngle: 0,
+                    position: [...it.defaultPosition] as [number, number, number],
+                };
+            })
+        );
+        setTeacherMode("speaking");
+        setTeacherMessage("Đã rửa sạch cốc phản ứng! Em có thể chọn chất mới từ tủ để bắt đầu thí nghiệm tiếp theo.");
+    }, [setTeacherMessage, setTeacherMode]);
+
+    // Lắng nghe sự kiện toàn cục reset bàn thí nghiệm
+    useEffect(() => {
+        const handleCleanEvent = () => handleResetWorkbench();
+        window.addEventListener("clean-workbench", handleCleanEvent);
+        return () => window.removeEventListener("clean-workbench", handleCleanEvent);
+    }, [handleResetWorkbench]);
 
     // Cầm 1 dụng cụ lên (bằng nút hoặc tay)
     const handleGrabItem = useCallback((id: string) => {
@@ -1515,6 +1511,16 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                         >
                             <Layers className="w-3.5 h-3.5" />
                             <span>Đổi chất (107)</span>
+                        </button>
+
+                        <button
+                            onClick={handleResetWorkbench}
+                            className="px-2.5 py-1 rounded-xl text-xs font-bold bg-rose-950/80 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/50 transition-all flex items-center gap-1.5 shrink-0 shadow cursor-pointer active:scale-95"
+                            title="Đổ sạch và rửa cốc phản ứng để làm lại thí nghiệm"
+                        >
+                            <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
+                            <span className="hidden sm:inline">Rửa cốc / Trộn lại</span>
+                            <span className="sm:hidden">Rửa cốc</span>
                         </button>
                     </div>
 
@@ -1770,6 +1776,15 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                             >
                                 <Droplets className="w-3.5 h-3.5" />
                                 <span>Rót</span>
+                            </button>
+
+                            <button
+                                onClick={handleResetWorkbench}
+                                className="bg-rose-950/80 hover:bg-rose-600 text-rose-200 hover:text-white text-xs font-bold px-2.5 py-1.5 rounded-xl border border-rose-500/50 shadow flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+                                title="Rửa sạch cốc phản ứng và làm mới thí nghiệm"
+                            >
+                                <RotateCcw className="w-3.5 h-3.5 text-rose-300" />
+                                <span>Rửa cốc / Trộn lại</span>
                             </button>
 
                             {selectedItem.fillLevel > 0 && (

@@ -50,12 +50,15 @@ class RemoteRoomManager {
         if (!netList) continue;
         for (const net of netList) {
           if (net.family === "IPv4" && !net.internal) {
+            // Loại bỏ hoàn toàn IP Link-Local (169.254.x.x) không thể truy cập
+            if (net.address.startsWith("169.254.")) continue;
+
             let score = 0;
             // Ưu tiên dải mạng chuẩn gia đình / lớp học (192.168.x.x)
             if (net.address.startsWith("192.168.")) score += 100;
             else if (net.address.startsWith("10.")) score += 80;
             else if (/^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(net.address)) score += 60;
-            else score += 10;
+            else score -= 50;
 
             // Ưu tiên adapter Wi-Fi và Ethernet vật lý
             if (/wi-fi|wifi|wlan|wireless/i.test(lowerName)) score += 50;
