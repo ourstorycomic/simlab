@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-function splitTextIntoChunks(text: string, maxLen = 170): string[] {
-  // Tách câu theo dấu chấm, chấm than, chấm hỏi, xuống dòng
-  const sentences = text.match(/[^.!?\n]+[.!?\n]*/g) || [text];
+/**
+ * Tách văn bản thành các đoạn nhỏ dưới 190 ký tự (giới hạn an toàn của Google Translate TTS là 200 ký tự)
+ */
+function splitTextIntoChunks(text: string, maxLen = 190): string[] {
+  if (text.length <= maxLen) return [text];
+
+  const sentences = text.match(/[^.!?\n,;]+[.!?\n,;]*/g) || [text];
   const chunks: string[] = [];
   let current = "";
 
@@ -16,7 +20,7 @@ function splitTextIntoChunks(text: string, maxLen = 170): string[] {
     } else {
       if (current) chunks.push(current);
       if (trimmed.length > maxLen) {
-        // Nếu một câu quá dài thì chia nhỏ theo từ
+        // Nếu một câu quá dài thì chia theo từ
         const words = trimmed.split(/\s+/);
         let sub = "";
         for (const w of words) {
@@ -34,28 +38,54 @@ function splitTextIntoChunks(text: string, maxLen = 170): string[] {
     }
   }
   if (current) chunks.push(current);
-  return chunks.slice(0, 6); // Tối đa 6 câu (~30s thoại) để đảm bảo tốc độ phản hồi tức thì
+  return chunks.slice(0, 8); // Tối đa 8 đoạn (~40s thoại)
 }
 
+/**
+ * Tải đoạn âm thanh MP3 từ Google Translate TTS (Giọng Nữ Chuẩn Tiếng Việt - Bắc)
+ * và cắt bỏ phần đệm 0xAA cuối mỗi đoạn để khi ghép các đoạn không làm hỏng bitstream MP3.
+ */
 async function fetchGoogleTTSChunk(chunkText: string): Promise<Buffer> {
-  const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=vi&client=tw-ob&q=${encodeURIComponent(
-    chunkText
-  )}`;
+  const urls = [
+    `https://translate.google.com/translate_tts?ie=UTF-8&tl=vi&client=tw-ob&q=${encodeURIComponent(
+      chunkText
+    )}`,
+    `https://translate.googleapis.com/translate_tts?client=gtx&ie=UTF-8&tl=vi&q=${encodeURIComponent(
+      chunkText
+    )}`,
+  ];
 
-  const res = await fetch(url, {
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      Referer: "https://translate.google.com/",
-    },
-  });
+  let lastError: any = null;
 
-  if (!res.ok) {
-    throw new Error(`Google TTS error: ${res.status} ${res.statusText}`);
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          Referer: "https://translate.google.com/",
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error(`Google TTS error: ${res.status} ${res.statusText}`);
+      }
+
+      const arrayBuffer = await res.arrayBuffer();
+      const buf = Buffer.from(arrayBuffer);
+
+      // Loại bỏ byte đệm 0xAA cuối file để khi ghép nhiều chunk MP3 không bị dừng sớm
+      let end = buf.length;
+      while (end > 0 && buf[end - 1] === 0xaa) {
+        end--;
+      }
+      return buf.subarray(0, end);
+    } catch (err) {
+      lastError = err;
+    }
   }
 
-  const arrayBuffer = await res.arrayBuffer();
-  return Buffer.from(arrayBuffer);
+  throw lastError || new Error("Không thể tải âm thanh TTS từ Google");
 }
 
 export async function GET(req: NextRequest) {
@@ -71,23 +101,28 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Thiếu văn bản cần đọc" }, { status: 400 });
     }
 
-    const chunks = splitTextIntoChunks(cleanText, 170);
-    const audioBuffers: Buffer[] = [];
+    const chunks = splitTextIntoChunks(cleanText, 190);
 
-    for (const chunk of chunks) {
-      try {
-        const buf = await fetchGoogleTTSChunk(chunk);
-        audioBuffers.push(buf);
-      } catch (err) {
-        console.error("Lỗi khi tải đoạn TTS:", chunk, err);
-      }
-    }
+    // Tải song song tất cả các đoạn âm thanh để tối đa hóa tốc độ phản hồi (< 500ms)
+    const audioBuffers = await Promise.all(
+      chunks.map((chunk) =>
+        fetchGoogleTTSChunk(chunk).catch((err) => {
+          console.error("Lỗi khi tải đoạn TTS:", chunk, err);
+          return null;
+        })
+      )
+    );
 
-    if (audioBuffers.length === 0) {
+    const validBuffers = audioBuffers.filter(
+      (b): b is Buffer => b !== null && b.length > 0
+    );
+
+    if (validBuffers.length === 0) {
       return NextResponse.json({ error: "Không thể tạo âm thanh" }, { status: 500 });
     }
 
-    const combined = Buffer.concat(audioBuffers);
+    // Ghép các buffer MPEG Audio chuẩn
+    const combined = Buffer.concat(validBuffers);
 
     return new Response(combined, {
       status: 200,
@@ -117,23 +152,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Thiếu văn bản cần đọc" }, { status: 400 });
     }
 
-    const chunks = splitTextIntoChunks(cleanText, 170);
-    const audioBuffers: Buffer[] = [];
+    const chunks = splitTextIntoChunks(cleanText, 190);
 
-    for (const chunk of chunks) {
-      try {
-        const buf = await fetchGoogleTTSChunk(chunk);
-        audioBuffers.push(buf);
-      } catch (err) {
-        console.error("Lỗi khi tải đoạn TTS:", chunk, err);
-      }
-    }
+    const audioBuffers = await Promise.all(
+      chunks.map((chunk) =>
+        fetchGoogleTTSChunk(chunk).catch((err) => {
+          console.error("Lỗi khi tải đoạn TTS:", chunk, err);
+          return null;
+        })
+      )
+    );
 
-    if (audioBuffers.length === 0) {
+    const validBuffers = audioBuffers.filter(
+      (b): b is Buffer => b !== null && b.length > 0
+    );
+
+    if (validBuffers.length === 0) {
       return NextResponse.json({ error: "Không thể tạo âm thanh" }, { status: 500 });
     }
 
-    const combined = Buffer.concat(audioBuffers);
+    const combined = Buffer.concat(validBuffers);
 
     return new Response(combined, {
       status: 200,
@@ -149,4 +187,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message || "Lỗi hệ thống TTS" }, { status: 500 });
   }
 }
-

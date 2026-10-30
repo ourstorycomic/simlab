@@ -3,15 +3,16 @@
 /**
  * ─── Lab3DAITutorVoice ───
  * Trợ lý Sư phạm Cô Giáo Mai AI Đa Nền Tảng:
- * 1. Giọng nói Thuần Việt Nữ 100% (Google Neural TTS vi-VN qua API /api/ai/tts):
+ * 1. Giọng nói Thuần Việt Nữ 100% (Google TTS vi-VN qua API /api/ai/tts):
  *    - Phát âm chuẩn tiếng Việt, truyền cảm, tự nhiên như người thật.
- *    - Đồng bộ khẩu hình nói chuyện và chớp mắt cử chỉ 3D của Cô Giáo Mai.
- * 2. Tương Tác Giọng Nói Tự Do (Không Rập Khuôn Gợi Ý):
+ *    - Sử dụng Web Audio API và AudioContext unlock để phát mượt mà không bao giờ bị cắt ngang hay nghẽn Autoplay.
+ *    - Chặn tuyệt đối fallback sang giọng nam Tây (Microsoft David) khi trên Windows không có voice tiếng Việt.
+ * 2. Tương Tác Giọng Nói Tự Do:
  *    - Học sinh tự do hỏi bất kỳ thắc mắc nào về bài học/thí nghiệm.
- *    - Push-to-Talk bằng Cử chỉ bàn tay: Dơ ngón trỏ ☝️ (hoặc ngón cái 👍) trước webcam để nói.
+ *    - Push-to-Talk bằng Cử chỉ bàn tay: Giơ 2 ngón tay ✌️ trước webcam để nói, hạ tay tự động gửi.
  *    - Hoặc giữ nút "Giữ Nói" trên màn hình, hoặc gõ phím trực tiếp vào ô hỏi đáp.
  * 3. Ngữ cảnh Thí Nghiệm Sâu Sắc:
- *    - Phân tích trực tiếp các chất trên bàn, chất trong cốc trộn, hiện tượng hóa học/vật lý.
+ *    - Phân tích trực tiếp các chất trên bàn, chất trong cốc trộn, hiện tượng hóa học/vật lý/sinh học.
  */
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -22,12 +23,22 @@ import {
   GraduationCap,
   X,
   Play,
-  HelpCircle,
 } from "lucide-react";
+import { Chemical } from "@/lib/chemicals";
+import { ReactionResult } from "@/lib/reactions";
+import { HandState } from "@/lib/handTracking";
 
 function MicIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
       <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
       <line x1="12" x2="12" y1="19" y2="22" />
@@ -36,9 +47,20 @@ function MicIcon({ className }: { className?: string }) {
 }
 
 const Mic = MicIcon;
-import { Chemical } from "@/lib/chemicals";
-import { ReactionResult } from "@/lib/reactions";
-import { HandState } from "@/lib/handTracking";
+
+// ─── Singleton AudioContext để phát mượt mà và vượt qua rào cản Autoplay ───
+let globalAudioCtx: AudioContext | null = null;
+
+function getSharedAudioContext(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+  if (!globalAudioCtx) {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (AudioCtx) {
+      globalAudioCtx = new AudioCtx();
+    }
+  }
+  return globalAudioCtx;
+}
 
 interface Lab3DAITutorVoiceProps {
   subject: "chemistry" | "physics" | "biology";
@@ -78,12 +100,39 @@ export default function Lab3DAITutorVoice({
 
   const recognitionRef = useRef<any>(null);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
+  const currentAudioSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const isGestureListeningRef = useRef(false);
   const gestureHoldTimerRef = useRef<number>(0);
   const lastGestureCheckRef = useRef<number>(0);
   const transcriptRef = useRef<string>("");
   const isSubmittingVoiceRef = useRef<boolean>(false);
+  const pendingSubmitTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Mở khóa AudioContext khi người dùng có bất kỳ tương tác click/chạm nào trên trang
+  useEffect(() => {
+    const unlockAudio = () => {
+      const ctx = getSharedAudioContext();
+      if (ctx && ctx.state === "suspended") {
+        ctx.resume().catch(() => {});
+      }
+      if (!audioPlayerRef.current && typeof Audio !== "undefined") {
+        audioPlayerRef.current = new Audio();
+      }
+    };
+
+    window.addEventListener("pointerdown", unlockAudio, { passive: true });
+    window.addEventListener("click", unlockAudio, { passive: true });
+    window.addEventListener("touchstart", unlockAudio, { passive: true });
+    window.addEventListener("keydown", unlockAudio, { passive: true });
+
+    return () => {
+      window.removeEventListener("pointerdown", unlockAudio);
+      window.removeEventListener("click", unlockAudio);
+      window.removeEventListener("touchstart", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+    };
+  }, []);
 
   // Nạp trước danh sách giọng nói tiếng Việt
   useEffect(() => {
@@ -97,13 +146,25 @@ export default function Lab3DAITutorVoice({
 
   // ─── 0. Dừng toàn bộ âm thanh đang phát ───
   const stopAllSpeech = useCallback(() => {
-    if (audioPlayerRef.current) {
-      audioPlayerRef.current.pause();
-      audioPlayerRef.current.currentTime = 0;
-      audioPlayerRef.current = null;
+    // 1. Dừng Web Audio buffer source
+    if (currentAudioSourceRef.current) {
+      try {
+        currentAudioSourceRef.current.stop();
+      } catch (e) {}
+      currentAudioSourceRef.current = null;
     }
+    // 2. Dừng HTML5 Audio player
+    if (audioPlayerRef.current) {
+      try {
+        audioPlayerRef.current.pause();
+        audioPlayerRef.current.currentTime = 0;
+      } catch (e) {}
+    }
+    // 3. Dừng Web Speech API
     if (typeof window !== "undefined" && window.speechSynthesis) {
-      window.speechSynthesis.cancel();
+      try {
+        window.speechSynthesis.cancel();
+      } catch (e) {}
       currentUtteranceRef.current = null;
     }
     setIsPlayingAudio(false);
@@ -116,25 +177,19 @@ export default function Lab3DAITutorVoice({
     };
   }, [stopAllSpeech]);
 
-  // Dự phòng Web Speech API (Được bảo vệ 100% chống kẹt hàng đợi Chrome & chống GC)
+  // Dự phòng Web Speech API: BẢO VỆ NGHIÊM NGẶT - CHỈ DÙNG NẾU CÓ GIỌNG TIẾNG VIỆT THẬT SỰ
+  // Tuyệt đối KHÔNG fallback sang Microsoft David (tiếng Anh nam) để tránh phát âm méo mó
   const speakWithWebSpeech = useCallback(
     (cleanText: string) => {
       if (typeof window === "undefined" || !window.speechSynthesis) return;
 
       try {
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.resume();
-
-        const utterance = new SpeechSynthesisUtterance(cleanText);
-        utterance.lang = "vi-VN";
-        utterance.rate = 0.98;
-        utterance.pitch = 1.05;
-
         const voices = window.speechSynthesis.getVoices();
+        // Bắt buộc phải là giọng tiếng Việt chuẩn (vi-VN)
         const viVoice =
           voices.find(
             (v) =>
-              v.lang.includes("vi") &&
+              v.lang.toLowerCase().startsWith("vi") &&
               (v.name.includes("HoaiMy") ||
                 v.name.includes("Natural") ||
                 v.name.includes("Google") ||
@@ -142,11 +197,21 @@ export default function Lab3DAITutorVoice({
                 v.name.includes("An") ||
                 v.name.includes("Linh") ||
                 v.name.includes("Mai"))
-          ) || voices.find((v) => v.lang.includes("vi"));
+          ) || voices.find((v) => v.lang.toLowerCase().startsWith("vi"));
 
-        if (viVoice) {
-          utterance.voice = viVoice;
+        if (!viVoice) {
+          console.warn("Không có giọng đọc tiếng Việt tích hợp trong trình duyệt. Không dùng WebSpeech để tránh phát âm tiếng Anh.");
+          return;
         }
+
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.resume();
+
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.lang = viVoice.lang;
+        utterance.voice = viVoice;
+        utterance.rate = 0.98;
+        utterance.pitch = 1.05;
 
         utterance.onstart = () => {
           setIsPlayingAudio(true);
@@ -160,7 +225,7 @@ export default function Lab3DAITutorVoice({
         };
 
         utterance.onerror = (e) => {
-          console.warn("Web Speech synthesis error:", e);
+          console.warn("Web Speech error:", e);
           setIsPlayingAudio(false);
           onTeacherModeChange?.("idle");
           currentUtteranceRef.current = null;
@@ -177,7 +242,7 @@ export default function Lab3DAITutorVoice({
     [onTeacherModeChange]
   );
 
-  // ─── 1. Phát âm thanh Giọng Nói Cô Giáo (100% Giọng Nữ Thuần Việt qua Blob Audio & Fallback) ───
+  // ─── 1. Phát âm thanh Giọng Nữ Thuần Việt qua Web Audio API & Blob Audio ───
   const speakText = useCallback(
     async (text: string) => {
       if (typeof window === "undefined" || !voiceEnabled) return;
@@ -193,46 +258,83 @@ export default function Lab3DAITutorVoice({
       if (!cleanText) return;
 
       try {
+        const audioCtx = getSharedAudioContext();
+        if (audioCtx && audioCtx.state === "suspended") {
+          try {
+            await audioCtx.resume();
+          } catch (e) {}
+        }
+
         const audioUrl = `/api/ai/tts?text=${encodeURIComponent(cleanText)}`;
-        
-        // Tải audio blob vào RAM để phát ngay lập tức không bị lỗi Chrome Range stream
         const res = await fetch(audioUrl);
         if (!res.ok) {
           throw new Error(`TTS server error: ${res.status}`);
         }
 
-        const blob = await res.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        const audio = new Audio(blobUrl);
-        audioPlayerRef.current = audio;
+        const arrayBuffer = await res.arrayBuffer();
 
-        audio.onplay = () => {
+        // ── ƯU TIÊN 1: Web Audio API (Chất lượng phòng thu, không bao giờ ngắt ngang, bypass Autoplay) ──
+        if (audioCtx && audioCtx.state === "running") {
+          try {
+            // decodeAudioData giải nén toàn bộ luồng MP3 thành PCM nguyên vẹn
+            const audioBuffer = await new Promise<AudioBuffer>((resolve, reject) => {
+              audioCtx.decodeAudioData(arrayBuffer.slice(0), resolve, reject);
+            });
+
+            const source = audioCtx.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(audioCtx.destination);
+            currentAudioSourceRef.current = source;
+
+            source.onended = () => {
+              setIsPlayingAudio(false);
+              if (onTeacherModeChange) onTeacherModeChange("idle");
+              currentAudioSourceRef.current = null;
+            };
+
+            source.start(0);
+            setIsPlayingAudio(true);
+            if (onTeacherModeChange) onTeacherModeChange("speaking");
+            return;
+          } catch (decodeErr) {
+            console.warn("Web Audio decodeAudioData không thành công, chuyển sang HTML5 Audio:", decodeErr);
+          }
+        }
+
+        // ── DỰ PHÒNG 2: HTML5 Audio Element ──
+        if (!audioPlayerRef.current) {
+          audioPlayerRef.current = new Audio();
+        }
+        const player = audioPlayerRef.current;
+        const blob = new Blob([arrayBuffer], { type: "audio/mpeg" });
+        const blobUrl = URL.createObjectURL(blob);
+        player.src = blobUrl;
+
+        player.onplay = () => {
           setIsPlayingAudio(true);
           if (onTeacherModeChange) onTeacherModeChange("speaking");
         };
 
-        audio.onended = () => {
+        player.onended = () => {
           setIsPlayingAudio(false);
           if (onTeacherModeChange) onTeacherModeChange("idle");
           URL.revokeObjectURL(blobUrl);
-          audioPlayerRef.current = null;
         };
 
-        audio.onerror = (e) => {
-          console.warn("Blob Audio error, fallback to Web Speech:", e);
+        player.onerror = () => {
           URL.revokeObjectURL(blobUrl);
           speakWithWebSpeech(cleanText);
         };
 
-        const playPromise = audio.play();
+        const playPromise = player.play();
         if (playPromise !== undefined) {
           playPromise.catch((err) => {
-            console.warn("Autoplay blocked or audio failed, fallback to Web Speech:", err);
+            console.warn("Autoplay HTML5 Audio bị chặn, thử Web Speech tiếng Việt:", err);
             speakWithWebSpeech(cleanText);
           });
         }
       } catch (err) {
-        console.warn("TTS Fetch error, fallback to Web Speech:", err);
+        console.warn("TTS Fetch error, fallback Web Speech tiếng Việt nếu có:", err);
         speakWithWebSpeech(cleanText);
       }
     },
@@ -332,6 +434,12 @@ export default function Lab3DAITutorVoice({
 
   // ─── 3. Bắt đầu thu âm giọng nói ───
   const startVoiceRecognition = useCallback(() => {
+    // Kích hoạt AudioContext ngay khi bắt đầu nói để luôn sẵn sàng phát câu trả lời
+    const ctx = getSharedAudioContext();
+    if (ctx && ctx.state === "suspended") {
+      ctx.resume().catch(() => {});
+    }
+
     if (recognitionRef.current && !isListening) {
       try {
         transcriptRef.current = "";
@@ -344,6 +452,22 @@ export default function Lab3DAITutorVoice({
     }
   }, [isListening]);
 
+  // ─── Hàm xử lý gửi câu hỏi một lần duy nhất chống xung đột race condition ───
+  const submitVoiceQuestion = useCallback(() => {
+    if (pendingSubmitTimeoutRef.current) {
+      clearTimeout(pendingSubmitTimeoutRef.current);
+      pendingSubmitTimeoutRef.current = null;
+    }
+
+    const textToSend = (transcriptRef.current || inputQuery).trim();
+    if (textToSend.length >= 2 && !isSubmittingVoiceRef.current) {
+      isSubmittingVoiceRef.current = true;
+      handleAskAITutor(textToSend).finally(() => {
+        isSubmittingVoiceRef.current = false;
+      });
+    }
+  }, [handleAskAITutor, inputQuery]);
+
   // ─── 4. Dừng thu âm & TỰ ĐỘNG GỬI CÂU HỎI NGAY LẬP TỨC (Không cần bấm nút gửi) ───
   const stopVoiceRecognitionAndSend = useCallback(() => {
     if (recognitionRef.current) {
@@ -351,17 +475,14 @@ export default function Lab3DAITutorVoice({
         recognitionRef.current.stop();
       } catch (e) {}
     }
-    // Chờ 250ms cho Web Speech API hoàn tất từ cuối cùng rồi tự động gửi ngay
-    setTimeout(() => {
-      const textToSend = transcriptRef.current.trim() || inputQuery.trim();
-      if (textToSend.length >= 2 && !isSubmittingVoiceRef.current) {
-        isSubmittingVoiceRef.current = true;
-        handleAskAITutor(textToSend).finally(() => {
-          isSubmittingVoiceRef.current = false;
-        });
-      }
+    if (pendingSubmitTimeoutRef.current) {
+      clearTimeout(pendingSubmitTimeoutRef.current);
+    }
+    // Chờ 250ms cho Web Speech API hoàn tất từ cuối cùng rồi gửi một lần duy nhất
+    pendingSubmitTimeoutRef.current = setTimeout(() => {
+      submitVoiceQuestion();
     }, 250);
-  }, [handleAskAITutor, inputQuery]);
+  }, [submitVoiceQuestion]);
 
   // ─── 5. Khởi tạo Web Speech Recognition (Giọng nói Tiếng Việt vi-VN) ───
   useEffect(() => {
@@ -399,21 +520,19 @@ export default function Lab3DAITutorVoice({
 
       recognition.onend = () => {
         setIsListening(false);
-        // TỰ ĐỘNG GỬI khi người dùng nói xong (nhận diện kết thúc câu)
-        const textToSend = transcriptRef.current.trim();
-        if (textToSend.length >= 2 && !isSubmittingVoiceRef.current) {
-          isSubmittingVoiceRef.current = true;
-          handleAskAITutor(textToSend).finally(() => {
-            isSubmittingVoiceRef.current = false;
-          });
+        // TỰ ĐỘNG GỬI khi người dùng nói xong nếu chưa có timer submit
+        if (!pendingSubmitTimeoutRef.current && !isSubmittingVoiceRef.current) {
+          pendingSubmitTimeoutRef.current = setTimeout(() => {
+            submitVoiceQuestion();
+          }, 200);
         }
       };
 
       recognitionRef.current = recognition;
     }
-  }, [onTeacherModeChange, handleAskAITutor]);
+  }, [onTeacherModeChange, submitVoiceQuestion]);
 
-  // ─── 6. Cử chỉ Giơ 2 Ngón Tay Push-To-Talk (✌️ Victory / Peace Sign: Trỏ + Giữa) ───
+  // ─── 6. Cử chỉ Giơ 2 Ngón Tay Push-To-Talk (✌️ Victory: Trỏ + Giữa) ───
   useEffect(() => {
     let animId: number;
 
@@ -433,9 +552,6 @@ export default function Lab3DAITutorVoice({
 
           for (const hand of hands) {
             // CỬ CHỈ GIƠ 2 NGÓN TAY (✌️ Ngón trỏ & Ngón giữa duỗi lên):
-            // 1. Ngón trỏ (Index) VÀ Ngón giữa (Middle) cùng duỗi thẳng
-            // 2. Các ngón khác (Ngón áp út, Ngón út) gập lại
-            // 3. Hoặc số ngón duỗi là 2 và có ngón trỏ/ngón giữa
             const isIndexMiddleExt = Boolean(hand.isIndexExtended && hand.isMiddleExtended);
             const isRingPinkyFolded = Boolean(!hand.isRingExtended && !hand.isPinkyExtended);
             const isTwoFingersPeace = isIndexMiddleExt && isRingPinkyFolded;
@@ -501,7 +617,7 @@ export default function Lab3DAITutorVoice({
                 </h3>
                 <p className="text-[10px] text-slate-400">
                   {isPlayingAudio
-                    ? "🔊 Đang giảng giải bằng giọng nữ..."
+                    ? "🔊 Đang giảng giải bằng giọng nữ tiếng Việt..."
                     : isListening
                     ? "🎙️ Đang lắng nghe câu hỏi..."
                     : "Hỏi đáp & Hướng dẫn thí nghiệm"}
@@ -546,6 +662,11 @@ export default function Lab3DAITutorVoice({
               <div className="flex justify-end pt-1">
                 <button
                   onClick={() => {
+                    // Mở khóa ngay lập tức trên thao tác click chuột
+                    const ctx = getSharedAudioContext();
+                    if (ctx && ctx.state === "suspended") {
+                      ctx.resume().catch(() => {});
+                    }
                     if (isPlayingAudio) {
                       stopAllSpeech();
                     } else {
@@ -557,7 +678,7 @@ export default function Lab3DAITutorVoice({
                       ? "bg-sky-500/20 text-sky-300 border border-sky-400/50 animate-pulse ring-2 ring-sky-400/20"
                       : "bg-sky-950/70 hover:bg-sky-900/80 text-sky-300 hover:text-white border border-sky-700/60 hover:border-sky-400 active:scale-95"
                   }`}
-                  title={isPlayingAudio ? "Bấm để dừng giọng nói" : "Nghe cô nói bằng giọng đọc tiếng Việt nữ"}
+                  title={isPlayingAudio ? "Bấm để dừng giọng nói" : "Nghe cô nói bằng giọng nữ tiếng Việt chuẩn"}
                 >
                   {isPlayingAudio ? (
                     <>
@@ -611,6 +732,11 @@ export default function Lab3DAITutorVoice({
             <form
               onSubmit={(e) => {
                 e.preventDefault();
+                // Kích hoạt AudioContext ngay khi bấm phím/submit để sẵn sàng phát tiếng
+                const ctx = getSharedAudioContext();
+                if (ctx && ctx.state === "suspended") {
+                  ctx.resume().catch(() => {});
+                }
                 handleAskAITutor(inputQuery);
               }}
               className="flex-1 flex items-center gap-1 bg-slate-900 border border-slate-800 focus-within:border-sky-500 rounded-2xl px-2.5 py-1 transition-all"
