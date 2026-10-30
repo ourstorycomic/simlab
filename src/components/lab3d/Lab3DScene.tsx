@@ -261,7 +261,9 @@ function InteractiveVessel({
                                         ? normalizeChemicalFormula(item.chemical.formula)
                                         : item.solidChemical
                                         ? normalizeChemicalFormula(item.solidChemical.formula)
-                                        : "Cốc Phản Ứng"}
+                                        : item.id === "beaker-1"
+                                        ? "Cốc Phản Ứng"
+                                        : "Lọ Hóa Chất"}
                                 </span>
                                 {(item.chemical || item.solidChemical) ? (
                                     <span
@@ -284,7 +286,9 @@ function InteractiveVessel({
                                     ? `${item.chemical.name} ${item.chemical.state === "solid" ? "• Nguyên chất" : `• ${Math.round(item.fillLevel * 100)}%`}`
                                     : item.solidChemical
                                     ? `${item.solidChemical.name} • Đã cho vào cốc`
-                                    : "(Cốc rỗng • Sẵn sàng nhận chất)"}
+                                    : item.id === "beaker-1"
+                                    ? "(Cốc rỗng • Sẵn sàng nhận chất)"
+                                    : "(Lọ rỗng • Hãy mở tủ lấy chất)"}
                             </div>
                         </div>
                     </Html>
@@ -395,19 +399,19 @@ function SceneContent({
         switch (preset) {
             case "closeup":
                 return {
-                    pos: new THREE.Vector3(0, 0.45, 1.85),
-                    look: new THREE.Vector3(0, 0.08, 0.35),
+                    pos: new THREE.Vector3(0, 0.52, 2.25),
+                    look: new THREE.Vector3(0.05, 0.10, 0.30),
                 };
             case "pour":
                 return {
-                    pos: new THREE.Vector3(-0.16, 0.42, 1.65),
-                    look: new THREE.Vector3(-0.16, 0.08, 0.35),
+                    pos: new THREE.Vector3(-0.16, 0.50, 2.05),
+                    look: new THREE.Vector3(-0.10, 0.10, 0.30),
                 };
             case "overview":
             default:
                 return {
-                    pos: new THREE.Vector3(0, 0.58, 2.65),
-                    look: new THREE.Vector3(0, 0.10, 0.25),
+                    pos: new THREE.Vector3(0, 0.65, 2.95),
+                    look: new THREE.Vector3(0.15, 0.10, 0.25),
                 };
         }
     }, []);
@@ -744,21 +748,21 @@ function SceneContent({
         <>
             <PerspectiveCamera
                 makeDefault
-                position={[0, 0.32, 1.38]}
-                fov={46}
+                position={[0, 0.65, 2.95]}
+                fov={48}
             />
             <OrbitControls
                 ref={controlsRef}
                 enablePan={false}
                 enableZoom={true}
                 enableRotate={true}
-                minDistance={0.7}
-                maxDistance={3.2}
+                minDistance={1.2}
+                maxDistance={4.5}
                 minPolarAngle={Math.PI / 6}
                 maxPolarAngle={Math.PI / 2 - 0.05}
                 minAzimuthAngle={-Math.PI / 3}
                 maxAzimuthAngle={Math.PI / 3}
-                target={[0, 0.05, 0.35]}
+                target={[0.15, 0.10, 0.25]}
                 onStart={() => {
                     isUserOrbitingRef.current = true;
                 }}
@@ -807,11 +811,11 @@ function SceneContent({
             {/* Bàn tay 3D được hiển thị toàn cục ở page.tsx trên layer z-[60] (ở phía trước thanh Tab) */}
             {/* <Lab3DFullHandModel handStateRef={handStateRef} /> */}
 
-            {/* Nhân vật Cô Giáo AI (Đứng trên sàn phòng Lab Y = -1.20 bên phải bàn, không đứng trên mặt bàn) */}
+            {/* Nhân vật Cô Giáo AI (Đứng trên sàn phòng Lab Y = -1.20 phía sau bàn giảng bài, thân trên nổi bật trên bàn) */}
             {show3DTeacher && (
                 <Lab3DAITeacher
-                    position={[2.42, -0.48, 0.55]}
-                    rotation={[0, -0.58, 0]}
+                    position={[1.20, -0.48, -0.15]}
+                    rotation={[0, -0.28, 0]}
                     scale={1.15}
                     mode={teacherMode}
                     message={teacherMessage}
@@ -1104,6 +1108,11 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                             if (it.id === source.id) {
                                 return {
                                     ...it,
+                                    chemical: null,
+                                    solidChemical: null,
+                                    fillLevel: 0,
+                                    liquidColor: "transparent",
+                                    label: "Lọ rỗng (Đã đổ hết)",
                                     position: [...it.defaultPosition] as [number, number, number],
                                     tiltAngle: 0,
                                     heldBy: null,
@@ -1113,12 +1122,12 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                         })
                     );
                 } else if (!tChem && sChem) {
-                    // Rót vào cốc rỗng
+                    // Rót vào cốc rỗng: Chuyển toàn bộ chất từ lọ vào cốc, lọ trở thành rỗng để lấy chất tiếp theo
                     setTeacherMode("speaking");
                     setTeacherMessage(
                         sChem.state === "solid"
-                            ? `Đã cho chất rắn ${sChem.name} vào ${target!.label}. Bây giờ hãy chọn thêm một dung dịch để tiến hành phản ứng nhé!`
-                            : `Đã rót dung dịch ${sChem.name} vào ${target!.label}. Bây giờ hãy chọn thêm chất thứ hai để tạo phản ứng nhé!`
+                            ? `Đã cho chất rắn ${sChem.name} vào ${target!.label}. Lọ đã rỗng, hãy mở Tủ Hóa Chất để chọn chất thứ hai tạo phản ứng nhé!`
+                            : `Đã rót dung dịch ${sChem.name} vào ${target!.label}. Lọ đã rỗng, hãy mở Tủ Hóa Chất để chọn chất thứ hai tạo phản ứng nhé!`
                     );
 
                     setItems((prev) =>
@@ -1128,13 +1137,18 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                                     ...it,
                                     chemical: sChem.state !== "solid" ? sChem : null,
                                     solidChemical: sChem.state === "solid" ? sChem : null,
-                                    fillLevel: sChem.state === "solid" ? 0.2 : 0.45,
+                                    fillLevel: sChem.state === "solid" ? 0.35 : 0.60,
                                     liquidColor: source.liquidColor || sChem.color || "#38bdf8",
                                 };
                             }
                             if (it.id === source.id) {
                                 return {
                                     ...it,
+                                    chemical: null,
+                                    solidChemical: null,
+                                    fillLevel: 0,
+                                    liquidColor: "transparent",
+                                    label: "Lọ rỗng (Đã đổ hết)",
                                     position: [...it.defaultPosition] as [number, number, number],
                                     tiltAngle: 0,
                                     heldBy: null,
@@ -1161,6 +1175,11 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                             if (it.id === source.id) {
                                 return {
                                     ...it,
+                                    chemical: null,
+                                    solidChemical: null,
+                                    fillLevel: 0,
+                                    liquidColor: "transparent",
+                                    label: "Lọ rỗng (Đã đổ hết)",
                                     position: [...it.defaultPosition] as [number, number, number],
                                     tiltAngle: 0,
                                     heldBy: null,
