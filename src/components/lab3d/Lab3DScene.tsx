@@ -16,7 +16,7 @@
 
 import React, { useRef, useState, useCallback, useMemo, MutableRefObject, useEffect } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, PerspectiveCamera, Text, Html } from "@react-three/drei";
+import { OrbitControls, PerspectiveCamera, Text } from "@react-three/drei";
 import * as THREE from "three";
 
 import { HandState, DEFAULT_HAND_STATE, SingleHandData } from "@/lib/handTracking";
@@ -240,58 +240,67 @@ function InteractiveVessel({
                         </mesh>
                     )}
 
-                    {/* 5. Nhãn Nổi Thông Minh HTML 3D - Luôn vuông góc mắt nhìn, siêu sắc nét, nhỏ gọn tinh tế */}
-                    <Html
-                        position={[0, mouthH + (item.heldBy ? 0.16 : 0.11), 0]}
-                        center
-                        distanceFactor={4.8}
-                    >
-                        <div
-                            className={`px-2.5 py-1 rounded-2xl shadow-xl backdrop-blur-xl border text-center select-none pointer-events-none transition-all duration-200 ring-1 whitespace-nowrap ${
-                                isSelected
-                                    ? "bg-slate-950/95 border-sky-400 text-white ring-sky-400/50 scale-105"
-                                    : item.heldBy
-                                    ? "bg-slate-950/95 border-amber-400 text-white ring-amber-400/50"
-                                    : "bg-slate-900/90 border-slate-700/80 text-slate-200 ring-white/10"
-                            }`}
-                        >
-                            <div className="flex items-center justify-center gap-1.5">
-                                <span className="font-black text-xs text-white tracking-wide">
-                                    {item.chemical
-                                        ? normalizeChemicalFormula(item.chemical.formula)
-                                        : item.solidChemical
-                                        ? normalizeChemicalFormula(item.solidChemical.formula)
-                                        : item.id === "beaker-1"
-                                        ? "Cốc Phản Ứng"
-                                        : "Lọ Hóa Chất"}
-                                </span>
-                                {(item.chemical || item.solidChemical) ? (
-                                    <span
-                                        className={`text-[9px] px-1.5 py-0.2 rounded font-bold uppercase ${
-                                            (item.chemical?.state === "solid" || !!item.solidChemical)
-                                                ? "bg-amber-500/25 text-amber-300 border border-amber-500/40"
-                                                : "bg-cyan-500/25 text-cyan-300 border border-cyan-500/40"
-                                        }`}
-                                    >
-                                        {(item.chemical?.state === "solid" || !!item.solidChemical) ? "Chất rắn" : "Dung dịch"}
-                                    </span>
-                                ) : (
-                                    <span className="text-[9px] px-1.5 py-0.2 rounded font-bold uppercase bg-slate-800 text-slate-300 border border-slate-700">
-                                        RỖNG
-                                    </span>
-                                )}
-                            </div>
-                            <div className="text-[10px] text-slate-300 font-medium mt-0.5">
+                    {/* 5. Tem nhãn dán hóa chất chuẩn thực tế dán trực tiếp trên thân lọ (Không bay lơ lửng che tầm nhìn) */}
+                    {isReagent && (
+                        <group position={[0, 0.08, 0.082]}>
+                            {/* Nền tem giấy dán trắng ngà */}
+                            <mesh>
+                                <planeGeometry args={[0.076, 0.046]} />
+                                <meshStandardMaterial color="#f8fafc" roughness={0.6} />
+                            </mesh>
+                            {/* Viền chỉ thanh lịch */}
+                            <mesh position={[0, 0, 0.0005]}>
+                                <planeGeometry args={[0.072, 0.042]} />
+                                <meshBasicMaterial color="#94a3b8" wireframe />
+                            </mesh>
+                            {/* Công thức hóa học */}
+                            <Text
+                                position={[0, 0.007, 0.001]}
+                                fontSize={0.015}
+                                color="#0f172a"
+                                anchorX="center"
+                                anchorY="middle"
+                            >
                                 {item.chemical
-                                    ? `${item.chemical.name} ${item.chemical.state === "solid" ? "• Nguyên chất" : `• ${Math.round(item.fillLevel * 100)}%`}`
+                                    ? normalizeChemicalFormula(item.chemical.formula)
+                                    : "LỌ TRỐNG"}
+                            </Text>
+                            {/* Tên hóa học / trạng thái */}
+                            <Text
+                                position={[0, -0.009, 0.001]}
+                                fontSize={0.007}
+                                color="#64748b"
+                                anchorX="center"
+                                anchorY="middle"
+                            >
+                                {item.chemical
+                                    ? item.chemical.name.length > 14
+                                        ? item.chemical.name.slice(0, 13) + "..."
+                                        : item.chemical.name
+                                    : "(Đã đổ hết)"}
+                            </Text>
+                        </group>
+                    )}
+
+                    {/* Nhãn ghi chú sắc nét in trên thân cốc trộn (Beaker) */}
+                    {item.type === "beaker" && (item.chemical || item.solidChemical) && (
+                        <group position={[0, 0.065, 0.065]}>
+                            <Text
+                                position={[0, 0, 0]}
+                                fontSize={0.013}
+                                color="#ffffff"
+                                anchorX="center"
+                                anchorY="middle"
+                                fillOpacity={0.9}
+                            >
+                                {item.chemical
+                                    ? normalizeChemicalFormula(item.chemical.formula)
                                     : item.solidChemical
-                                    ? `${item.solidChemical.name} • Đã cho vào cốc`
-                                    : item.id === "beaker-1"
-                                    ? "(Cốc rỗng • Sẵn sàng nhận chất)"
-                                    : "(Lọ rỗng • Hãy mở tủ lấy chất)"}
-                            </div>
-                        </div>
-                    </Html>
+                                    ? normalizeChemicalFormula(item.solidChemical.formula)
+                                    : ""}
+                            </Text>
+                        </group>
+                    )}
                 </group>
             </group>
 
