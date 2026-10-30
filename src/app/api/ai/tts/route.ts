@@ -94,6 +94,7 @@ export async function GET(req: NextRequest) {
       headers: {
         "Content-Type": "audio/mpeg",
         "Content-Length": combined.length.toString(),
+        "Accept-Ranges": "bytes",
         "Cache-Control": "public, max-age=86400, s-maxage=86400",
       },
     });
@@ -139,6 +140,7 @@ export async function POST(req: NextRequest) {
       headers: {
         "Content-Type": "audio/mpeg",
         "Content-Length": combined.length.toString(),
+        "Accept-Ranges": "bytes",
         "Cache-Control": "public, max-age=86400, s-maxage=86400",
       },
     });

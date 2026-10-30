@@ -78,11 +78,22 @@ export default function Lab3DAITutorVoice({
 
   const recognitionRef = useRef<any>(null);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
+  const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const isGestureListeningRef = useRef(false);
   const gestureHoldTimerRef = useRef<number>(0);
   const lastGestureCheckRef = useRef<number>(0);
   const transcriptRef = useRef<string>("");
   const isSubmittingVoiceRef = useRef<boolean>(false);
+
+  // Nạp trước danh sách giọng nói tiếng Việt
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices();
+      };
+      window.speechSynthesis.getVoices();
+    }
+  }, []);
 
   // ─── 0. Dừng toàn bộ âm thanh đang phát ───
   const stopAllSpeech = useCallback(() => {
@@ -93,6 +104,7 @@ export default function Lab3DAITutorVoice({
     }
     if (typeof window !== "undefined" && window.speechSynthesis) {
       window.speechSynthesis.cancel();
+      currentUtteranceRef.current = null;
     }
     setIsPlayingAudio(false);
     if (onTeacherModeChange) onTeacherModeChange("idle");
@@ -104,9 +116,70 @@ export default function Lab3DAITutorVoice({
     };
   }, [stopAllSpeech]);
 
-  // ─── 1. Phát âm thanh Giọng Nói Cô Giáo (100% Giọng Nữ Thuần Việt qua API TTS) ───
+  // Dự phòng Web Speech API (Được bảo vệ 100% chống kẹt hàng đợi Chrome & chống GC)
+  const speakWithWebSpeech = useCallback(
+    (cleanText: string) => {
+      if (typeof window === "undefined" || !window.speechSynthesis) return;
+
+      try {
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.resume();
+
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.lang = "vi-VN";
+        utterance.rate = 0.98;
+        utterance.pitch = 1.05;
+
+        const voices = window.speechSynthesis.getVoices();
+        const viVoice =
+          voices.find(
+            (v) =>
+              v.lang.includes("vi") &&
+              (v.name.includes("HoaiMy") ||
+                v.name.includes("Natural") ||
+                v.name.includes("Google") ||
+                v.name.includes("Female") ||
+                v.name.includes("An") ||
+                v.name.includes("Linh") ||
+                v.name.includes("Mai"))
+          ) || voices.find((v) => v.lang.includes("vi"));
+
+        if (viVoice) {
+          utterance.voice = viVoice;
+        }
+
+        utterance.onstart = () => {
+          setIsPlayingAudio(true);
+          onTeacherModeChange?.("speaking");
+        };
+
+        utterance.onend = () => {
+          setIsPlayingAudio(false);
+          onTeacherModeChange?.("idle");
+          currentUtteranceRef.current = null;
+        };
+
+        utterance.onerror = (e) => {
+          console.warn("Web Speech synthesis error:", e);
+          setIsPlayingAudio(false);
+          onTeacherModeChange?.("idle");
+          currentUtteranceRef.current = null;
+        };
+
+        currentUtteranceRef.current = utterance;
+        window.speechSynthesis.speak(utterance);
+      } catch (err) {
+        console.error("Lỗi Web Speech:", err);
+        setIsPlayingAudio(false);
+        onTeacherModeChange?.("idle");
+      }
+    },
+    [onTeacherModeChange]
+  );
+
+  // ─── 1. Phát âm thanh Giọng Nói Cô Giáo (100% Giọng Nữ Thuần Việt qua Blob Audio & Fallback) ───
   const speakText = useCallback(
-    (text: string) => {
+    async (text: string) => {
       if (typeof window === "undefined" || !voiceEnabled) return;
 
       stopAllSpeech();
@@ -121,7 +194,16 @@ export default function Lab3DAITutorVoice({
 
       try {
         const audioUrl = `/api/ai/tts?text=${encodeURIComponent(cleanText)}`;
-        const audio = new Audio(audioUrl);
+        
+        // Tải audio blob vào RAM để phát ngay lập tức không bị lỗi Chrome Range stream
+        const res = await fetch(audioUrl);
+        if (!res.ok) {
+          throw new Error(`TTS server error: ${res.status}`);
+        }
+
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const audio = new Audio(blobUrl);
         audioPlayerRef.current = audio;
 
         audio.onplay = () => {
@@ -132,61 +214,29 @@ export default function Lab3DAITutorVoice({
         audio.onended = () => {
           setIsPlayingAudio(false);
           if (onTeacherModeChange) onTeacherModeChange("idle");
+          URL.revokeObjectURL(blobUrl);
           audioPlayerRef.current = null;
         };
 
         audio.onerror = (e) => {
-          console.warn("TTS Audio API error, falling back to Web Speech:", e);
-          setIsPlayingAudio(false);
-          // Dự phòng Web Speech API nếu offline
-          if (window.speechSynthesis) {
-            const utterance = new SpeechSynthesisUtterance(cleanText);
-            utterance.lang = "vi-VN";
-            const voices = window.speechSynthesis.getVoices();
-            const viVoice =
-              voices.find(
-                (v) =>
-                  v.lang.includes("vi") &&
-                  (v.name.includes("HoaiMy") ||
-                    v.name.includes("Natural") ||
-                    v.name.includes("Google") ||
-                    v.name.includes("Female") ||
-                    v.name.includes("An"))
-              ) || voices.find((v) => v.lang.includes("vi"));
-            if (viVoice) utterance.voice = viVoice;
-            utterance.onstart = () => {
-              setIsPlayingAudio(true);
-              onTeacherModeChange?.("speaking");
-            };
-            utterance.onend = () => {
-              setIsPlayingAudio(false);
-              onTeacherModeChange?.("idle");
-            };
-            utterance.onerror = () => {
-              setIsPlayingAudio(false);
-              onTeacherModeChange?.("idle");
-            };
-            window.speechSynthesis.speak(utterance);
-          } else {
-            if (onTeacherModeChange) onTeacherModeChange("idle");
-          }
+          console.warn("Blob Audio error, fallback to Web Speech:", e);
+          URL.revokeObjectURL(blobUrl);
+          speakWithWebSpeech(cleanText);
         };
 
         const playPromise = audio.play();
         if (playPromise !== undefined) {
           playPromise.catch((err) => {
-            console.warn("Trình duyệt chặn autoplay audio:", err);
-            setIsPlayingAudio(false);
-            if (onTeacherModeChange) onTeacherModeChange("idle");
+            console.warn("Autoplay blocked or audio failed, fallback to Web Speech:", err);
+            speakWithWebSpeech(cleanText);
           });
         }
       } catch (err) {
-        console.error("Lỗi khi phát TTS:", err);
-        setIsPlayingAudio(false);
-        if (onTeacherModeChange) onTeacherModeChange("idle");
+        console.warn("TTS Fetch error, fallback to Web Speech:", err);
+        speakWithWebSpeech(cleanText);
       }
     },
-    [voiceEnabled, onTeacherModeChange, stopAllSpeech]
+    [voiceEnabled, onTeacherModeChange, stopAllSpeech, speakWithWebSpeech]
   );
 
   // ─── 2. Gửi câu hỏi đến AI Tutor kèm Toàn Bộ Ngữ Cảnh Thí Nghiệm ───
@@ -495,13 +545,31 @@ export default function Lab3DAITutorVoice({
             {teacherResponse && (
               <div className="flex justify-end pt-1">
                 <button
-                  onClick={() => speakText(teacherResponse)}
-                  disabled={isPlayingAudio}
-                  className="inline-flex items-center gap-1 text-[10px] font-medium text-sky-400 hover:text-sky-300 hover:underline px-2 py-0.5 rounded-lg bg-sky-950/40 border border-sky-800/50"
-                  title="Nghe lại lời cô giảng bằng giọng nữ thuần Việt"
+                  onClick={() => {
+                    if (isPlayingAudio) {
+                      stopAllSpeech();
+                    } else {
+                      speakText(teacherResponse);
+                    }
+                  }}
+                  className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all shadow-md cursor-pointer ${
+                    isPlayingAudio
+                      ? "bg-sky-500/20 text-sky-300 border border-sky-400/50 animate-pulse ring-2 ring-sky-400/20"
+                      : "bg-sky-950/70 hover:bg-sky-900/80 text-sky-300 hover:text-white border border-sky-700/60 hover:border-sky-400 active:scale-95"
+                  }`}
+                  title={isPlayingAudio ? "Bấm để dừng giọng nói" : "Nghe cô nói bằng giọng đọc tiếng Việt nữ"}
                 >
-                  <Play className="w-2.5 h-2.5 fill-current" />
-                  <span>{isPlayingAudio ? "Đang nói..." : "Nghe cô nói"}</span>
+                  {isPlayingAudio ? (
+                    <>
+                      <Volume2 className="w-3.5 h-3.5 text-sky-400 animate-bounce" />
+                      <span>Đang nói... (Bấm dừng)</span>
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-3 h-3 text-sky-400 fill-current" />
+                      <span>Nghe cô nói</span>
+                    </>
+                  )}
                 </button>
               </div>
             )}
