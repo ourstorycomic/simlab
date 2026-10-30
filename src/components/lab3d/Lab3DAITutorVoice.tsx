@@ -72,7 +72,7 @@ export default function Lab3DAITutorVoice({
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [teacherResponse, setTeacherResponse] = useState<string>(
-    "Chào em! Cô là cô giáo Mai. Em có thể giơ ngón tay ☝️ hoặc giữ nút Micro để đặt câu hỏi về thí nghiệm nhé!"
+    "Chào em! Cô là cô giáo Mai. Em có thể giơ 2 ngón tay ✌️ để hỏi cô và khi hạ tay cô sẽ tự động trả lời nhé!"
   );
   const [inputQuery, setInputQuery] = useState("");
 
@@ -81,6 +81,8 @@ export default function Lab3DAITutorVoice({
   const isGestureListeningRef = useRef(false);
   const gestureHoldTimerRef = useRef<number>(0);
   const lastGestureCheckRef = useRef<number>(0);
+  const transcriptRef = useRef<string>("");
+  const isSubmittingVoiceRef = useRef<boolean>(false);
 
   // ─── 0. Dừng toàn bộ âm thanh đang phát ───
   const stopAllSpeech = useCallback(() => {
@@ -102,48 +104,7 @@ export default function Lab3DAITutorVoice({
     };
   }, [stopAllSpeech]);
 
-  // ─── 1. Khởi tạo Web Speech Recognition (Giọng nói Tiếng Việt vi-VN) ───
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-
-    if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = true;
-      recognition.lang = "vi-VN";
-
-      recognition.onstart = () => {
-        setIsListening(true);
-        if (onTeacherModeChange) onTeacherModeChange("listening");
-      };
-
-      recognition.onresult = (event: any) => {
-        let currentTranscript = "";
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          currentTranscript += event.results[i][0].transcript;
-        }
-        setTranscript(currentTranscript);
-        setInputQuery(currentTranscript);
-      };
-
-      recognition.onerror = (event: any) => {
-        console.warn("Lỗi nhận diện giọng nói:", event.error);
-        setIsListening(false);
-        if (onTeacherModeChange) onTeacherModeChange("idle");
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
-      recognitionRef.current = recognition;
-    }
-  }, [onTeacherModeChange]);
-
-  // ─── 2. Phát âm thanh Giọng Nói Cô Giáo (100% Giọng Nữ Thuần Việt qua API TTS) ───
+  // ─── 1. Phát âm thanh Giọng Nói Cô Giáo (100% Giọng Nữ Thuần Việt qua API TTS) ───
   const speakText = useCallback(
     (text: string) => {
       if (typeof window === "undefined" || !voiceEnabled) return;
@@ -228,7 +189,7 @@ export default function Lab3DAITutorVoice({
     [voiceEnabled, onTeacherModeChange, stopAllSpeech]
   );
 
-  // ─── 3. Gửi câu hỏi đến AI Tutor kèm Toàn Bộ Ngữ Cảnh Thí Nghiệm ───
+  // ─── 2. Gửi câu hỏi đến AI Tutor kèm Toàn Bộ Ngữ Cảnh Thí Nghiệm ───
   const handleAskAITutor = useCallback(
     async (queryText: string) => {
       const q = queryText.trim();
@@ -304,6 +265,7 @@ export default function Lab3DAITutorVoice({
         setIsThinking(false);
         setInputQuery("");
         setTranscript("");
+        transcriptRef.current = "";
       }
     },
     [
@@ -318,13 +280,96 @@ export default function Lab3DAITutorVoice({
     ]
   );
 
-  // ─── 4. Cử chỉ Giơ Ngón Tay Push-To-Talk (☝️ Pointing Up hoặc 👍 Thumbs Up) ───
+  // ─── 3. Bắt đầu thu âm giọng nói ───
+  const startVoiceRecognition = useCallback(() => {
+    if (recognitionRef.current && !isListening) {
+      try {
+        transcriptRef.current = "";
+        setTranscript("");
+        setInputQuery("");
+        recognitionRef.current.start();
+      } catch (e) {
+        // Có thể recognition đang chạy
+      }
+    }
+  }, [isListening]);
+
+  // ─── 4. Dừng thu âm & TỰ ĐỘNG GỬI CÂU HỎI NGAY LẬP TỨC (Không cần bấm nút gửi) ───
+  const stopVoiceRecognitionAndSend = useCallback(() => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {}
+    }
+    // Chờ 250ms cho Web Speech API hoàn tất từ cuối cùng rồi tự động gửi ngay
+    setTimeout(() => {
+      const textToSend = transcriptRef.current.trim() || inputQuery.trim();
+      if (textToSend.length >= 2 && !isSubmittingVoiceRef.current) {
+        isSubmittingVoiceRef.current = true;
+        handleAskAITutor(textToSend).finally(() => {
+          isSubmittingVoiceRef.current = false;
+        });
+      }
+    }, 250);
+  }, [handleAskAITutor, inputQuery]);
+
+  // ─── 5. Khởi tạo Web Speech Recognition (Giọng nói Tiếng Việt vi-VN) ───
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = "vi-VN";
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        if (onTeacherModeChange) onTeacherModeChange("listening");
+      };
+
+      recognition.onresult = (event: any) => {
+        let currentTranscript = "";
+        for (let i = 0; i < event.results.length; i++) {
+          currentTranscript += event.results[i][0].transcript;
+        }
+        transcriptRef.current = currentTranscript;
+        setTranscript(currentTranscript);
+        setInputQuery(currentTranscript);
+      };
+
+      recognition.onerror = (event: any) => {
+        console.warn("Lỗi nhận diện giọng nói:", event.error);
+        setIsListening(false);
+        if (onTeacherModeChange) onTeacherModeChange("idle");
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+        // TỰ ĐỘNG GỬI khi người dùng nói xong (nhận diện kết thúc câu)
+        const textToSend = transcriptRef.current.trim();
+        if (textToSend.length >= 2 && !isSubmittingVoiceRef.current) {
+          isSubmittingVoiceRef.current = true;
+          handleAskAITutor(textToSend).finally(() => {
+            isSubmittingVoiceRef.current = false;
+          });
+        }
+      };
+
+      recognitionRef.current = recognition;
+    }
+  }, [onTeacherModeChange, handleAskAITutor]);
+
+  // ─── 6. Cử chỉ Giơ 2 Ngón Tay Push-To-Talk (✌️ Victory / Peace Sign: Trỏ + Giữa) ───
   useEffect(() => {
     let animId: number;
 
     const checkHandGesture = () => {
       const now = performance.now();
-      if (now - lastGestureCheckRef.current > 100) {
+      if (now - lastGestureCheckRef.current > 80) {
         lastGestureCheckRef.current = now;
 
         if (handStateRef?.current) {
@@ -338,22 +383,21 @@ export default function Lab3DAITutorVoice({
             : null;
 
           if (hand && hand.detected && hand.landmarks && hand.landmarks.length >= 21) {
-            const lm = hand.landmarks;
-            const wrist = lm[0];
-            const indexTip = lm[8];
-            const thumbTip = lm[4];
+            // CỬ CHỈ GIƠ 2 NGÓN TAY (✌️ Ngón trỏ & Ngón giữa duỗi lên):
+            // 1. Ngón trỏ (Index) VÀ Ngón giữa (Middle) cùng duỗi thẳng
+            // 2. Các ngón khác (Ngón áp út, Ngón út) gập lại
+            // 3. Hoặc số ngón duỗi là 2 và có ngón trỏ/ngón giữa
+            const isIndexMiddleExt = Boolean(hand.isIndexExtended && hand.isMiddleExtended);
+            const isRingPinkyFolded = Boolean(!hand.isRingExtended && !hand.isPinkyExtended);
+            const isTwoFingersPeace = isIndexMiddleExt && isRingPinkyFolded;
+            const isTwoFingersCount = hand.extendedFingersCount === 2 && (hand.isIndexExtended || hand.isMiddleExtended);
 
-            // Giơ ngón trỏ lên cao (y của đầu ngón trỏ cao hơn cổ tay đáng kể)
-            const isPointingUp = indexTip.y < wrist.y - 0.22 && hand.isIndexExtended;
-            // Hoặc giơ ngón cái lên (Thumbs Up)
-            const isThumbUp = thumbTip.y < wrist.y - 0.18;
+            const isTwoFingersGesture = isTwoFingersPeace || isTwoFingersCount;
 
-            const isAskingGesture = isPointingUp || isThumbUp;
-
-            if (isAskingGesture) {
+            if (isTwoFingersGesture) {
               if (!isGestureListeningRef.current) {
-                // Giữ cử chỉ ít nhất 200ms để bắt đầu thu âm
-                if (now - gestureHoldTimerRef.current > 200) {
+                // Giữ cử chỉ 2 ngón tay khoảng 180ms để bắt đầu thu âm
+                if (now - gestureHoldTimerRef.current > 180) {
                   isGestureListeningRef.current = true;
                   startVoiceRecognition();
                 }
@@ -361,8 +405,9 @@ export default function Lab3DAITutorVoice({
             } else {
               gestureHoldTimerRef.current = now;
               if (isGestureListeningRef.current) {
+                // Người dùng hạ 2 ngón tay xuống: TỰ ĐỘNG GỬI CÂU HỎI NGAY LẬP TỨC!
                 isGestureListeningRef.current = false;
-                stopVoiceRecognition();
+                stopVoiceRecognitionAndSend();
               }
             }
           }
@@ -374,32 +419,7 @@ export default function Lab3DAITutorVoice({
 
     animId = requestAnimationFrame(checkHandGesture);
     return () => cancelAnimationFrame(animId);
-  }, [handStateRef]);
-
-  const startVoiceRecognition = () => {
-    if (recognitionRef.current && !isListening) {
-      try {
-        setTranscript("");
-        recognitionRef.current.start();
-      } catch (e) {
-        // Có thể recognition đang chạy
-      }
-    }
-  };
-
-  const stopVoiceRecognition = () => {
-    if (recognitionRef.current && isListening) {
-      try {
-        recognitionRef.current.stop();
-      } catch (e) {}
-    }
-    // Gửi nội dung đã nhận diện được
-    setTimeout(() => {
-      if (transcript && transcript.trim().length > 1) {
-        handleAskAITutor(transcript);
-      }
-    }, 400);
-  };
+  }, [handStateRef, startVoiceRecognition, stopVoiceRecognitionAndSend]);
 
   return (
     <div className="absolute top-16 right-3 sm:right-4 z-40 pointer-events-auto select-none max-w-sm w-[92vw] sm:w-88 transition-all duration-300">
@@ -489,10 +509,10 @@ export default function Lab3DAITutorVoice({
             <div className="p-2.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 flex items-center justify-between mb-2.5 animate-pulse">
               <div className="flex items-center gap-2 text-xs">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
-                <span className="truncate">{transcript || "Cô đang nghe em nói..."}</span>
+                <span className="truncate">{transcript || "Cô đang lắng nghe (Hạ 2 ngón tay để gửi)..."}</span>
               </div>
               <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-full shrink-0">
-                REC
+                REC ✌️
               </span>
             </div>
           )}
@@ -502,15 +522,15 @@ export default function Lab3DAITutorVoice({
             {/* Nút Push-to-Talk bằng cảm ứng/chuột */}
             <button
               onMouseDown={startVoiceRecognition}
-              onMouseUp={stopVoiceRecognition}
+              onMouseUp={stopVoiceRecognitionAndSend}
               onTouchStart={startVoiceRecognition}
-              onTouchEnd={stopVoiceRecognition}
+              onTouchEnd={stopVoiceRecognitionAndSend}
               className={`px-3 py-2 rounded-2xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-lg active:scale-95 cursor-pointer ${
                 isListening
                   ? "bg-rose-600 text-white animate-pulse shadow-rose-500/30 ring-2 ring-rose-400"
                   : "bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white shadow-sky-500/25"
               }`}
-              title="Nhấn và giữ nút này (hoặc dơ ngón trỏ ☝️ trước webcam) để nói"
+              title="Nhấn giữ để nói (hoặc giơ 2 ngón tay ✌️ trước webcam), buông ra sẽ tự động gửi"
             >
               <Mic className="w-3.5 h-3.5" />
               <span className="whitespace-nowrap">{isListening ? "Đang thu..." : "Giữ Nói"}</span>
@@ -535,7 +555,7 @@ export default function Lab3DAITutorVoice({
               <button
                 type="submit"
                 disabled={!inputQuery.trim() || isThinking}
-                className="p-1 rounded-xl text-sky-400 hover:text-white disabled:opacity-30 transition-colors"
+                className="p-1 rounded-xl text-sky-400 hover:text-white disabled:opacity-30 transition-colors cursor-pointer"
                 title="Gửi câu hỏi"
               >
                 <Send className="w-3.5 h-3.5" />
@@ -546,8 +566,8 @@ export default function Lab3DAITutorVoice({
           {/* ── Gợi ý cử chỉ ngón tay & nút ẩn/hiện 3D Teacher ── */}
           <div className="mt-2.5 pt-2 border-t border-slate-900 flex items-center justify-between text-[10px] text-slate-400">
             <span className="flex items-center gap-1 text-amber-300/90 font-medium">
-              <span>☝️</span>
-              <span>Dơ ngón trỏ để hỏi tự động</span>
+              <span>✌️</span>
+              <span>Giơ 2 ngón tay để hỏi • Hạ tay tự gửi</span>
             </span>
 
             <button

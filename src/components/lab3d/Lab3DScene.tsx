@@ -1768,7 +1768,7 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                         <span className="text-[10px] text-sky-300 font-medium flex items-center justify-center gap-1.5 flex-wrap">
                             <span className="text-amber-300 font-semibold">📱 Cầm điện thoại nghiêng để dốc rót bình • Lắc điện thoại để trộn phản ứng</span>
                             <span className="text-slate-500">•</span>
-                            <span className="text-sky-300 font-semibold">☝️ Giơ ngón trỏ để hỏi Cô giáo AI</span>
+                            <span className="text-sky-300 font-semibold">✌️ Giơ 2 ngón tay để hỏi Cô giáo AI</span>
                         </span>
                     </div>
                 </div>

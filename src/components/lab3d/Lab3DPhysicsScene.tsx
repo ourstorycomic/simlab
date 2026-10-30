@@ -1484,7 +1484,7 @@ export default function Lab3DPhysicsScene({ handStateRef }: Lab3DPhysicsScenePro
     const [manualAngleTrigger, setManualAngleTrigger] = useState<{ angleRad: number; timestamp: number } | null>(null);
 
     const [aiSpeech, setAiSpeech] = useState<string>(
-        "Chào mừng em đến với Lab Vật Lý 3D! Em có thể giơ ngón tay ☝️ hoặc giữ nút Nói để đặt câu hỏi về con lắc, mạch điện hay thấu kính nhé!"
+        "Chào mừng em đến với Lab Vật Lý 3D! Em có thể giơ 2 ngón tay ✌️ để hỏi cô và khi hạ tay cô sẽ tự động trả lời nhé!"
     );
     const [aiMode, setAiMode] = useState<"idle" | "speaking" | "warning" | "success" | "listening">("speaking");
     const [show3DTeacher, setShow3DTeacher] = useState(true);
