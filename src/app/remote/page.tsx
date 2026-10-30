@@ -363,6 +363,14 @@ function RemoteControllerContent() {
                 <ellipse cx="75" cy="36" rx="20" ry="5.5" fill="rgba(255,255,255,0.25)" stroke="rgba(255,255,255,0.9)" strokeWidth="2" />
                 <ellipse cx="75" cy="36" rx="14" ry="3.5" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1" />
 
+                {/* 2.5. NỀN THÂN BÌNH THỦY TINH ĐẬM RÕ (Solid Glass Silhouette) */}
+                <path
+                  d="M 62 38 L 88 38 L 88 78 Q 132 88 132 128 L 132 196 Q 132 212 116 212 L 34 212 Q 18 212 18 196 L 18 128 Q 18 88 62 78 Z"
+                  fill="#0b1329"
+                  stroke="rgba(255,255,255,0.95)"
+                  strokeWidth="2.5"
+                />
+
                 {/* 3. DUNG DỊCH HÓA CHẤT BÊN TRONG (Liquid Fill inside Clip-path) */}
                 <g clipPath="url(#flaskInnerClip)">
                   {/* Khối chất lỏng dâng cao theo fillPercent */}

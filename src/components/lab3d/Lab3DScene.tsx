@@ -491,9 +491,15 @@ function SceneContent({
             const pourY = beaker.position[1] + mouthHTarget + 0.10;
             const pourZ = beaker.position[2];
 
-            const targetX = THREE.MathUtils.lerp(restX, pourX, pourProgress);
-            const targetY = THREE.MathUtils.lerp(restY, pourY, pourProgress);
-            const targetZ = THREE.MathUtils.lerp(restZ, pourZ, pourProgress);
+            // Nếu người dùng bắt đầu nghiêng điện thoại (absRoll > 8° hoặc isPourTilted),
+            // bình lập tức nâng lên và di chuyển tới sát miệng cốc đong trước,
+            // sau đó khi dốc đủ góc (pourProgress > 0) mới nghiêng đổ chất lỏng thẳng đứng vào cốc!
+            const isPouringIntent = absRoll > 8 || isPourTilted || pourProgress > 0.05;
+            const moveProgress = isPouringIntent ? Math.max(0.85, pourProgress) : 0;
+
+            const targetX = THREE.MathUtils.lerp(restX, pourX, moveProgress);
+            const targetY = THREE.MathUtils.lerp(restY, pourY, moveProgress);
+            const targetZ = THREE.MathUtils.lerp(restZ, pourZ, moveProgress);
             const targetTilt = -pourProgress * 0.85; // Góc nghiêng dốc miệng sang phải vào cốc
 
             bottle.position[0] = THREE.MathUtils.lerp(bottle.position[0], targetX, Math.min(1, delta * 14));
@@ -502,11 +508,11 @@ function SceneContent({
             bottle.tiltAngle = THREE.MathUtils.lerp(bottle.tiltAngle, targetTilt, Math.min(1, delta * 14));
             stateChanged = true;
 
-            // Rót chất lỏng theo thời gian thực như ngoài đời thật
-            if (pourProgress >= 0.40 && bottle.fillLevel > 0.01) {
+            // Rót chất lỏng theo thời gian thực (CHỈ RÓT KHI BÌNH CÓ HÓA CHẤT & MỨC CHẤT > 0!)
+            if (pourProgress >= 0.40 && bottle.fillLevel > 0.01 && bottle.chemical) {
                 const streamFrom: [number, number, number] = [
-                    bottle.position[0] + 0.10,
-                    bottle.position[1] + 0.12,
+                    bottle.position[0] + 0.08,
+                    bottle.position[1] + 0.08,
                     bottle.position[2],
                 ];
                 const streamTo: [number, number, number] = [
@@ -789,7 +795,8 @@ function SceneContent({
                 const anyItemHeld = currentList.some((it) => it.heldBy !== null);
                 if (!anyItemHeld) {
                     const now = performance.now();
-                    const unheld = currentList.filter((it) => it.heldBy === null);
+                    // Khi điện thoại đang kết nối (isPhoneActive), camera hand AI KHÔNG bắt bình hóa chất (để dành quyền cho điện thoại)
+                    const unheld = currentList.filter((it) => it.heldBy === null && (!isPhoneActive || it.id !== "bottle-reagent"));
 
                     // Phân vùng & định vị dụng cụ trên bàn thí nghiệm:
                     // - beaker-1 (cốc thủy tinh bên trái): X = -0.52
@@ -993,10 +1000,10 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
         {
             id: "bottle-reagent",
             type: "reagent-bottle",
-            label: "Chất lấy từ tủ",
-            chemical: activeChemical,
-            liquidColor: getDisplayLiquidColor(activeChemical, "#2563eb"),
-            fillLevel: activeChemical.state === "solid" ? 0.35 : 0.65,
+            label: "Lọ rỗng (Chọn chất từ tủ)",
+            chemical: null,
+            liquidColor: "transparent",
+            fillLevel: 0,
             position: [-0.32, -0.06, 0.36],
             defaultPosition: [-0.32, -0.06, 0.36],
             heldBy: null,
@@ -1019,22 +1026,6 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
 
     const itemsRef = useRef<InteractiveWorkbenchItem[]>(items);
     itemsRef.current = items;
-
-    // Cập nhật lọ hóa chất chính khi người dùng chọn chất khác
-    useEffect(() => {
-        setItems((prev) =>
-            prev.map((it) =>
-                it.id === "bottle-reagent"
-                    ? {
-                          ...it,
-                          chemical: activeChemical,
-                          liquidColor: getDisplayLiquidColor(activeChemical, "#2563eb"),
-                          label: activeChemical.name,
-                      }
-                    : it
-            )
-        );
-    }, [activeChemical]);
 
     // ─── Xác định hóa chất tham chiếu (chỉ khi có chất đang nằm trong cốc/bình trên bàn hoặc đang cầm trên tay) ───
     const refChemical = useMemo(() => {
@@ -1314,7 +1305,14 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
     const handleCleanItem = useCallback((id: string) => {
         playLabSound("place");
         setItems((prev) =>
-            prev.map((it) => (it.id === id ? { ...it, fillLevel: 0, chemical: null, solidChemical: null, liquidColor: "#a5f3fc" } : it))
+            prev.map((it) => (it.id === id ? {
+                ...it,
+                fillLevel: 0,
+                chemical: null,
+                solidChemical: null,
+                liquidColor: "transparent",
+                label: it.id === "bottle-reagent" ? "Lọ rỗng (Chọn chất từ tủ)" : "Cốc Trộn Phản Ứng (Rỗng)",
+            } : it))
         );
         setActiveReaction(null);
     }, []);

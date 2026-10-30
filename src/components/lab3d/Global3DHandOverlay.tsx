@@ -24,27 +24,27 @@ export default function Global3DHandOverlay({ handStateRef, subject, onIndexTipU
     const cameraSettings = React.useMemo(() => {
         if (subject === "physics") {
             // Hạ thấp góc nhìn camera đồng bộ với PhysicsScene để bàn tay khớp chuẩn xác với mặt bàn và thiết bị mạch điện
-            return { position: [0, 0.48, 1.75] as [number, number, number], fov: 48 };
+            return { position: [0, 0.55, 1.75] as [number, number, number], fov: 48 };
         }
         if (subject === "biology") {
-            // Camera Sinh Học: Góc nhìn hạ thấp vừa tầm để bàn tay 3D lơ lửng ngay trước mô hình tế bào & cơ quan
-            return { position: [0, 0.40, 2.45] as [number, number, number], fov: 46 };
+            // Camera Sinh Học: Đồng bộ phối cảnh camera với PlantCellViewer (Y = 1.35, Z = 2.75) để bàn tay ôm trọn mô hình
+            return { position: [0.08, 1.35, 2.75] as [number, number, number], fov: 38 };
         }
-        // Chemistry default
-        return { position: [0, 0.45, 1.45] as [number, number, number], fov: 50 };
+        // Chemistry default: Đồng bộ với Lab3DScene camera (Y = 0.65, Z = 2.65)
+        return { position: [0, 0.65, 2.65] as [number, number, number], fov: 48 };
     }, [subject]);
 
     const positionOffset = React.useMemo(() => {
         if (subject === "physics") {
-            // Bàn tay lơ lửng vừa vặn ngay trên mặt bàn mạch điện (Y = -0.16), chạm chuẩn xác công tắc
-            return [0, -0.12, -0.15] as [number, number, number];
+            // Bàn tay lơ lửng vừa vặn ngay trên mặt bàn mạch điện, chạm chuẩn xác công tắc
+            return [0, -0.22, 0.0] as [number, number, number];
         }
         if (subject === "biology") {
-            // Đưa bàn tay xuất hiện tự nhiên ngay giữa mô hình tế bào/nội tạng (hoàn toàn không bị dính trên mép đỉnh thanh menu)
-            return [0, -0.15, 0.20] as [number, number, number];
+            // Hạ bàn tay xuất hiện tự nhiên ngay giữa mô hình tế bào/nội tạng (không bao giờ dính mép đỉnh menu)
+            return [0, -0.42, 0.10] as [number, number, number];
         }
-        // Chemistry default - cân bằng chuẩn xác với mặt bàn và kích thước bình thủy tinh
-        return [0, 0.16, 0.12] as [number, number, number];
+        // Chemistry: Hạ thấp vừa tầm mặt bàn và bình hóa chất
+        return [0, -0.06, 0.18] as [number, number, number];
     }, [subject]);
 
     const scaleFactor = React.useMemo(() => {

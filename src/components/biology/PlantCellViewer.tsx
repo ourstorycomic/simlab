@@ -768,29 +768,48 @@ export default function PlantCellViewer({
   const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current || !cameraRef.current || !cellRootRef.current) return;
 
-    // Nếu người dùng vừa kéo chuột để xoay model (khoảng cách > 6px), không coi là click
+    // Nếu người dùng vừa kéo chuột để xoay model (khoảng cách > 14px), không coi là click
     const dragDist = Math.hypot(
       e.clientX - pointerDownPosRef.current.x,
       e.clientY - pointerDownPosRef.current.y
     );
-    if (dragDist > 6) return;
+    if (dragDist > 14) return;
 
     const rect = containerRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    const localX = e.clientX - rect.left;
+    const localY = e.clientY - rect.top;
+    const x = (localX / rect.width) * 2 - 1;
+    const y = -(localY / rect.height) * 2 + 1;
 
-    const raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(new THREE.Vector2(x, y), cameraRef.current);
-
-    // 1. Kiểm tra Hotspot Sprites
+    // 1. ƯU TIÊN SỐ 1: Bắt chính xác qua khoảng cách màn hình tới Hotspot Sprites (Screen-Space Proximity)
+    // Người dùng click vào hoặc gần dấu chấm định vị (bán kính 32px) là nhận diện tức thì 100%!
     if (showHotspots && spritesRef.current.length > 0) {
-      const intersects = raycaster.intersectObjects(spritesRef.current, false);
-      if (intersects.length > 0) {
-        const hit = intersects[0].object as THREE.Sprite;
-        selectOrganelle(hit.userData.organelleId);
+      let closestPinOrgId: string | null = null;
+      let minPinDist = 32;
+
+      for (const sprite of spritesRef.current) {
+        const spriteWorldPos = new THREE.Vector3();
+        sprite.getWorldPosition(spriteWorldPos);
+        const proj = spriteWorldPos.project(cameraRef.current);
+        if (proj.z < 1) {
+          const pinX = ((proj.x + 1) * rect.width) / 2;
+          const pinY = ((-proj.y + 1) * rect.height) / 2;
+          const dist = Math.hypot(localX - pinX, localY - pinY);
+          if (dist < minPinDist) {
+            minPinDist = dist;
+            closestPinOrgId = sprite.userData.organelleId;
+          }
+        }
+      }
+
+      if (closestPinOrgId) {
+        selectOrganelle(closestPinOrgId);
         return;
       }
     }
+
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(new THREE.Vector2(x, y), cameraRef.current);
 
     // 2. Kiểm tra bề mặt 3D Mesh & Texture Mask & Vùng giải phẫu lân cận
     const intersects = raycaster.intersectObjects(cellRootRef.current.children, true);
@@ -800,7 +819,8 @@ export default function PlantCellViewer({
       if (maskDataRef.current && hit.uv) {
         const mask = maskDataRef.current;
         const px = Math.min(Math.max(0, Math.floor(hit.uv.x * mask.width)), mask.width - 1);
-        const py = Math.min(Math.max(0, Math.floor(hit.uv.y * mask.height)), mask.height - 1);
+        // Đảo ngược trục Y chuẩn Three.js UV (0 = bottom, 1 = top) so với mảng pixel 2D (0 = top)
+        const py = Math.min(Math.max(0, Math.floor((1.0 - hit.uv.y) * mask.height)), mask.height - 1);
         const organelleIdIndex = mask.ids[py * mask.width + px];
         if (organelleIdIndex > 0 && mask.keys[organelleIdIndex - 1]) {
           selectOrganelle(mask.keys[organelleIdIndex - 1]);

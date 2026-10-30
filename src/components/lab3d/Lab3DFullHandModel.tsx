@@ -203,9 +203,9 @@ function SingleHandMesh({
         const rawNormScale = 0.095 / rawHandSpan;
 
         // Tọa độ gốc cổ tay trong thế giới 3D: Căn chỉnh công thái học tự nhiên
-        // Hạ cao độ để bàn tay không bị dính trên mép đỉnh màn hình hay lơ lửng quá cao
+        // Hạ cao độ chuẩn xác để bàn tay xuất hiện tự nhiên vừa tầm mắt, không bao giờ bị dính trên mép đỉnh màn hình
         const rawWristX = -(wristLm.x - 0.5) * 1.8;
-        const rawWristY = (1.0 - wristLm.y) * 1.20 - 0.30;
+        const rawWristY = (1.0 - wristLm.y) * 1.05 - 0.42;
         const rawWristZ = 0.35 + (wristLm.z || 0) * 0.95;
 
         // Lọc thông thấp (EMA Low-Pass Filter) khử rung giật webcam cực mượt

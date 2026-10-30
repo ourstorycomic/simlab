@@ -788,13 +788,16 @@ export default function ModelViewer({
             let minDist = Infinity;
             for (const h of hotspots) {
                 const hPos = new THREE.Vector3(...h.position);
+                if (e.object && (e.object as any).matrixWorld) {
+                    hPos.applyMatrix4((e.object as any).matrixWorld);
+                }
                 const dist = e.point.distanceTo(hPos);
                 if (dist < minDist) {
                     minDist = dist;
                     nearest = h;
                 }
             }
-            if (nearest && minDist < 3.5) {
+            if (nearest && minDist < 2.2) {
                 setActiveHotspot(nearest.id);
                 if (onHotspotClick) onHotspotClick(nearest);
                 return;

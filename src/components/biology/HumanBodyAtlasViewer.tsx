@@ -1005,22 +1005,12 @@ export default function HumanBodyAtlasViewer({
   const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current || !cameraRef.current || !atlasRootRef.current) return;
 
-    const now = performance.now();
-    // TUYỆT ĐỐI KHÔNG CHỌN CẤU TRÚC KHI ĐANG HOẶC VỪA KÉO XOAY MÔ HÌNH
-    if (
-      isOrbitingRef.current ||
-      now - lastOrbitEndTimeRef.current < 200 ||
-      now - lastHandRotateTimeRef.current < 300
-    ) {
-      return;
-    }
-
-    // Nếu người dùng vừa kéo chuột để xoay model (khoảng cách di chuyển > 6px), không coi là click
+    // Nếu người dùng kéo chuột để xoay model (khoảng cách di chuyển > 14px), không coi là click
     const dragDist = Math.hypot(
       e.clientX - pointerDownPosRef.current.x,
       e.clientY - pointerDownPosRef.current.y
     );
-    if (dragDist > 6) return;
+    if (dragDist > 14) return;
 
     const rect = containerRef.current.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
@@ -1029,14 +1019,21 @@ export default function HumanBodyAtlasViewer({
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(new THREE.Vector2(x, y), cameraRef.current);
 
-    const visibleMeshes = allMeshesRef.current.filter((m) => m.visible);
-    const intersects = raycaster.intersectObjects(visibleMeshes, false);
+    // 1. Thử bắt các mesh nhìn thấy trực tiếp trong atlasRoot
+    const intersects = raycaster.intersectObjects(atlasRootRef.current.children, true);
+    const validHit = intersects.find((it) => it.object && (it.object as THREE.Mesh).isMesh && it.object.visible);
 
-    if (intersects.length > 0) {
-      const hit = intersects[0].object as THREE.Mesh;
-      selectMesh(hit);
+    if (validHit) {
+      selectMesh(validHit.object as THREE.Mesh);
     } else {
-      selectMesh(null);
+      // 2. Thử bắt danh sách allMeshes dự phòng
+      const visibleMeshes = allMeshesRef.current.filter((m) => m.visible);
+      const fallbackIntersects = raycaster.intersectObjects(visibleMeshes, false);
+      if (fallbackIntersects.length > 0) {
+        selectMesh(fallbackIntersects[0].object as THREE.Mesh);
+      } else {
+        selectMesh(null);
+      }
     }
   };
 
