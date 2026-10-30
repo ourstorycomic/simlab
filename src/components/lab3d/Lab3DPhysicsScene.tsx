@@ -1411,11 +1411,11 @@ const PhysicsSceneContent = memo(function PhysicsSceneContent({
                 />
             )}
 
-            {/* Nhân vật Cô Giáo AI Đồng Hành 3D (Tùy chọn Bật/Tắt) */}
+            {/* Nhân vật Cô Giáo AI Đồng Hành 3D (Đứng trên sàn Y = -1.20 bên phải bàn thí nghiệm) */}
             {show3DTeacher && (
                 <Lab3DAITeacher
-                    position={[1.55, -0.16, 0.42]}
-                    rotation={[0, -0.45, 0]}
+                    position={[2.95, -0.48, 0.45]}
+                    rotation={[0, -0.58, 0]}
                     scale={1.12}
                     mode={aiMode}
                     message={aiSpeech}

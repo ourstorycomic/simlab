@@ -240,14 +240,14 @@ function InteractiveVessel({
                         </mesh>
                     )}
 
-                    {/* 5. Nhãn Nổi Thông Minh HTML 3D - Luôn vuông góc mắt nhìn, siêu sắc nét, triệt tiêu 100% lỗi gạch chéo méo */}
+                    {/* 5. Nhãn Nổi Thông Minh HTML 3D - Luôn vuông góc mắt nhìn, siêu sắc nét, nhỏ gọn tinh tế */}
                     <Html
                         position={[0, mouthH + (item.heldBy ? 0.16 : 0.11), 0]}
                         center
-                        distanceFactor={3.6}
+                        distanceFactor={4.8}
                     >
                         <div
-                            className={`px-3 py-1.5 rounded-2xl shadow-2xl backdrop-blur-xl border text-center select-none pointer-events-none transition-all duration-200 ring-1 whitespace-nowrap ${
+                            className={`px-2.5 py-1 rounded-2xl shadow-xl backdrop-blur-xl border text-center select-none pointer-events-none transition-all duration-200 ring-1 whitespace-nowrap ${
                                 isSelected
                                     ? "bg-slate-950/95 border-sky-400 text-white ring-sky-400/50 scale-105"
                                     : item.heldBy
@@ -261,9 +261,9 @@ function InteractiveVessel({
                                         ? normalizeChemicalFormula(item.chemical.formula)
                                         : item.solidChemical
                                         ? normalizeChemicalFormula(item.solidChemical.formula)
-                                        : item.label}
+                                        : "Cốc Phản Ứng"}
                                 </span>
-                                {(item.chemical || item.solidChemical) && (
+                                {(item.chemical || item.solidChemical) ? (
                                     <span
                                         className={`text-[9px] px-1.5 py-0.2 rounded font-bold uppercase ${
                                             (item.chemical?.state === "solid" || !!item.solidChemical)
@@ -273,6 +273,10 @@ function InteractiveVessel({
                                     >
                                         {(item.chemical?.state === "solid" || !!item.solidChemical) ? "Chất rắn" : "Dung dịch"}
                                     </span>
+                                ) : (
+                                    <span className="text-[9px] px-1.5 py-0.2 rounded font-bold uppercase bg-slate-800 text-slate-300 border border-slate-700">
+                                        RỖNG
+                                    </span>
                                 )}
                             </div>
                             <div className="text-[10px] text-slate-300 font-medium mt-0.5">
@@ -280,7 +284,7 @@ function InteractiveVessel({
                                     ? `${item.chemical.name} ${item.chemical.state === "solid" ? "• Nguyên chất" : `• ${Math.round(item.fillLevel * 100)}%`}`
                                     : item.solidChemical
                                     ? `${item.solidChemical.name} • Đã cho vào cốc`
-                                    : "(Cốc rỗng • Sẵn sàng)"}
+                                    : "(Cốc rỗng • Sẵn sàng nhận chất)"}
                             </div>
                         </div>
                     </Html>
@@ -375,7 +379,7 @@ function SceneContent({
     refChemical,
     reactionPosition,
     setReactionPosition,
-    cameraPreset = "closeup",
+    cameraPreset = "overview",
 }: SceneContentProps) {
     const { camera } = useThree();
     const controlsRef = useRef<any>(null);
@@ -386,23 +390,23 @@ function SceneContent({
     const pinkyWasActiveRef = useRef<boolean>(false);
     const isUserOrbitingRef = useRef(false);
 
-    // Tính toán góc nhìn tối ưu cho từng Preset
+    // Tính toán góc nhìn tối ưu cho từng Preset (Mặc định ở xa xa bao quát đủ xem mọi thứ)
     const getPresetTarget = useCallback((preset: "closeup" | "pour" | "overview") => {
         switch (preset) {
             case "closeup":
                 return {
-                    pos: new THREE.Vector3(0, 0.32, 1.38),
-                    look: new THREE.Vector3(0, 0.05, 0.35),
+                    pos: new THREE.Vector3(0, 0.45, 1.85),
+                    look: new THREE.Vector3(0, 0.08, 0.35),
                 };
             case "pour":
                 return {
-                    pos: new THREE.Vector3(-0.16, 0.35, 1.25),
-                    look: new THREE.Vector3(-0.36, 0.08, 0.35),
+                    pos: new THREE.Vector3(-0.16, 0.42, 1.65),
+                    look: new THREE.Vector3(-0.16, 0.08, 0.35),
                 };
             case "overview":
             default:
                 return {
-                    pos: new THREE.Vector3(0, 0.65, 2.35),
+                    pos: new THREE.Vector3(0, 0.58, 2.65),
                     look: new THREE.Vector3(0, 0.10, 0.25),
                 };
         }
@@ -473,56 +477,35 @@ function SceneContent({
                 pinkyWasActiveRef.current = false;
             }
 
-            // 2. PHÂN BIỆT RÕ RÀNG: CHỈ NGÓN TRỎ vs CẦM BÌNH
-            // - DƠ NGÓN TRỎ (POINTING): Dùng để chỉ điểm nút bấm, chuyển môn, bấm giao diện -> TUYỆT ĐỐI KHÔNG CẦM BÌNH!
+            // 2. THAO TÁC TAY WEBCAM CAMERA (CAM HAND AI):
+            // - DƠ NGÓN TRỎ (POINTING): Dùng để chỉ điểm nút bấm, lật trang tủ, chọn chất -> TUYỆT ĐỐI KHÔNG CẦM BÌNH!
+            // - DƠ NGÓN TRỎ LÊN CAO ☝️ (hoặc ngón cái 👍): Kích hoạt Push-to-Talk đặt câu hỏi với Cô Giáo AI.
+            // - PHẤT TAY (SWIPE): Đổi môn học hoặc chuyển trang.
+            // - YÊU CẦU CỦA NGƯỜI DÙNG: Tay thường trước camera KHÔNG CẦM ĐỔ BÌNH THUỐC!
+            //   Việc cầm và đổ bình thuốc được thực hiện bằng ĐIỆN THOẠI QUÉT QR (Cảm biến Gyro nghiêng rót & lắc) hoặc nút Rót!
             const isPointingWithIndex = Boolean(data.isIndexExtended && !data.isPinkyExtended && !data.isRingExtended);
-
-            // - DƠ NGÓN ÁP ÚT (RING FINGER UP): Cầm bình chuyên biệt theo yêu cầu của người dùng
-            const isRingFingerGrab = Boolean(data.isRingExtended && !data.isIndexExtended);
-
-            // - NẮM TAY (FIST / GRAB) hoặc CHỤM NGÓN (PINCH sát bình): Cầm bình tự nhiên
-            const isNaturalFistGrab = Boolean(data.gesture === "GRAB") || ((data.gripStrength || 0) > 0.65 && !data.isIndexExtended);
-            const isTightPinch = Boolean((data.pinchDistance || 1) < 0.14 && !data.isIndexExtended);
-
-            // Chỉ cầm bình khi: Không chỉ ngón trỏ VÀ (Dơ ngón áp út HOẶC Nắm tay HOẶC Chụm ngón)
-            const isGrabbing = !isPointingWithIndex && (isRingFingerGrab || isNaturalFistGrab || isTightPinch);
+            const isGrabbing = false; // Tay thường không cầm đổ bình thuốc
 
             const palm = data.palmPos;
             const pinch = data.pinchPos || palm;
 
-            // 3. THẢ BÌNH (DROP / ĐẶT XUỐNG BÀN):
-            // - Xòe bàn tay ra (gesture === "OPEN" hoặc >= 3 ngón tay duỗi mở rộng)
-            // - Hoặc khi dơ ngón trỏ chỉ điểm (isPointingWithIndex)
-            // - Hoặc khi mở các ngón tay (gripStrength < 0.32 && pinchDistance > 0.35)
-            // - Hoặc khi hạ bàn tay xuống sát mặt bàn (palm[1] <= 0.05m - hành động đặt bình ngoài đời)
-            const isOpeningHand =
-                data.gesture === "OPEN" ||
-                (data.extendedFingersCount >= 3) ||
-                isPointingWithIndex ||
-                ((data.gripStrength || 0) < 0.32 && (data.pinchDistance || 1) > 0.35);
-
-            const isPlacedOnTable = palm[1] <= 0.05;
-
-            const shouldDrop = isOpeningHand || isPlacedOnTable;
-
-            if (!isGrabbing) {
-                handWasOpenBeforeGrabRef.current = true;
-            }
-
-            // Tìm vật mà tay này đang cầm
+            // Nếu bình nào đang bị gán cầm bởi tay camera thì lập tức đặt vững về bàn
             let heldItem = currentList.find((it) => it.heldBy === side);
-            // Nếu tay này chưa gán vật nhưng chỉ có duy nhất 1 tay xuất hiện và tay ở gần vật đang cầm
-            if (!heldItem && handsToCheck.length === 1) {
-                const anyHeld = currentList.find((it) => it.heldBy !== null);
-                if (anyHeld && isGrabbing) {
-                    const dClose = Math.hypot(palm[0] - anyHeld.position[0], palm[1] - anyHeld.position[1]);
-                    if (dClose < 0.35) {
-                        heldItem = anyHeld;
-                        heldItem.heldBy = side;
-                    }
-                }
+            if (heldItem) {
+                data.isHolding = false;
+                heldItem.heldBy = null;
+                heldItem.position = [
+                    heldItem.position[0],
+                    -0.06,
+                    heldItem.defaultPosition[2],
+                ];
+                heldItem.tiltAngle = 0;
+                heldItem.pitchAngle = 0;
+                setPourState(null);
+                stateChanged = true;
             }
 
+            const shouldDrop = true;
             if (heldItem) {
                 if (shouldDrop) {
                     // Thả bình dứt khoát và mượt mà ngay khi xòe tay hoặc hạ tay xuống bàn
@@ -824,11 +807,11 @@ function SceneContent({
             {/* Bàn tay 3D được hiển thị toàn cục ở page.tsx trên layer z-[60] (ở phía trước thanh Tab) */}
             {/* <Lab3DFullHandModel handStateRef={handStateRef} /> */}
 
-            {/* Nhân vật Cô Giáo AI (Tùy chọn Bật/Tắt theo nhu cầu người dùng) */}
+            {/* Nhân vật Cô Giáo AI (Đứng trên sàn phòng Lab Y = -1.20 bên phải bàn, không đứng trên mặt bàn) */}
             {show3DTeacher && (
                 <Lab3DAITeacher
-                    position={[1.32, -0.15, 0.42]}
-                    rotation={[0, -0.45, 0]}
+                    position={[2.42, -0.48, 0.55]}
+                    rotation={[0, -0.58, 0]}
                     scale={1.15}
                     mode={teacherMode}
                     message={teacherMessage}
@@ -882,12 +865,12 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
 
     const [teacherMode, setTeacherMode] = useState<"idle" | "speaking" | "warning" | "success" | "listening">("speaking");
     const [teacherMessage, setTeacherMessage] = useState(
-        "Xin chào! Cô là Cô Giáo Mai SimLab. Hãy giơ ngón tay ☝️ hoặc giữ nút Nói để đặt câu hỏi về thí nghiệm nhé!"
+        "Xin chào! Cô là Cô Giáo Mai SimLab. Bàn thí nghiệm có 1 lọ hóa chất lấy từ tủ và 1 cốc phản ứng rỗng. Em hãy quét mã QR kết nối điện thoại để cầm nghiêng rót & lắc trộn (hoặc bấm nút Rót bên dưới) nhé!"
     );
     const [isTeacherGuideOpen, setIsTeacherGuideOpen] = useState(false);
     const [show3DTeacher, setShow3DTeacher] = useState(true);
     const [isFixedCamera, setIsFixedCamera] = useState(true);
-    const [cameraPreset, setCameraPreset] = useState<"closeup" | "pour" | "overview">("closeup");
+    const [cameraPreset, setCameraPreset] = useState<"closeup" | "pour" | "overview">("overview");
 
     const [selectedCategory, setSelectedCategory] = useState<string>("all");
     const [searchQuery, setSearchQuery] = useState("");
@@ -904,7 +887,7 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
     const baoh2 = useMemo(() => getChemicalById("ba(oh)2"), []);
     const hcl = useMemo(() => getChemicalById("hcl"), []);
 
-    // ─── Đúng 2 dụng cụ trên bàn: 1 lọ/dụng cụ lấy từ tủ ra (trái) + 1 cốc trộn phản ứng chính (phải) ───
+    // ─── Đúng 2 dụng cụ trên bàn: 1 lọ/dụng cụ lấy từ tủ ra (trái) + 1 cốc trộn phản ứng rỗng (phải) ───
     const [items, setItems] = useState<InteractiveWorkbenchItem[]>([
         {
             id: "bottle-reagent",
@@ -913,21 +896,21 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
             chemical: activeChemical,
             liquidColor: getDisplayLiquidColor(activeChemical, "#2563eb"),
             fillLevel: activeChemical.state === "solid" ? 0.35 : 0.65,
-            position: [-0.22, -0.06, 0.36],
-            defaultPosition: [-0.22, -0.06, 0.36],
+            position: [-0.32, -0.06, 0.36],
+            defaultPosition: [-0.32, -0.06, 0.36],
             heldBy: null,
             tiltAngle: 0,
         },
         {
             id: "beaker-1",
             type: "beaker",
-            label: "Cốc Trộn Phản Ứng",
-            chemical: null, // Ban đầu rỗng theo yêu cầu
+            label: "Cốc Trộn Phản Ứng (Rỗng)",
+            chemical: null, // Ban đầu LUÔN RỖNG 100% để sẵn sàng nhận chất hòa trộn
             solidChemical: null,
-            liquidColor: "#38bdf8",
-            fillLevel: 0, // 0% rỗng
-            position: [0.18, -0.06, 0.36],
-            defaultPosition: [0.18, -0.06, 0.36],
+            liquidColor: "transparent",
+            fillLevel: 0, // 0% rỗng hoàn toàn
+            position: [0.32, -0.06, 0.36],
+            defaultPosition: [0.32, -0.06, 0.36],
             heldBy: null,
             tiltAngle: 0,
         },
@@ -969,18 +952,13 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
         playLabSound("pick");
         setActiveChemical(chem);
 
-        // Nếu người dùng đang chọn Cốc thủy tinh hoặc Bình tam giác -> Nạp chất vào bình đó!
-        // Nếu đang chọn Lọ hóa chất hoặc chưa chọn -> Nạp vào Lọ hóa chất
-        const targetId = (selectedItemId === "beaker-1" || selectedItemId === "flask-1")
-            ? selectedItemId
-            : "bottle-reagent";
+        // Hóa chất lấy từ tủ LUÔN nạp vào bình bên trái (bottle-reagent), KHÔNG bao giờ nạp vào cốc trộn (beaker-1)
+        const targetId = "bottle-reagent";
 
         setSelectedItemId(targetId);
         setTeacherMode("speaking");
-        const currentTarget = itemsRef.current.find((it) => it.id === targetId);
-        const targetName = currentTarget?.label || "dụng cụ";
         setTeacherMessage(
-            `Em đã lấy ${chem.name} (${chem.formula}) cho vào ${targetName}. Giờ có thể đưa tay cầm hoặc chọn chất tiếp theo nhé!`
+            `Em đã lấy ${chem.name} (${chem.formula}) từ tủ hóa chất ra lọ. Hãy cầm điện thoại nghiêng rót (hoặc bấm nút Rót bên dưới) để đổ vào Cốc phản ứng nhé!`
         );
         setItems((prev) =>
             prev.map((it) =>
@@ -989,8 +967,8 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                           ...it,
                           chemical: chem,
                           liquidColor: getDisplayLiquidColor(chem, "#2563eb"),
-                          label: it.type === "reagent-bottle" ? chem.name : it.label,
-                          fillLevel: 0.65,
+                          label: chem.name,
+                          fillLevel: chem.state === "solid" ? 0.35 : 0.65,
                           position: [...it.defaultPosition] as [number, number, number],
                           heldBy: null,
                           tiltAngle: 0,
@@ -1763,10 +1741,12 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                         </div>
                     </div>
 
-                    {/* Gợi ý tương tác trực quan tích hợp ngay đáy Dock */}
+                    {/* Gợi ý tương tác trực quan chuẩn xác */}
                     <div className="mt-1.5 pt-1.5 border-t border-slate-800/60 text-center">
-                        <span className="text-[10px] text-sky-300 font-medium">
-                            Ngón trỏ: Chỉ điểm / Đổi môn • Dơ ngón áp út (hoặc Nắm tay sát bình): Cầm lên • Xòe tay: Đặt xuống
+                        <span className="text-[10px] text-sky-300 font-medium flex items-center justify-center gap-1.5 flex-wrap">
+                            <span className="text-amber-300 font-semibold">📱 Quét QR kết nối ĐT để nghiêng rót & lắc trộn (hoặc bấm nút Rót)</span>
+                            <span className="text-slate-500">•</span>
+                            <span className="text-sky-300 font-semibold">☝️ Giơ ngón trỏ để hỏi Cô giáo AI</span>
                         </span>
                     </div>
                 </div>
