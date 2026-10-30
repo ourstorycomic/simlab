@@ -26,6 +26,8 @@ interface BioHandOverlayProps {
     onTabChange?: (tab: BioTabMode) => void;
     externalHandStateRef?: React.MutableRefObject<HandState>;
     hideTracker?: boolean;
+    enabled?: boolean;
+    onEnabledChange?: (enabled: boolean) => void;
 }
 
 export default function BioHandOverlay({
@@ -33,8 +35,18 @@ export default function BioHandOverlay({
     onTabChange,
     externalHandStateRef,
     hideTracker = false,
+    enabled: propsEnabled,
+    onEnabledChange,
 }: BioHandOverlayProps) {
-    const [enabled, setEnabled] = useState(true);
+    // MẶC ĐỊNH LUÔN TẮT CAMERA ngoài Lab 3D: chỉ khi người dùng chủ động bấm "Bật Camera Tay" mới mở camera
+    const [internalEnabled, setInternalEnabled] = useState(false);
+    const enabled = propsEnabled !== undefined ? propsEnabled : internalEnabled;
+
+    const setEnabled = (valOrFn: boolean | ((prev: boolean) => boolean)) => {
+        const nextVal = typeof valOrFn === "function" ? valOrFn(enabled) : valOrFn;
+        setInternalEnabled(nextVal);
+        if (onEnabledChange) onEnabledChange(nextVal);
+    };
     const internalHandStateRef = useRef<HandState>({ ...DEFAULT_HAND_STATE });
     const handStateRef = externalHandStateRef || internalHandStateRef;
     const cursorRef = useRef<HTMLDivElement>(null);
@@ -180,13 +192,17 @@ export default function BioHandOverlay({
             {/* Nút bật/tắt Hand Tracking trên thanh công cụ Sinh học (ẩn khi chạy trong Lab 3D hợp nhất) */}
             {!hideTracker && (
                 <button
-                    onClick={() => setEnabled((prev) => !prev)}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border shadow-sm ${
+                    onClick={() => {
+                        const next = !enabled;
+                        setEnabled(next);
+                        playLabSound("pick");
+                    }}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border shadow-sm cursor-pointer active:scale-95 ${
                         enabled
                             ? "bg-emerald-600/90 text-white border-emerald-400/50 shadow-emerald-500/20"
                             : "bg-slate-900/80 text-slate-300 hover:text-white border-slate-700/60 hover:bg-slate-800"
                     }`}
-                    title="Bật camera nhận diện bàn tay thao tác tương tự con trỏ chuột"
+                    title={enabled ? "Tắt nhận diện cử chỉ bàn tay (Tắt camera)" : "Bật camera nhận diện bàn tay để tương tác bằng cử chỉ"}
                 >
                     {enabled ? (
                         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />

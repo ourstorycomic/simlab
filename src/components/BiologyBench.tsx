@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { getAssignmentById, Assignment } from "@/lib/storage";
@@ -15,7 +15,7 @@ import BioHandOverlay from "./biology/BioHandOverlay";
 import BioLive3DHandCanvas from "./biology/BioLive3DHandCanvas";
 import Lab3DAITutorVoice from "@/components/lab3d/Lab3DAITutorVoice";
 
-import { HandState } from "@/lib/handTracking";
+import { HandState, DEFAULT_HAND_STATE } from "@/lib/handTracking";
 import { playLabSound } from "@/components/lab3d/ChemistryRealisticModels";
 import { MousePointer, Hand } from "lucide-react";
 
@@ -41,6 +41,10 @@ export default function BiologyBench({
   // Tab Mode
   const [tabMode, setTabMode] = useState<BioTabMode>("cell");
   const [selectedOrganId, setSelectedOrganId] = useState<string>("heart");
+  // MẶC ĐỊNH TẮT CAMERA ngoài Lab 3D: chỉ khi người dùng bấm "Bật Camera Tay" mới mở camera
+  const [isHandTrackingEnabled, setIsHandTrackingEnabled] = useState(false);
+  const internalHandStateRef = useRef<HandState>({ ...DEFAULT_HAND_STATE });
+  const activeHandStateRef = externalHandStateRef || internalHandStateRef;
 
   // Load assignment on mount or param change
   useEffect(() => {
@@ -243,25 +247,31 @@ export default function BiologyBench({
           <BioHandOverlay
             currentTab={tabMode}
             onTabChange={setTabMode}
-            externalHandStateRef={externalHandStateRef}
+            externalHandStateRef={activeHandStateRef}
             hideTracker={hideHandTracker}
+            enabled={isHandTrackingEnabled}
+            onEnabledChange={setIsHandTrackingEnabled}
           />
           {!hideHandTracker && (
             <div className="hidden xl:flex items-center gap-2 text-[11px] bg-slate-950/80 px-2.5 py-1 rounded-lg border border-slate-800 text-slate-300">
               <span className="text-emerald-400 font-medium inline-flex items-center gap-1.5">
                 <MousePointer className="w-3 h-3" />
-                <span>Kéo để xoay 360°</span>
+                <span>Kéo chuột để xoay 360°</span>
               </span>
-              <span className="text-slate-600">•</span>
-              <span className="text-amber-400 font-medium inline-flex items-center gap-1.5">
-                <Hand className="w-3 h-3" />
-                <span>Nắm tay để xoay</span>
-              </span>
-              <span className="text-slate-600">•</span>
-              <span className="text-sky-400 font-medium inline-flex items-center gap-1.5">
-                <Hand className="w-3 h-3" />
-                <span>Phất tay đổi tab</span>
-              </span>
+              {isHandTrackingEnabled && (
+                <>
+                  <span className="text-slate-600">•</span>
+                  <span className="text-amber-400 font-medium inline-flex items-center gap-1.5">
+                    <Hand className="w-3 h-3" />
+                    <span>Nắm tay để xoay</span>
+                  </span>
+                  <span className="text-slate-600">•</span>
+                  <span className="text-sky-400 font-medium inline-flex items-center gap-1.5">
+                    <Hand className="w-3 h-3" />
+                    <span>Phất tay đổi tab</span>
+                  </span>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -294,14 +304,14 @@ export default function BiologyBench({
             selectedId={selectedOrganId}
             onBackToBody={() => setTabMode("human")}
             onOrganSelect={(org) => setSelectedOrganId(org.id)}
-            handStateRef={externalHandStateRef}
+            handStateRef={activeHandStateRef}
           />
         )}
 
-        {/* Unified 3D Hand Overlay for Cell and Human Atlas */}
-        {externalHandStateRef && (
+        {/* Unified 3D Hand Overlay for Cell and Human Atlas (Chỉ kích hoạt khi Hand Tracking được bật hoặc trong Lab 3D) */}
+        {(hideHandTracker ? externalHandStateRef : isHandTrackingEnabled) && (
           <BioLive3DHandCanvas
-            handStateRef={externalHandStateRef}
+            handStateRef={activeHandStateRef}
             active={tabMode !== "organs"}
             tabMode={tabMode}
           />
@@ -310,7 +320,7 @@ export default function BiologyBench({
         {/* ── Trợ Lý Sư Phạm Cô Giáo Mai AI (Voice Push-to-Talk Sinh Học 3D) ── */}
         <Lab3DAITutorVoice
           subject="biology"
-          handStateRef={externalHandStateRef}
+          handStateRef={activeHandStateRef}
           show3DTeacher={false}
           onToggle3DTeacher={() => {}}
         />
