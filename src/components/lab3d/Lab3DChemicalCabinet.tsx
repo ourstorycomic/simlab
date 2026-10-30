@@ -110,6 +110,7 @@ export default function Lab3DChemicalCabinet({
         const sensorData = deviceSensors.getData();
         const isPhoneActive = Boolean(sensorData.lastUpdated && Date.now() - sensorData.lastUpdated < 3500);
         if (isPhoneActive) {
+            if (isHandNearCabinet) setIsHandNearCabinet(false);
             if (hoveredChemId) setHoveredChemId(null);
             return;
         }
@@ -202,9 +203,15 @@ export default function Lab3DChemicalCabinet({
                             setHoveredChemId(detectedBottle);
                         }
 
-                        // CHỈ CHỌN KHI NGƯỜI DÙNG THỰC SỰ CHỤM NGÓN (PINCH: ngón cái + ngón trỏ nhón vào lọ)
-                        // TUYỆT ĐỐI KHÔNG dùng isMiddleExtended để tránh người dùng cầm điện thoại hoặc giơ tay bị tự động chọn chất!
-                        const isPinchSelect = Boolean(hand.pinchDistance !== undefined && hand.pinchDistance < 0.055);
+                        // CHỈ CHỌN KHI NGƯỜI DÙNG THỰC SỰ CHỤM NGÓN CHỦ ĐỘNG (PINCH: ngón cái + ngón trỏ nhón vào lọ, các ngón khác không nắm)
+                        // TUYỆT ĐỐI KHÔNG chọn nhầm khi người dùng cầm điện thoại hoặc giơ tay thông thường!
+                        const isPinchSelect = Boolean(
+                            hand.pinchDistance !== undefined &&
+                            hand.pinchDistance < 0.045 &&
+                            hand.isIndexExtended &&
+                            !hand.isRingExtended &&
+                            !hand.isPinkyExtended
+                        );
                         if (detectedChem && isPinchSelect && now - lastBottleSelectRef.current > 1200) {
                             lastBottleSelectRef.current = now;
                             playLabSound("pick");

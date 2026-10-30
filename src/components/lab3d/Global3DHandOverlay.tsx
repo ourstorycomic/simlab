@@ -24,11 +24,11 @@ export default function Global3DHandOverlay({ handStateRef, subject, onIndexTipU
     const cameraSettings = React.useMemo(() => {
         if (subject === "physics") {
             // Hạ thấp góc nhìn camera đồng bộ với PhysicsScene để bàn tay khớp chuẩn xác với mặt bàn và thiết bị mạch điện
-            return { position: [0, 0.55, 1.85] as [number, number, number], fov: 48 };
+            return { position: [0, 0.48, 1.75] as [number, number, number], fov: 48 };
         }
         if (subject === "biology") {
             // Camera Sinh Học: Góc nhìn hạ thấp vừa tầm để bàn tay 3D lơ lửng ngay trước mô hình tế bào & cơ quan
-            return { position: [0, 0.20, 2.5] as [number, number, number], fov: 46 };
+            return { position: [0, 0.40, 2.45] as [number, number, number], fov: 46 };
         }
         // Chemistry default
         return { position: [0, 0.45, 1.45] as [number, number, number], fov: 50 };
@@ -36,15 +36,15 @@ export default function Global3DHandOverlay({ handStateRef, subject, onIndexTipU
 
     const positionOffset = React.useMemo(() => {
         if (subject === "physics") {
-            // Hạ cao độ bàn tay Y từ +0.02 xuống -0.28m để tay lơ lửng vừa vặn ngay trên mặt bàn mạch điện (Y = -0.16)
-            return [0, -0.28, -0.32] as [number, number, number];
+            // Bàn tay lơ lửng vừa vặn ngay trên mặt bàn mạch điện (Y = -0.16), chạm chuẩn xác công tắc
+            return [0, -0.12, -0.15] as [number, number, number];
         }
         if (subject === "biology") {
-            // Hạ cao độ Y từ +0.16m xuống -0.26m và đưa Z về +0.25m để bàn tay xuất hiện tự nhiên ngay giữa mô hình tế bào/nội tạng (không bị dính trên mép đỉnh màn hình)
-            return [0, -0.26, 0.25] as [number, number, number];
+            // Đưa bàn tay xuất hiện tự nhiên ngay giữa mô hình tế bào/nội tạng (hoàn toàn không bị dính trên mép đỉnh thanh menu)
+            return [0, -0.15, 0.20] as [number, number, number];
         }
         // Chemistry default - cân bằng chuẩn xác với mặt bàn và kích thước bình thủy tinh
-        return [0, 0.04, 0.12] as [number, number, number];
+        return [0, 0.16, 0.12] as [number, number, number];
     }, [subject]);
 
     const scaleFactor = React.useMemo(() => {

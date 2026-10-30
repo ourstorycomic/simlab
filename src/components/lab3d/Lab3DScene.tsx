@@ -474,37 +474,39 @@ function SceneContent({
             const roll = sensorData.roll || 0; // Roll dương = nghiêng sang phải (về phía cốc), Roll âm = nghiêng trái
             const isPourTilted = sensorData.isPourTilted;
 
-            // Tiến trình nghiêng rót (0.0: cầm thẳng đứng, 1.0: dốc hết cỡ vào cốc)
+            // Tiến trình nghiêng rót (0.0: cầm thẳng đứng trên bàn, 1.0: dốc hết cỡ vào cốc)
+            // Ngưỡng kích hoạt > 14° nghiêng để tránh rung lắc nhẹ tự động đổ
             const absRoll = Math.abs(roll);
-            const rollProgress = THREE.MathUtils.clamp((absRoll - 6) / 22, 0, 1);
-            const pourProgress = isPourTilted ? Math.max(rollProgress, 0.88) : rollProgress;
+            const rollProgress = THREE.MathUtils.clamp((absRoll - 14) / 26, 0, 1);
+            const pourProgress = isPourTilted ? Math.max(rollProgress, sensorData.pourIntensity || 0.85) : rollProgress;
 
             const mouthHTarget = getVesselMouthHeight(beaker.type);
-            const restX = -0.16;
-            const restY = 0.10;
-            const restZ = 0.36;
+            // Khi không rót: Bình nằm vững chãi trên mặt bàn đá tại vị trí mặc định
+            const restX = bottle.defaultPosition[0]; // -0.32
+            const restY = bottle.defaultPosition[1]; // -0.06
+            const restZ = bottle.defaultPosition[2]; // 0.36
 
-            const pourX = beaker.position[0] - 0.16;
-            const pourY = beaker.position[1] + mouthHTarget + 0.08;
+            // Khi rót: Bình nhấc bổng lên và bay áp sát sát mép cốc đong (beaker)
+            const pourX = beaker.position[0] - 0.11;
+            const pourY = beaker.position[1] + mouthHTarget + 0.10;
             const pourZ = beaker.position[2];
 
             const targetX = THREE.MathUtils.lerp(restX, pourX, pourProgress);
             const targetY = THREE.MathUtils.lerp(restY, pourY, pourProgress);
             const targetZ = THREE.MathUtils.lerp(restZ, pourZ, pourProgress);
-            const targetTilt = -pourProgress * 0.76; // Góc nghiêng dốc miệng sang phải vào cốc
+            const targetTilt = -pourProgress * 0.85; // Góc nghiêng dốc miệng sang phải vào cốc
 
-            bottle.position[0] = THREE.MathUtils.lerp(bottle.position[0], targetX, Math.min(1, delta * 16));
-            bottle.position[1] = THREE.MathUtils.lerp(bottle.position[1], targetY, Math.min(1, delta * 16));
-            bottle.position[2] = THREE.MathUtils.lerp(bottle.position[2], targetZ, Math.min(1, delta * 16));
-            bottle.tiltAngle = THREE.MathUtils.lerp(bottle.tiltAngle, targetTilt, Math.min(1, delta * 16));
+            bottle.position[0] = THREE.MathUtils.lerp(bottle.position[0], targetX, Math.min(1, delta * 14));
+            bottle.position[1] = THREE.MathUtils.lerp(bottle.position[1], targetY, Math.min(1, delta * 14));
+            bottle.position[2] = THREE.MathUtils.lerp(bottle.position[2], targetZ, Math.min(1, delta * 14));
+            bottle.tiltAngle = THREE.MathUtils.lerp(bottle.tiltAngle, targetTilt, Math.min(1, delta * 14));
             stateChanged = true;
 
             // Rót chất lỏng theo thời gian thực như ngoài đời thật
-            if (pourProgress >= 0.45 && bottle.fillLevel > 0.01) {
-                const mouthHSource = getVesselMouthHeight(bottle.type);
+            if (pourProgress >= 0.40 && bottle.fillLevel > 0.01) {
                 const streamFrom: [number, number, number] = [
-                    bottle.position[0] + 0.14,
-                    bottle.position[1] + mouthHSource - 0.08,
+                    bottle.position[0] + 0.10,
+                    bottle.position[1] + 0.12,
                     bottle.position[2],
                 ];
                 const streamTo: [number, number, number] = [
@@ -541,7 +543,7 @@ function SceneContent({
                         beaker.label = `${beaker.chemical.name} + ${bottle.chemical.name}`;
                     }
                 }
-            } else if (pourProgress < 0.35 && pourState) {
+            } else if (pourProgress < 0.32 && pourState) {
                 setPourState(null);
             }
 

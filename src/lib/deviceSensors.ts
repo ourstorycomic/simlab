@@ -151,14 +151,17 @@ class DeviceSensorManager {
     const rawGamma = e.gamma ?? 0;
     const rawAlpha = e.alpha ?? 0;
 
-    // Chuẩn hóa góc nghiêng rót (Pitch tilt)
-    // Coi góc 65° là tư thế cầm thẳng đứng bình thường
-    // Càng chúc đầu điện thoại xuống thì độ dốc rót càng tăng
-    const pourAngleDelta = 65 - rawBeta; 
-    const isPourTilted = pourAngleDelta > 18; // Chúc xuống hơn 18° là bắt đầu rót
-    const pourIntensity = isPourTilted
-      ? Math.min(1.0, Math.max(0.0, (pourAngleDelta - 18) / 35))
-      : 0;
+    // Phân biệt chính xác giữa cầm điện thoại xem màn hình và thao tác dốc bình rót:
+    // 1. Nghiêng cạnh điện thoại sang bên (Roll / rawGamma): dốc bình rót qua trái/phải (|gamma| > 24°)
+    // 2. Chúc đầu điện thoại chúi thẳng xuống đất (Pitch / rawBeta): chỉ rót khi rawBeta âm sâu (< -15°)
+    // TUYỆT ĐỐI KHÔNG tự động rót khi đặt máy nằm phẳng trên bàn (beta ~ 0, gamma ~ 0) hoặc cầm đứng xem (beta ~ 40-70)
+    const isRollTilted = Math.abs(rawGamma) > 24;
+    const isPitchTilted = rawBeta < -15;
+    const isPourTilted = isRollTilted || isPitchTilted;
+
+    const rollIntensity = isRollTilted ? Math.min(1.0, (Math.abs(rawGamma) - 24) / 35) : 0;
+    const pitchIntensity = isPitchTilted ? Math.min(1.0, Math.abs(rawBeta - (-15)) / 45) : 0;
+    const pourIntensity = isPourTilted ? Math.max(rollIntensity, pitchIntensity) : 0;
 
     this.data.pitch = Math.round(rawBeta * 10) / 10;
     this.data.roll = Math.round(rawGamma * 10) / 10;

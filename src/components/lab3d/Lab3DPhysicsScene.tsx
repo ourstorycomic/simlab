@@ -1299,18 +1299,18 @@ const PhysicsSceneContent = memo(function PhysicsSceneContent({
             const rawPalm = hs.palmPos || [hs.cursorX, hs.cursorY, hs.cursorZ];
             const rawTip = [hs.cursorX, hs.cursorY, hs.cursorZ];
 
-            // Ánh xạ 100% khớp với visual model 3D (scaleFactor 1.25, positionOffset [0, -0.28, -0.32])
+            // Ánh xạ 100% khớp với visual model 3D (bàn tay lơ lửng ngay trên mặt bàn mạch điện)
             const p: [number, number, number] = [
-                rawPalm[0] * 1.25,
-                rawPalm[1] * 1.25 - 0.28,
-                rawPalm[2] * 1.25 - 0.32,
+                rawPalm[0] * 1.15,
+                rawPalm[1] * 1.15 - 0.12,
+                rawPalm[2] * 1.15 - 0.15,
             ];
             handPosRef.current = p;
 
             const tip: [number, number, number] = [
-                rawTip[0] * 1.25,
-                rawTip[1] * 1.25 - 0.28,
-                rawTip[2] * 1.25 - 0.32,
+                rawTip[0] * 1.15,
+                rawTip[1] * 1.15 - 0.12,
+                rawTip[2] * 1.15 - 0.15,
             ];
             indexTipRef.current = tip;
 

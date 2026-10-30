@@ -202,9 +202,10 @@ function SingleHandMesh({
         const rawHandSpan = Math.max(0.04, Math.hypot(middleMcpLm.x - wristLm.x, middleMcpLm.y - wristLm.y));
         const rawNormScale = 0.095 / rawHandSpan;
 
-        // Tọa độ gốc cổ tay trong thế giới 3D
+        // Tọa độ gốc cổ tay trong thế giới 3D: Căn chỉnh công thái học tự nhiên
+        // Hạ cao độ để bàn tay không bị dính trên mép đỉnh màn hình hay lơ lửng quá cao
         const rawWristX = -(wristLm.x - 0.5) * 1.8;
-        const rawWristY = (1.0 - wristLm.y) * 1.05 - 0.05;
+        const rawWristY = (1.0 - wristLm.y) * 1.20 - 0.30;
         const rawWristZ = 0.35 + (wristLm.z || 0) * 0.95;
 
         // Lọc thông thấp (EMA Low-Pass Filter) khử rung giật webcam cực mượt
