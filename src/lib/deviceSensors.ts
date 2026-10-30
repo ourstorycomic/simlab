@@ -248,6 +248,34 @@ class DeviceSensorManager {
     this.notify();
   }
 
+  /**
+   * Cập nhật trực tiếp dữ liệu cảm biến nhận được từ Điện thoại từ xa (Remote Controller)
+   */
+  public updateRemoteData(remote: {
+    pitch?: number;
+    roll?: number;
+    yaw?: number;
+    isPourTilted?: boolean;
+    pourIntensity?: number;
+    isShaking?: boolean;
+  }) {
+    if (remote.pitch !== undefined) this.data.pitch = remote.pitch;
+    if (remote.roll !== undefined) this.data.roll = remote.roll;
+    if (remote.yaw !== undefined) this.data.yaw = remote.yaw;
+    if (remote.isPourTilted !== undefined) this.data.isPourTilted = remote.isPourTilted;
+    if (remote.pourIntensity !== undefined) this.data.pourIntensity = remote.pourIntensity;
+    if (remote.isShaking !== undefined && remote.isShaking) {
+      this.data.isShaking = true;
+      if (this.shakeTimeout) clearTimeout(this.shakeTimeout);
+      this.shakeTimeout = setTimeout(() => {
+        this.data.isShaking = false;
+        this.notify();
+      }, 700);
+    }
+    this.data.lastUpdated = Date.now();
+    this.notify();
+  }
+
   public subscribe(listener: SensorListener): () => void {
     this.listeners.add(listener);
     // Tự động kích hoạt lắng nghe khi có component đầu tiên đăng ký

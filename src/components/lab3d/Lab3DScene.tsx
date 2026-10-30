@@ -1186,18 +1186,31 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
         const unsubscribe = deviceSensors.subscribe((sensor) => {
             const now = Date.now();
 
-            // 1. Cầm điện thoại nghiêng chúc xuống -> Tự động rót từ lọ vào cốc
-            if (sensor.isPourTilted && now - lastPourTime > 2800) {
+            // 1. Cầm điện thoại nghiêng chúc xuống -> Tự động dốc bình rót vào cốc như ngoài đời thật
+            if (sensor.isPourTilted && now - lastPourTime > 2600) {
                 lastPourTime = now;
                 const source = itemsRef.current.find((it) => it.id === "bottle-reagent");
                 if (source && source.fillLevel > 0.05) {
                     handleExecutePour("bottle-reagent", "beaker-1");
                     deviceSensors.triggerHaptic([50, 70]);
+                } else if (source && source.fillLevel <= 0.05) {
+                    setTeacherMode("warning");
+                    setTeacherMessage("Lọ hóa chất trên bàn đã rót hết rồi! Em hãy chọn Tủ Hóa Chất để lấy thêm hóa chất mới nhé!");
                 }
+            } else if (!sensor.isPourTilted && Math.abs(sensor.roll) > 4) {
+                // Phản hồi thời gian thực: Nghiêng điện thoại làm bình trên bàn nghiêng nhẹ theo tay người dùng
+                const tiltRad = (sensor.roll / 180) * Math.PI * 0.75;
+                setItems((prev) =>
+                    prev.map((it) =>
+                        it.id === "bottle-reagent" && !it.heldBy
+                            ? { ...it, tiltAngle: THREE.MathUtils.clamp(tiltRad, -0.65, 0.65) }
+                            : it
+                    )
+                );
             }
 
-            // 2. Lắc điện thoại -> Lắc đều dung dịch, kích hoạt phản ứng
-            if (sensor.isShaking && now - lastShakeTime > 2200) {
+            // 2. Lắc điện thoại -> Lắc đều dung dịch, kích hoạt phản ứng hóa học tự nhiên
+            if (sensor.isShaking && now - lastShakeTime > 2000) {
                 lastShakeTime = now;
                 playLabSound("bubbles");
                 deviceSensors.triggerHaptic([40, 60, 40]);
@@ -1205,7 +1218,7 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                 const beaker = itemsRef.current.find((it) => it.id === "beaker-1");
                 if (beaker && beaker.fillLevel > 0) {
                     setTeacherMode("success");
-                    setTeacherMessage(`Cảm biến phát hiện cử chỉ Lắc! Đã khuấy trộn dung dịch trong ${beaker.label}.`);
+                    setTeacherMessage(`Cảm biến phát hiện cử chỉ Lắc điện thoại! Đã khuấy trộn dung dịch trong ${beaker.label}.`);
                 }
             }
         });
@@ -1703,35 +1716,27 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                                 </button>
                             )}
 
-                            <button
-                                onClick={() => handleExecutePour(selectedItem.id)}
-                                disabled={selectedItem.fillLevel <= 0.05}
-                                className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-35 disabled:hover:bg-emerald-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl shadow border border-emerald-400/50 flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
-                                title="Rót sang bình gần nhất"
-                            >
-                                <Droplets className="w-3.5 h-3.5" />
-                                <span>Rót</span>
-                            </button>
-
-                            <button
-                                onClick={handleResetWorkbench}
-                                className="bg-rose-950/80 hover:bg-rose-600 text-rose-200 hover:text-white text-xs font-bold px-2.5 py-1.5 rounded-xl border border-rose-500/50 shadow flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
-                                title="Rửa sạch cốc phản ứng và làm mới thí nghiệm"
-                            >
-                                <RotateCcw className="w-3.5 h-3.5 text-rose-300" />
-                                <span>Rửa cốc / Trộn lại</span>
-                            </button>
-
+                            {/* Nút Rửa sạch dụng cụ */}
                             {selectedItem.fillLevel > 0 && (
                                 <button
                                     onClick={() => handleCleanItem(selectedItem.id)}
-                                    className="bg-slate-800 hover:bg-rose-700 text-slate-300 hover:text-white text-xs px-2.5 py-1.5 rounded-xl border border-slate-700 shadow transition-colors flex items-center gap-1 cursor-pointer"
-                                    title="Rửa sạch dung dịch trong bình"
+                                    className="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs px-2.5 py-1.5 rounded-xl border border-slate-700 shadow transition-colors flex items-center gap-1 cursor-pointer"
+                                    title="Rửa sạch dung dịch trong bình này"
                                 >
                                     <RotateCcw className="w-3.5 h-3.5" />
-                                    <span>Rửa</span>
+                                    <span>Rửa bình</span>
                                 </button>
                             )}
+
+                            {/* Nút Làm sạch toàn bộ bàn thí nghiệm */}
+                            <button
+                                onClick={handleResetWorkbench}
+                                className="bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-xs px-2.5 py-1.5 rounded-xl border border-slate-700 shadow flex items-center gap-1 transition-all active:scale-95 cursor-pointer"
+                                title="Rửa sạch cốc và làm mới bàn thí nghiệm"
+                            >
+                                <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
+                                <span>Làm sạch bàn</span>
+                            </button>
 
                             <button
                                 onClick={() => handleResetPosition(selectedItem.id)}
@@ -1743,10 +1748,10 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                         </div>
                     </div>
 
-                    {/* Gợi ý tương tác trực quan chuẩn xác */}
+                    {/* Hướng dẫn tương tác tự nhiên như ngoài đời thật */}
                     <div className="mt-1.5 pt-1.5 border-t border-slate-800/60 text-center">
                         <span className="text-[10px] text-sky-300 font-medium flex items-center justify-center gap-1.5 flex-wrap">
-                            <span className="text-amber-300 font-semibold">📱 Quét QR kết nối ĐT để nghiêng rót & lắc trộn (hoặc bấm nút Rót)</span>
+                            <span className="text-amber-300 font-semibold">📱 Cầm điện thoại nghiêng để dốc rót bình • Lắc điện thoại để trộn phản ứng</span>
                             <span className="text-slate-500">•</span>
                             <span className="text-sky-300 font-semibold">☝️ Giơ ngón trỏ để hỏi Cô giáo AI</span>
                         </span>

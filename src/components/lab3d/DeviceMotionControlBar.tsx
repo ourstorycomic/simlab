@@ -125,50 +125,8 @@ export default function DeviceMotionControlBar({
           </div>
         )}
 
-        {/* Nút hành động trực quan (Áp dụng cho cả Di động & Máy tính) */}
+        {/* Nút hành động Ghép Nối Điện Thoại */}
         <div className="flex items-center gap-1 border-l border-slate-800 pl-2">
-          {/* Nút Lắc Trộn (Shake) */}
-          <button
-            onClick={handleSimulateShake}
-            className="px-2.5 py-1 rounded-xl bg-slate-800/90 hover:bg-slate-700 active:scale-95 transition-all text-slate-200 hover:text-white font-semibold text-[11px] flex items-center gap-1 border border-slate-700/60 shadow-sm"
-            title="Lắc trộn dung dịch hóa học / truyền xung lực con lắc (hoặc lắc điện thoại)"
-          >
-            <RotateCcw className="w-3 h-3 text-amber-400" />
-            <span>Lắc</span>
-          </button>
-
-          {/* Nút Nghiêng Rót (Tilt to Pour) */}
-          {subject === "chemistry" && (
-            <button
-              onClick={handleToggleSimulatedPour}
-              className={`px-2.5 py-1 rounded-xl active:scale-95 transition-all font-semibold text-[11px] flex items-center gap-1 border shadow-sm ${
-                simulatedPouring
-                  ? "bg-emerald-600 text-white border-emerald-400 shadow-emerald-500/20"
-                  : "bg-slate-800/90 hover:bg-slate-700 text-slate-200 hover:text-white border-slate-700/60"
-              }`}
-              title="Nghiêng bình rót dung dịch sang cốc nhận (hoặc nghiêng điện thoại chúc xuống)"
-            >
-              <Sliders className="w-3 h-3 text-cyan-400" />
-              <span>{simulatedPouring ? "Dừng rót" : "Rót"}</span>
-            </button>
-          )}
-
-          {/* Nút Rửa cốc / Làm mới (Clean Workbench) */}
-          {subject === "chemistry" && (
-            <button
-              onClick={() => {
-                if (typeof window !== "undefined") {
-                  window.dispatchEvent(new CustomEvent("clean-workbench"));
-                }
-              }}
-              className="px-2.5 py-1 rounded-xl bg-slate-800/90 hover:bg-rose-900/60 active:scale-95 transition-all text-rose-300 hover:text-white font-semibold text-[11px] flex items-center gap-1 border border-slate-700/60 shadow-sm cursor-pointer"
-              title="Đổ sạch và rửa cốc phản ứng để làm lại thí nghiệm"
-            >
-              <RotateCcw className="w-3 h-3 text-rose-400" />
-              <span>Rửa</span>
-            </button>
-          )}
-
           {/* Nút Ghép Nối Điện Thoại (Pairing Remote) */}
           <button
             onClick={() => setShowPairingModal(true)}

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { deviceSensors } from "@/lib/deviceSensors";
 import { playLabSound } from "./ChemistryRealisticModels";
+import { remoteSyncService } from "@/lib/remoteSyncService";
 import {
   Smartphone,
   CheckCircle2,
@@ -33,25 +34,12 @@ export default function RemotePairingModal({
 
   const eventSourceRef = useRef<EventSource | null>(null);
 
-  // Tạo mã phòng khi modal mở ra
+  // Tạo mã phòng khi modal mở ra (giữ phòng cũ nếu đã tạo)
   useEffect(() => {
-    if (!isOpen) {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
-      }
-      return;
+    if (isOpen && !roomId) {
+      createRoom();
     }
-
-    createRoom();
-
-    return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
-      }
-    };
-  }, [isOpen]);
+  }, [isOpen, roomId]);
 
   const createRoom = async () => {
     setLoading(true);
@@ -88,7 +76,7 @@ export default function RemotePairingModal({
         const targetUrl = `${currentHost}/remote?room=${id}`;
         setLanUrl(targetUrl);
 
-        // Mở kết nối thời gian thực Server-Sent Events (SSE) để nhận dữ liệu từ điện thoại
+        // Mở kết nối thời gian thực: Ưu tiên Supabase Realtime Broadcast + fallback SSE
         startListeningToPhone(id);
       }
     } catch (e) {
@@ -99,61 +87,58 @@ export default function RemotePairingModal({
   };
 
   const startListeningToPhone = (id: string) => {
+    // 1. Kênh chính: Supabase Realtime Broadcast (WebSockets < 20ms, chạy ngầm liên tục cả khi đóng popup)
+    remoteSyncService.listenOnLaptop(id, {
+      onPhoneConnected: (name) => {
+        setConnectedDevice(name);
+        playLabSound("pick");
+        if (onPhoneConnected) onPhoneConnected(name);
+      },
+      onMotion: (motion) => {
+        deviceSensors.updateRemoteData(motion);
+      },
+      onAction: (action) => {
+        if (action.type === "pour") {
+          deviceSensors.simulatePour(0.9);
+        } else if (action.type === "shake") {
+          deviceSensors.simulateShake();
+        } else if (action.type === "clean") {
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("clean-workbench"));
+          }
+        }
+      },
+    });
+
+    // 2. Kênh phụ: SSE fallback
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
     }
 
-    const sse = new EventSource(`/api/remote/stream?roomId=${id}`);
-    eventSourceRef.current = sse;
+    try {
+      const sse = new EventSource(`/api/remote/stream?roomId=${id}`);
+      eventSourceRef.current = sse;
 
-    sse.onmessage = (event) => {
-      try {
-        const room = JSON.parse(event.data);
-        if (room.phoneConnected && !connectedDevice) {
-          const name = room.phoneDeviceName || "Điện thoại";
-          setConnectedDevice(name);
-          playLabSound("pick");
-          if (onPhoneConnected) onPhoneConnected(name);
-        }
-
-        // Bơm trực tiếp dữ liệu cảm biến từ điện thoại vào bộ quản lý cảm biến thiết bị của Laptop
-        if (room.sensorData) {
-          const s = room.sensorData;
-          if (s.isPourTilted) {
-            deviceSensors.simulatePour(s.pourIntensity || 0.8);
-          } else {
-            deviceSensors.simulatePour(0);
+      sse.onmessage = (event) => {
+        try {
+          const room = JSON.parse(event.data);
+          if (room.phoneConnected && !connectedDevice) {
+            const name = room.phoneDeviceName || "Điện thoại";
+            setConnectedDevice(name);
+            playLabSound("pick");
+            if (onPhoneConnected) onPhoneConnected(name);
           }
 
-          if (s.isShaking) {
-            deviceSensors.simulateShake();
+          if (room.sensorData) {
+            deviceSensors.updateRemoteData(room.sensorData);
           }
+        } catch (e) {
+          // ignore
         }
-
-        // Xử lý các hành động dứt khoát
-        if (room.actions && room.actions.length > 0) {
-          const lastAction = room.actions[room.actions.length - 1];
-          const now = Date.now();
-          if (now - lastAction.timestamp < 1200) {
-            if (lastAction.type === "pour") {
-              deviceSensors.simulatePour(0.9);
-            } else if (lastAction.type === "shake") {
-              deviceSensors.simulateShake();
-            } else if (lastAction.type === "clean") {
-              if (typeof window !== "undefined") {
-                window.dispatchEvent(new CustomEvent("clean-workbench"));
-              }
-            }
-          }
-        }
-      } catch (e) {
-        // ignore
-      }
-    };
-
-    sse.onerror = () => {
-      // Tự động thử lại
-    };
+      };
+    } catch (e) {
+      // ignore
+    }
   };
 
   const handleCopyLink = () => {
