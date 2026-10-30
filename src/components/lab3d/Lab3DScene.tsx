@@ -50,7 +50,8 @@ import {
     Droplets, 
     RotateCcw,
     ZoomIn,
-    Maximize2 
+    Maximize2,
+    Smartphone 
 } from "lucide-react";
 import {
     RealisticGlasswareMesh,
@@ -74,7 +75,7 @@ export interface InteractiveWorkbenchItem {
     fillLevel: number; // 0.0 to 1.0
     position: [number, number, number];
     defaultPosition: [number, number, number];
-    heldBy: "left" | "right" | "user" | null;
+    heldBy: "left" | "right" | "user" | "phone" | null;
     tiltAngle: number;
     pitchAngle?: number;
     solidChemical?: Chemical | null; // Chất rắn dạng cục / thỏi kim loại / tinh thể nếu có
@@ -402,6 +403,7 @@ function SceneContent({
     const pinkyCabinetToggleRef = useRef<number>(0);
     const pinkyWasActiveRef = useRef<boolean>(false);
     const isUserOrbitingRef = useRef(false);
+    const lastShakeTimeRef = useRef<number>(0);
 
     // Tính toán góc nhìn tối ưu cho từng Preset (Mặc định ở xa xa bao quát đủ xem mọi thứ)
     const getPresetTarget = useCallback((preset: "closeup" | "pour" | "overview") => {
@@ -458,7 +460,140 @@ function SceneContent({
         let closestHoverItem: string | null = null;
         let minHoverDist = 0.40; // Tầm nhận diện hover rộng và mượt trên màn hình
 
-        handsToCheck.forEach(({ side, data }) => {
+        // 1. KIỂM TRA ĐIỆN THOẠI DI ĐỘNG CẢM BIẾN CON QUAY HỒI CHUYỂN
+        const sensorData = deviceSensors.getData();
+        const isPhoneActive = Boolean(sensorData.lastUpdated && Date.now() - sensorData.lastUpdated < 3500);
+
+        const bottle = currentList.find((it) => it.id === "bottle-reagent");
+        const beaker = currentList.find((it) => it.id === "beaker-1");
+
+        if (isPhoneActive && bottle && beaker) {
+            // Khi điện thoại kết nối: Bình hóa chất do điện thoại làm chủ 100%!
+            bottle.heldBy = "phone";
+
+            const roll = sensorData.roll || 0; // Roll dương = nghiêng sang phải (về phía cốc), Roll âm = nghiêng trái
+            const isPourTilted = sensorData.isPourTilted;
+
+            // Tiến trình nghiêng rót (0.0: cầm thẳng đứng, 1.0: dốc hết cỡ vào cốc)
+            const absRoll = Math.abs(roll);
+            const rollProgress = THREE.MathUtils.clamp((absRoll - 6) / 22, 0, 1);
+            const pourProgress = isPourTilted ? Math.max(rollProgress, 0.88) : rollProgress;
+
+            const mouthHTarget = getVesselMouthHeight(beaker.type);
+            const restX = -0.16;
+            const restY = 0.10;
+            const restZ = 0.36;
+
+            const pourX = beaker.position[0] - 0.16;
+            const pourY = beaker.position[1] + mouthHTarget + 0.08;
+            const pourZ = beaker.position[2];
+
+            const targetX = THREE.MathUtils.lerp(restX, pourX, pourProgress);
+            const targetY = THREE.MathUtils.lerp(restY, pourY, pourProgress);
+            const targetZ = THREE.MathUtils.lerp(restZ, pourZ, pourProgress);
+            const targetTilt = -pourProgress * 0.76; // Góc nghiêng dốc miệng sang phải vào cốc
+
+            bottle.position[0] = THREE.MathUtils.lerp(bottle.position[0], targetX, Math.min(1, delta * 16));
+            bottle.position[1] = THREE.MathUtils.lerp(bottle.position[1], targetY, Math.min(1, delta * 16));
+            bottle.position[2] = THREE.MathUtils.lerp(bottle.position[2], targetZ, Math.min(1, delta * 16));
+            bottle.tiltAngle = THREE.MathUtils.lerp(bottle.tiltAngle, targetTilt, Math.min(1, delta * 16));
+            stateChanged = true;
+
+            // Rót chất lỏng theo thời gian thực như ngoài đời thật
+            if (pourProgress >= 0.45 && bottle.fillLevel > 0.01) {
+                const mouthHSource = getVesselMouthHeight(bottle.type);
+                const streamFrom: [number, number, number] = [
+                    bottle.position[0] + 0.14,
+                    bottle.position[1] + mouthHSource - 0.08,
+                    bottle.position[2],
+                ];
+                const streamTo: [number, number, number] = [
+                    beaker.position[0],
+                    beaker.position[1] + mouthHTarget,
+                    beaker.position[2],
+                ];
+                const streamColor = bottle.liquidColor || bottle.chemical?.color || "#38bdf8";
+
+                if (!pourState || !pourState.active) {
+                    setPourState({
+                        active: true,
+                        sourceId: bottle.id,
+                        targetId: beaker.id,
+                        from: streamFrom,
+                        to: streamTo,
+                        color: streamColor,
+                    });
+                    playLabSound("bubbles");
+                }
+
+                // Tốc độ rót: Dòng chảy tự nhiên êm ái
+                const flow = delta * 0.28;
+                bottle.fillLevel = Math.max(0, bottle.fillLevel - flow);
+                beaker.fillLevel = Math.min(0.85, (beaker.fillLevel || 0) + flow);
+
+                if (bottle.chemical) {
+                    if (!beaker.chemical) {
+                        beaker.chemical = bottle.chemical;
+                        beaker.liquidColor = bottle.liquidColor;
+                        beaker.label = beaker.chemical.name;
+                    } else if (beaker.chemical.id !== bottle.chemical.id && !beaker.solidChemical) {
+                        beaker.solidChemical = bottle.chemical;
+                        beaker.label = `${beaker.chemical.name} + ${bottle.chemical.name}`;
+                    }
+                }
+            } else if (pourProgress < 0.35 && pourState) {
+                setPourState(null);
+            }
+
+            if (bottle.fillLevel <= 0.01 && bottle.chemical) {
+                bottle.chemical = null;
+                bottle.fillLevel = 0;
+                bottle.label = "Lọ rỗng (Đã đổ hết)";
+                if (pourState) setPourState(null);
+                setTeacherMode("speaking");
+                setTeacherMessage("Đã đổ hết hóa chất vào cốc! Em có thể chọn thêm chất từ tủ hóa chất hoặc lắc điện thoại để hòa trộn nhé!");
+            }
+
+            // Lắc điện thoại -> Phản ứng hóa học hoặc khuấy trộn
+            if (sensorData.isShaking) {
+                const now = performance.now();
+                if (now - lastShakeTimeRef.current > 1800) {
+                    lastShakeTimeRef.current = now;
+                    deviceSensors.triggerHaptic([40, 60, 40]);
+                    playLabSound("bubbles");
+
+                    const c1 = beaker.chemical;
+                    const c2 = beaker.solidChemical;
+                    if (c1 && c2) {
+                        const rx = getReaction(c1, c2) || getReaction(c2, c1);
+                        if (rx) {
+                            setActiveReaction(rx);
+                            setReactionPosition([beaker.position[0], beaker.position[1] + 0.12, beaker.position[2]]);
+                            const effectColor = rx.effects.find((e) => e.targetColor)?.targetColor;
+                            if (effectColor) beaker.liquidColor = effectColor;
+                            beaker.label = `Sản phẩm: ${rx.equation}`;
+                            setTeacherMode(rx.type === "combustion" ? "warning" : "success");
+                            setTeacherMessage(`🎉 Phản ứng hóa học xảy ra khi lắc trộn!\n${rx.equation}\nHiện tượng: ${rx.description}`);
+                        } else {
+                            setTeacherMode("speaking");
+                            setTeacherMessage(`Đã lắc đều dung dịch trong ${beaker.label}.`);
+                        }
+                    } else if (c1) {
+                        setTeacherMode("speaking");
+                        setTeacherMessage(`Đã lắc đều dung dịch ${c1.name} trong cốc.`);
+                    }
+                }
+            }
+        } else if (!isPhoneActive && bottle && bottle.heldBy === "phone") {
+            bottle.heldBy = null;
+            bottle.position = [...bottle.defaultPosition] as [number, number, number];
+            bottle.tiltAngle = 0;
+            stateChanged = true;
+        }
+
+        // 2. NẾU ĐIỆN THOẠI KHÔNG KẾT NỐI: Dùng thao tác Camera Hand AI như bình thường
+        if (!isPhoneActive) {
+            handsToCheck.forEach(({ side, data }) => {
             // ─── ĐIỀU KHIỂN THEO CỬ CHỈ TỪNG NGÓN TAY CHUYÊN BIỆT ───
             const now = performance.now();
 
@@ -705,6 +840,7 @@ function SceneContent({
                 }
             }
         });
+        }
 
         if (hoveredItemId !== closestHoverItem) {
             setHoveredItemId(closestHoverItem);
@@ -1156,67 +1292,21 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
     );
 
     // ─── Tích hợp Cảm biến Con quay hồi chuyển & Cảm biến Gia tốc Điện thoại ───
+    // ─── Lắng nghe phản hồi rung & âm thanh nền từ cảm biến điện thoại ───
     useEffect(() => {
-        let lastPourTime = 0;
         let lastShakeTime = 0;
 
         const unsubscribe = deviceSensors.subscribe((sensor) => {
             const now = Date.now();
-            const source = itemsRef.current.find((it) => it.id === "bottle-reagent");
-            const roll = sensor.roll || 0;
-
-            // Xoay quanh trục Z trong Three.js:
-            // Khi người dùng nghiêng điện thoại sang PHẢI (roll > 0) hướng về phía cốc (X = +0.32):
-            // Cần góc âm (-) để nghiêng theo chiều kim đồng hồ (nghiêng miệng sang phải hướng vào lòng cốc).
-            // Dấu trừ (-) ở đây là chuẩn xác 100%!
-            const tiltRad = -THREE.MathUtils.clamp((roll / 180) * Math.PI * 0.85, -1.2, 1.2);
-
-            // 1. Cầm điện thoại nghiêng rót (nghiêng phải > 16° hoặc chúc đầu điện thoại xuống isPourTilted)
-            const isPourGesture = (sensor.isPourTilted || roll > 16);
-
-            if (isPourGesture && source && source.fillLevel > 0.05) {
-                if (now - lastPourTime > 2400) {
-                    lastPourTime = now;
-                    deviceSensors.triggerHaptic([50, 70]);
-                    handleExecutePour("bottle-reagent", "beaker-1");
-                }
-            } else if (!sensor.isPourTilted && Math.abs(roll) > 3) {
-                // Phản hồi con quay góc nghiêng thời gian thực theo tay cầm điện thoại
-                setItems((prev) =>
-                    prev.map((it) => {
-                        if (it.id !== "bottle-reagent") return it;
-                        return {
-                            ...it,
-                            tiltAngle: THREE.MathUtils.clamp(tiltRad, -0.65, 0.65),
-                        };
-                    })
-                );
-            } else if (!sensor.isPourTilted && Math.abs(roll) <= 3) {
-                // Đứng thẳng: trả bình về thẳng đứng
-                setItems((prev) =>
-                    prev.map((it) => {
-                        if (it.id !== "bottle-reagent" || it.tiltAngle === 0) return it;
-                        return { ...it, tiltAngle: 0 };
-                    })
-                );
-            }
-
-            // 2. Lắc điện thoại -> Lắc đều dung dịch, kích hoạt phản ứng hóa học tự nhiên
             if (sensor.isShaking && now - lastShakeTime > 2000) {
                 lastShakeTime = now;
                 playLabSound("bubbles");
                 deviceSensors.triggerHaptic([40, 60, 40]);
-
-                const beaker = itemsRef.current.find((it) => it.id === "beaker-1");
-                if (beaker && beaker.fillLevel > 0) {
-                    setTeacherMode("success");
-                    setTeacherMessage(`Cảm biến phát hiện cử chỉ Lắc điện thoại! Đã khuấy trộn dung dịch trong ${beaker.label}.`);
-                }
             }
         });
 
         return () => unsubscribe();
-    }, [handleExecutePour]);
+    }, []);
 
     // Rửa sạch 1 dụng cụ
     const handleCleanItem = useCallback((id: string) => {
@@ -1604,7 +1694,7 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                                     >
                                         <span>{getVesselIcon(it.type)}</span>
                                         <span className="whitespace-nowrap">{it.label}</span>
-                                        {isHeld && <Hand className="w-3 h-3 text-amber-400 inline ml-1" />}
+                                        {isHeld && (it.heldBy === "phone" ? <Smartphone className="w-3 h-3 text-emerald-400 inline ml-1" /> : <Hand className="w-3 h-3 text-amber-400 inline ml-1" />)}
                                     </button>
                                 );
                             })}
@@ -1668,7 +1758,7 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                                                 : "bg-emerald-950/60 text-emerald-300 border-emerald-500/40"
                                         }`}
                                     >
-                                        {selectedItem.heldBy ? "Đang cầm" : "Trên bàn"}
+                                        {selectedItem.heldBy === "phone" ? "📱 Đang cầm bằng ĐT" : selectedItem.heldBy ? "Đang cầm" : "Trên bàn"}
                                     </span>
                                 </div>
                                 <p className="text-[11px] text-slate-300 truncate">

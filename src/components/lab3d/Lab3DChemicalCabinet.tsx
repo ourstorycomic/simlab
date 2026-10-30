@@ -19,6 +19,7 @@ import { normalizeChemicalFormula } from "@/components/ChemicalSelector";
 import { getDisplayLiquidColor } from "./Lab3DScene";
 import { playLabSound } from "./ChemistryRealisticModels";
 import { HandState } from "@/lib/handTracking";
+import { deviceSensors } from "@/lib/deviceSensors";
 import { getReaction } from "@/lib/reactions";
 
 export type ChemCategory = "all" | "acid" | "base" | "salt" | "metal" | "indicator" | "organic";
@@ -104,6 +105,14 @@ export default function Lab3DChemicalCabinet({
         // KHI GIAO DIỆN GUI MODAL VR ĐANG MỞ: Dành trọn 100% cử chỉ tay cho màn hình ảo!
         // Mute hoàn toàn cử chỉ ở tủ 3D phía sau để không bao giờ bị kích hoạt nhầm lấy chất ở tủ 3D!
         if (isCabinetModalOpen) return;
+
+        // Nếu điện thoại đang kết nối thì không dùng camera bàn tay tương tác tủ để người dùng cầm điện thoại không bị vô tình chọn chất
+        const sensorData = deviceSensors.getData();
+        const isPhoneActive = Boolean(sensorData.lastUpdated && Date.now() - sensorData.lastUpdated < 3500);
+        if (isPhoneActive) {
+            if (hoveredChemId) setHoveredChemId(null);
+            return;
+        }
 
         // Tương tác bàn tay (Hand Tracking) với tủ hóa chất 3D & Biển hiệu mở Modal 107 chất
         if (handStateRef?.current) {
@@ -193,9 +202,10 @@ export default function Lab3DChemicalCabinet({
                             setHoveredChemId(detectedBottle);
                         }
 
-                        // CHỈ CHỌN KHI GIƠ NGÓN GIỮA (🖕) HOẶC CHỤM NGÓN
-                        const isMiddleSelect = Boolean(hand.isMiddleExtended);
-                        if (detectedChem && isMiddleSelect && now - lastBottleSelectRef.current > 1000) {
+                        // CHỈ CHỌN KHI NGƯỜI DÙNG THỰC SỰ CHỤM NGÓN (PINCH: ngón cái + ngón trỏ nhón vào lọ)
+                        // TUYỆT ĐỐI KHÔNG dùng isMiddleExtended để tránh người dùng cầm điện thoại hoặc giơ tay bị tự động chọn chất!
+                        const isPinchSelect = Boolean(hand.pinchDistance !== undefined && hand.pinchDistance < 0.055);
+                        if (detectedChem && isPinchSelect && now - lastBottleSelectRef.current > 1200) {
                             lastBottleSelectRef.current = now;
                             playLabSound("pick");
                             onSelectChemical(detectedChem);
