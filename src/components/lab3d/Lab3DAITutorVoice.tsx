@@ -2,31 +2,27 @@
 
 /**
  * ─── Lab3DAITutorVoice ───
- * Trợ lý Sư phạm Cô Giáo Mai AI Đa Nền Tảng (Voice & Push-to-Talk Gesture):
- * 1. Push-To-Talk bằng Cử Chỉ Tay:
- *    - Dơ ngón trỏ lên cao (☝️ Pointing / Giơ tay phát biểu) hoặc giơ ngón cái (👍) trước webcam:
- *      Hệ thống tự động kích hoạt Micro thu âm câu hỏi của học sinh!
- *    - Hạ tay xuống: Tự động gửi câu hỏi đến AI Tutor kèm toàn bộ ngữ cảnh thí nghiệm hiện tại.
- * 2. Push-To-Talk bằng Nút Bấm / Cảm Ứng:
- *    - Chạm giữ hoặc bấm nút Micro trên màn hình nếu không dùng webcam.
- * 3. Text-to-Speech (TTS) Tiếng Việt Tự Nhiên Giống Người Thật:
- *    - Tự động chọn voice tiếng Việt tự nhiên (HoaiMy Natural / Google tiếng Việt vi-VN).
- *    - Đồng bộ cử chỉ khẩu hình (Lip-Sync) và chớp mắt của Cô Giáo 3D.
- * 4. Ngữ cảnh Thí Nghiệm Sâu Sắc:
- *    - Tự động đính kèm chất đang có trên bàn, chất trong cốc trộn, hiện tượng sủi bọt/kết tủa/khói.
+ * Trợ lý Sư phạm Cô Giáo Mai AI Đa Nền Tảng:
+ * 1. Giọng nói Thuần Việt Nữ 100% (Google Neural TTS vi-VN qua API /api/ai/tts):
+ *    - Phát âm chuẩn tiếng Việt, truyền cảm, tự nhiên như người thật.
+ *    - Đồng bộ khẩu hình nói chuyện và chớp mắt cử chỉ 3D của Cô Giáo Mai.
+ * 2. Tương Tác Giọng Nói Tự Do (Không Rập Khuôn Gợi Ý):
+ *    - Học sinh tự do hỏi bất kỳ thắc mắc nào về bài học/thí nghiệm.
+ *    - Push-to-Talk bằng Cử chỉ bàn tay: Dơ ngón trỏ ☝️ (hoặc ngón cái 👍) trước webcam để nói.
+ *    - Hoặc giữ nút "Giữ Nói" trên màn hình, hoặc gõ phím trực tiếp vào ô hỏi đáp.
+ * 3. Ngữ cảnh Thí Nghiệm Sâu Sắc:
+ *    - Phân tích trực tiếp các chất trên bàn, chất trong cốc trộn, hiện tượng hóa học/vật lý.
  */
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Volume2,
   VolumeX,
-  Sparkles,
   Send,
   GraduationCap,
   X,
+  Play,
   HelpCircle,
-  RotateCcw,
-  CheckCircle2,
 } from "lucide-react";
 
 function MicIcon({ className }: { className?: string }) {
@@ -39,21 +35,7 @@ function MicIcon({ className }: { className?: string }) {
   );
 }
 
-function MicOffIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="2" x2="22" y1="2" y2="22" />
-      <path d="M18.89 13.23A7.12 7.12 0 0 0 19 12v-2" />
-      <path d="M5 10v2a7 7 0 0 0 12 5" />
-      <path d="M15 9.34V5a3 3 0 0 0-5.68-1.33" />
-      <path d="M9 9v3a3 3 0 0 0 5.12 2.12" />
-      <line x1="12" x2="12" y1="19" y2="22" />
-    </svg>
-  );
-}
-
 const Mic = MicIcon;
-const MicOff = MicOffIcon;
 import { Chemical } from "@/lib/chemicals";
 import { ReactionResult } from "@/lib/reactions";
 import { HandState } from "@/lib/handTracking";
@@ -88,16 +70,37 @@ export default function Lab3DAITutorVoice({
   const [transcript, setTranscript] = useState("");
   const [isThinking, setIsThinking] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [teacherResponse, setTeacherResponse] = useState<string>(
     "Chào em! Cô là cô giáo Mai. Em có thể giơ ngón tay ☝️ hoặc giữ nút Micro để đặt câu hỏi về thí nghiệm nhé!"
   );
   const [inputQuery, setInputQuery] = useState("");
 
   const recognitionRef = useRef<any>(null);
-  const speechSynthRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
   const isGestureListeningRef = useRef(false);
   const gestureHoldTimerRef = useRef<number>(0);
   const lastGestureCheckRef = useRef<number>(0);
+
+  // ─── 0. Dừng toàn bộ âm thanh đang phát ───
+  const stopAllSpeech = useCallback(() => {
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+      audioPlayerRef.current.currentTime = 0;
+      audioPlayerRef.current = null;
+    }
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    setIsPlayingAudio(false);
+    if (onTeacherModeChange) onTeacherModeChange("idle");
+  }, [onTeacherModeChange]);
+
+  useEffect(() => {
+    return () => {
+      stopAllSpeech();
+    };
+  }, [stopAllSpeech]);
 
   // ─── 1. Khởi tạo Web Speech Recognition (Giọng nói Tiếng Việt vi-VN) ───
   useEffect(() => {
@@ -140,57 +143,89 @@ export default function Lab3DAITutorVoice({
     }
   }, [onTeacherModeChange]);
 
-  // ─── 2. Phát âm thanh Giọng Nói Cô Giáo (Text-to-Speech Tiếng Việt) ───
+  // ─── 2. Phát âm thanh Giọng Nói Cô Giáo (100% Giọng Nữ Thuần Việt qua API TTS) ───
   const speakText = useCallback(
     (text: string) => {
-      if (typeof window === "undefined" || !voiceEnabled || !window.speechSynthesis) return;
+      if (typeof window === "undefined" || !voiceEnabled) return;
 
-      // Hủy giọng đọc cũ nếu đang phát
-      window.speechSynthesis.cancel();
+      stopAllSpeech();
 
-      // Làm sạch text để đọc mượt mà (bỏ ký tự markdown như ** # ---)
+      // Làm sạch text để đọc mượt mà (bỏ ký tự markdown)
       const cleanText = text
         .replace(/[*#_`~>\[\]\(\)]/g, " ")
         .replace(/\s+/g, " ")
         .trim();
 
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.lang = "vi-VN";
-      utterance.rate = 0.98; // Tốc độ đĩnh đạc, rõ ràng
-      utterance.pitch = 1.06; // Tông giọng nữ tươi vui, ấm áp
+      if (!cleanText) return;
 
-      // Chọn voice tiếng Việt tự nhiên nhất có sẵn trong hệ thống
-      const voices = window.speechSynthesis.getVoices();
-      const viVoice =
-        voices.find(
-          (v) =>
-            v.lang.includes("vi") &&
-            (v.name.includes("HoaiMy") ||
-              v.name.includes("Natural") ||
-              v.name.includes("Google") ||
-              v.name.includes("An"))
-        ) || voices.find((v) => v.lang.includes("vi"));
+      try {
+        const audioUrl = `/api/ai/tts?text=${encodeURIComponent(cleanText)}`;
+        const audio = new Audio(audioUrl);
+        audioPlayerRef.current = audio;
 
-      if (viVoice) {
-        utterance.voice = viVoice;
+        audio.onplay = () => {
+          setIsPlayingAudio(true);
+          if (onTeacherModeChange) onTeacherModeChange("speaking");
+        };
+
+        audio.onended = () => {
+          setIsPlayingAudio(false);
+          if (onTeacherModeChange) onTeacherModeChange("idle");
+          audioPlayerRef.current = null;
+        };
+
+        audio.onerror = (e) => {
+          console.warn("TTS Audio API error, falling back to Web Speech:", e);
+          setIsPlayingAudio(false);
+          // Dự phòng Web Speech API nếu offline
+          if (window.speechSynthesis) {
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+            utterance.lang = "vi-VN";
+            const voices = window.speechSynthesis.getVoices();
+            const viVoice =
+              voices.find(
+                (v) =>
+                  v.lang.includes("vi") &&
+                  (v.name.includes("HoaiMy") ||
+                    v.name.includes("Natural") ||
+                    v.name.includes("Google") ||
+                    v.name.includes("Female") ||
+                    v.name.includes("An"))
+              ) || voices.find((v) => v.lang.includes("vi"));
+            if (viVoice) utterance.voice = viVoice;
+            utterance.onstart = () => {
+              setIsPlayingAudio(true);
+              onTeacherModeChange?.("speaking");
+            };
+            utterance.onend = () => {
+              setIsPlayingAudio(false);
+              onTeacherModeChange?.("idle");
+            };
+            utterance.onerror = () => {
+              setIsPlayingAudio(false);
+              onTeacherModeChange?.("idle");
+            };
+            window.speechSynthesis.speak(utterance);
+          } else {
+            if (onTeacherModeChange) onTeacherModeChange("idle");
+          }
+        };
+
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((err) => {
+            console.warn("Trình duyệt chặn autoplay audio:", err);
+            setIsPlayingAudio(false);
+            if (onTeacherModeChange) onTeacherModeChange("idle");
+          });
+        }
+      } catch (err) {
+        console.error("Lỗi khi phát TTS:", err);
+        setIsPlayingAudio(false);
+        if (onTeacherModeChange) onTeacherModeChange("idle");
       }
-
-      utterance.onstart = () => {
-        if (onTeacherModeChange) onTeacherModeChange("speaking");
-      };
-
-      utterance.onend = () => {
-        if (onTeacherModeChange) onTeacherModeChange("idle");
-      };
-
-      utterance.onerror = () => {
-        if (onTeacherModeChange) onTeacherModeChange("idle");
-      };
-
-      speechSynthRef.current = utterance;
-      window.speechSynthesis.speak(utterance);
     },
-    [voiceEnabled, onTeacherModeChange]
+    [voiceEnabled, onTeacherModeChange, stopAllSpeech]
   );
 
   // ─── 3. Gửi câu hỏi đến AI Tutor kèm Toàn Bộ Ngữ Cảnh Thí Nghiệm ───
@@ -366,50 +401,6 @@ export default function Lab3DAITutorVoice({
     }, 400);
   };
 
-  // ─── 5. Gợi Ý Câu Hỏi Nhanh (Smart Context Prompt Chips) ───
-  const promptSuggestions = React.useMemo(() => {
-    if (subject === "chemistry") {
-      const chem1 = activeChemical?.name || "chất này";
-      const beakerChem = reactionBeakerChemical?.name || reactionBeakerSolid?.name;
-
-      if (activeReaction) {
-        return [
-          `Cô giải thích hiện tượng phản ứng ${activeReaction.equation} với ạ!`,
-          "Tại sao lại có hiện tượng sủi bọt/đổi màu vậy cô?",
-          "Phản ứng này thuộc loại phản ứng gì trong SGK Hóa?",
-        ];
-      }
-
-      if (beakerChem) {
-        return [
-          `Khi trộn ${chem1} vào ${beakerChem} thì có phản ứng không cô?`,
-          `Chất ${beakerChem} ở dạng rắn hay lỏng có ảnh hưởng gì không cô?`,
-          `Làm sao để nhận biết phản ứng giữa ${chem1} và ${beakerChem}?`,
-        ];
-      }
-
-      return [
-        `Cô ơi, ${chem1} có tính chất hóa học gì nổi bật?`,
-        "Làm thế nào để chọn chất phản ứng với chất này ạ?",
-        "Cô hướng dẫn em quy tắc an toàn khi làm thí nghiệm với ạ!",
-      ];
-    }
-
-    if (subject === "physics") {
-      return [
-        "Cô giải thích định luật bảo toàn cơ năng trong con lắc ạ!",
-        "Khi tăng chiều dài dây thì chu kỳ dao động thay đổi thế nào cô?",
-        "Quy luật khúc xạ ánh sáng qua thấu kính hoạt động ra sao ạ?",
-      ];
-    }
-
-    return [
-      "Cô ơi, cấu trúc tế bào thực vật có điểm gì khác tế bào động vật?",
-      "Chức năng chính của tim và các van tim là gì vậy cô?",
-      "Giải thích giúp em cơ chế co bóp của hệ tuần hoàn ạ!",
-    ];
-  }, [subject, activeChemical, reactionBeakerChemical, reactionBeakerSolid, activeReaction]);
-
   return (
     <div className="absolute top-16 right-3 sm:right-4 z-40 pointer-events-auto select-none max-w-sm w-[92vw] sm:w-88 transition-all duration-300">
       {isOpen ? (
@@ -424,29 +415,34 @@ export default function Lab3DAITutorVoice({
                 {isListening && (
                   <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-400 animate-ping" />
                 )}
+                {isPlayingAudio && (
+                  <span className="absolute -bottom-1 -right-1 w-3 h-3 rounded-full bg-sky-400 animate-pulse" />
+                )}
               </div>
               <div>
                 <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
                   <span>Cô Giáo Mai (AI)</span>
-                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-300 border border-sky-500/40">
+                  <span className="px-1.5 py-0.2 bg-gradient-to-r from-sky-500 to-blue-600 text-[9px] font-semibold text-white rounded-md">
                     GDPT 2018
                   </span>
                 </h3>
                 <p className="text-[10px] text-slate-400">
-                  {isThinking
-                    ? "Đang suy nghĩ câu trả lời..."
+                  {isPlayingAudio
+                    ? "🔊 Đang giảng giải bằng giọng nữ..."
                     : isListening
-                    ? "Đang lắng nghe giọng em... 🎙️"
+                    ? "🎙️ Đang lắng nghe câu hỏi..."
                     : "Hỏi đáp & Hướng dẫn thí nghiệm"}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-1">
-              {/* Nút bật/tắt giọng đọc */}
+              {/* Nút bật/tắt âm thanh đọc */}
               <button
                 onClick={() => {
-                  if (voiceEnabled) window.speechSynthesis?.cancel();
+                  if (voiceEnabled) {
+                    stopAllSpeech();
+                  }
                   setVoiceEnabled(!voiceEnabled);
                 }}
                 className={`p-1.5 rounded-xl border transition-colors ${
@@ -454,7 +450,7 @@ export default function Lab3DAITutorVoice({
                     ? "bg-slate-800 text-sky-400 border-sky-500/40"
                     : "bg-slate-900 text-slate-500 border-slate-800"
                 }`}
-                title={voiceEnabled ? "Tắt giọng đọc của Cô" : "Bật giọng đọc tiếng Việt"}
+                title={voiceEnabled ? "Tắt giọng đọc của Cô" : "Bật giọng đọc tiếng Việt nữ"}
               >
                 {voiceEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
               </button>
@@ -473,6 +469,19 @@ export default function Lab3DAITutorVoice({
           {/* ── Lời Cô Giáo Giảng Giải ── */}
           <div className="max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 pr-1 text-xs text-slate-200 leading-relaxed mb-3 space-y-1.5">
             <p className="whitespace-pre-line">{teacherResponse}</p>
+            {teacherResponse && (
+              <div className="flex justify-end pt-1">
+                <button
+                  onClick={() => speakText(teacherResponse)}
+                  disabled={isPlayingAudio}
+                  className="inline-flex items-center gap-1 text-[10px] font-medium text-sky-400 hover:text-sky-300 hover:underline px-2 py-0.5 rounded-lg bg-sky-950/40 border border-sky-800/50"
+                  title="Nghe lại lời cô giảng bằng giọng nữ thuần Việt"
+                >
+                  <Play className="w-2.5 h-2.5 fill-current" />
+                  <span>{isPlayingAudio ? "Đang nói..." : "Nghe cô nói"}</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* ── Trạng Thái Sóng Âm Khi Đang Nói / Push to Talk ── */}
@@ -487,26 +496,6 @@ export default function Lab3DAITutorVoice({
               </span>
             </div>
           )}
-
-          {/* ── Gợi Ý Câu Hỏi Nhanh (Smart Prompt Chips) ── */}
-          <div className="mb-3 space-y-1">
-            <span className="text-[10px] text-slate-400 font-semibold flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-amber-400" />
-              <span>Gợi ý câu hỏi về thí nghiệm:</span>
-            </span>
-            <div className="flex flex-col gap-1">
-              {promptSuggestions.map((prompt, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleAskAITutor(prompt)}
-                  disabled={isThinking}
-                  className="text-left text-[11px] px-2.5 py-1.5 rounded-xl bg-slate-900/90 hover:bg-sky-600/30 text-slate-300 hover:text-white border border-slate-800 hover:border-sky-400/50 transition-all truncate"
-                >
-                  👉 {prompt}
-                </button>
-              ))}
-            </div>
-          </div>
 
           {/* ── Thanh Tương Tác: Nút Push-To-Talk Lớn & Ô Nhập Chữ ── */}
           <div className="flex items-center gap-1.5 pt-2 border-t border-slate-800/80">
@@ -554,33 +543,33 @@ export default function Lab3DAITutorVoice({
             </form>
           </div>
 
-          {/* Footer nhắc nhở cử chỉ giơ tay */}
-          <div className="mt-2 text-center flex items-center justify-between text-[10px] text-slate-500">
-            <span>☝️ Dơ ngón trỏ để hỏi tự động</span>
+          {/* ── Gợi ý cử chỉ ngón tay & nút ẩn/hiện 3D Teacher ── */}
+          <div className="mt-2.5 pt-2 border-t border-slate-900 flex items-center justify-between text-[10px] text-slate-400">
+            <span className="flex items-center gap-1 text-amber-300/90 font-medium">
+              <span>☝️</span>
+              <span>Dơ ngón trỏ để hỏi tự động</span>
+            </span>
+
             <button
               onClick={onToggle3DTeacher}
-              className="text-sky-400 hover:underline cursor-pointer"
+              className="text-[10px] text-sky-400 hover:text-sky-300 transition-colors underline decoration-dotted"
             >
               {show3DTeacher ? "Ẩn Cô 3D" : "Hiện Cô 3D"}
             </button>
           </div>
         </div>
       ) : (
-        /* Nút Thu Nhỏ */
-        <div className="flex items-center gap-1.5 justify-end">
-          <button
-            onClick={() => setIsOpen(true)}
-            className="px-3.5 py-2 rounded-2xl bg-slate-950/90 backdrop-blur-xl border border-sky-400/50 text-white shadow-2xl flex items-center gap-2 hover:border-sky-300 transition-all cursor-pointer ring-1 ring-sky-400/20"
-          >
-            <div className="relative">
-              <GraduationCap className="w-4 h-4 text-sky-400" />
-              {isListening && (
-                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-              )}
-            </div>
-            <span className="text-xs font-bold text-sky-200">Cô Giáo Mai (AI)</span>
-          </button>
-        </div>
+        /* Widget khi thu nhỏ */
+        <button
+          onClick={() => setIsOpen(true)}
+          className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-slate-950/90 border border-sky-500/50 hover:border-sky-400 shadow-xl text-white backdrop-blur-xl transition-all group hover:scale-105"
+        >
+          <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white">
+            <GraduationCap className="w-3.5 h-3.5" />
+          </div>
+          <span className="text-xs font-semibold">Cô Giáo Mai AI</span>
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+        </button>
       )}
     </div>
   );
