@@ -167,9 +167,13 @@ export default function RemotePairingModal({
   if (!isOpen) return null;
 
   const qrCodeUrl = lanUrl
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(
         lanUrl
-      )}&color=ffffff&bgcolor=0f172a&margin=1`
+      )}&margin=2`
+    : "";
+
+  const qrFallbackUrl = lanUrl
+    ? `https://quickchart.io/qr?text=${encodeURIComponent(lanUrl)}&size=320&margin=2`
     : "";
 
   return (
@@ -251,26 +255,31 @@ export default function RemotePairingModal({
             </p>
           </div>
 
-          {/* Cột 2: Quét Mã QR */}
+          {/* Cột 2: Quét Mã QR (Chuẩn trắng đen ISO độ tương phản cao, camera bắt nét tức thì) */}
           <div className="flex flex-col items-center justify-center text-center">
-            <span className="text-[11px] text-slate-400 font-semibold mb-2 uppercase tracking-wider">
+            <span className="text-[11px] text-slate-300 font-bold mb-2 uppercase tracking-wider">
               Hoặc Quét Mã QR
             </span>
             {qrCodeUrl ? (
-              <div className="p-2 bg-slate-900 rounded-2xl border border-slate-700 shadow-md">
+              <div className="p-3 bg-white rounded-2xl shadow-2xl border-2 border-white ring-4 ring-emerald-500/20">
                 <img
                   src={qrCodeUrl}
                   alt="QR Code kết nối điện thoại"
-                  className="w-28 h-28 rounded-lg"
+                  className="w-36 h-36 sm:w-40 sm:h-40 object-contain rounded-md"
+                  onError={(e) => {
+                    if (qrFallbackUrl && (e.currentTarget as HTMLImageElement).src !== qrFallbackUrl) {
+                      (e.currentTarget as HTMLImageElement).src = qrFallbackUrl;
+                    }
+                  }}
                 />
               </div>
             ) : (
-              <div className="w-28 h-28 bg-slate-900 rounded-2xl flex items-center justify-center text-slate-600 text-xs">
+              <div className="w-36 h-36 bg-slate-900 rounded-2xl flex items-center justify-center text-slate-500 text-xs">
                 Đang tạo QR...
               </div>
             )}
-            <span className="text-[10px] text-slate-500 mt-1.5">
-              Mở Camera điện thoại quét mã là xong
+            <span className="text-[10px] text-emerald-400 font-semibold mt-2">
+              📸 Mở Camera điện thoại / Zalo quét mã là vào ngay
             </span>
           </div>
         </div>
