@@ -428,23 +428,8 @@ function SceneContent({
         }
     }, [cameraPreset, getPresetTarget, camera]);
 
-    // ─── Frame Update: Xử Lý Camera Zoom & Cầm Nắm Chuẩn Xác, Đặt Xuống & Rót Của 2 Bàn Tay ───
+    // ─── Frame Update: Cầm Nắm Chuẩn Xác, Đặt Xuống & Rót Của 2 Bàn Tay (Camera Cố Định) ───
     useFrame((_, delta) => {
-        // Tự động Zoom Camera tới cận cảnh Kệ Tủ Hóa Chất khi mở tủ hoặc mở GUI
-        if (isCabinetModalOpen) {
-            const targetCamPos = new THREE.Vector3(-1.05, 0.42, 1.35);
-            const targetCamLook = new THREE.Vector3(-1.35, 0.38, -0.42);
-
-            camera.position.lerp(targetCamPos, Math.min(1, delta * 3.8));
-            if (controlsRef.current) {
-                controlsRef.current.target.lerp(targetCamLook, Math.min(1, delta * 3.8));
-                controlsRef.current.update();
-            } else {
-                camera.lookAt(targetCamLook);
-            }
-            return;
-        }
-
         if (isCabinetModalOpen) {
             // Khi đang mở Tủ Hóa Chất VR: Dành trọn vẹn cử chỉ bàn tay cho GUI Thực Tế Ảo (Chỉ ngón, Ấn ngón, Phẩy tay cuộn)
             return;
@@ -754,21 +739,9 @@ function SceneContent({
             <OrbitControls
                 ref={controlsRef}
                 enablePan={false}
-                enableZoom={true}
-                enableRotate={true}
-                minDistance={1.2}
-                maxDistance={4.5}
-                minPolarAngle={Math.PI / 6}
-                maxPolarAngle={Math.PI / 2 - 0.05}
-                minAzimuthAngle={-Math.PI / 3}
-                maxAzimuthAngle={Math.PI / 3}
+                enableZoom={false}
+                enableRotate={false}
                 target={[0.15, 0.10, 0.25]}
-                onStart={() => {
-                    isUserOrbitingRef.current = true;
-                }}
-                onEnd={() => {
-                    isUserOrbitingRef.current = false;
-                }}
             />
 
             {/* Phòng thí nghiệm hoạt hình Pixar tươi sáng & Đạo cụ từ Unity */}
@@ -1480,8 +1453,9 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
 
                     <div className="h-4 w-px bg-slate-700/60 mx-0.5" />
 
-                    <div className="flex items-center gap-1 px-1.5 text-[10px] text-slate-400 font-mono">
-                        <span>Cuộn chuột: Zoom</span>
+                    <div className="flex items-center gap-1 px-1.5 text-[10px] text-emerald-400 font-medium">
+                        <Lock className="w-3 h-3" />
+                        <span>Camera cố định</span>
                     </div>
                 </div>
             </div>

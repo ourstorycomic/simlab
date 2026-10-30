@@ -1347,14 +1347,8 @@ const PhysicsSceneContent = memo(function PhysicsSceneContent({
             <OrbitControls
                 ref={controlsRef}
                 enablePan={false}
-                enableZoom={true}
-                enableRotate={true}
-                minDistance={0.8}
-                maxDistance={3.2}
-                minPolarAngle={Math.PI / 6}
-                maxPolarAngle={Math.PI / 2 - 0.05}
-                minAzimuthAngle={-Math.PI / 3}
-                maxAzimuthAngle={Math.PI / 3}
+                enableZoom={false}
+                enableRotate={false}
                 target={[0, 0.45, 0]}
             />
 
