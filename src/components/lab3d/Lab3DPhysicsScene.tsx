@@ -57,6 +57,7 @@ function Pendulum3D({
     const auraRef = useRef<THREE.Mesh>(null);
     const lastAngleReportRef = useRef<number>(24.1);
     const unholdFramesRef = useRef<number>(0);
+    const justReleasedTimeRef = useRef<number>(0);
 
     // Chuột / Touch Dragging State
     const isPointerDragging = useRef(false);
@@ -107,58 +108,84 @@ function Pendulum3D({
         const dPalm = Math.hypot(handPos[0] - bobWorldPos.x, handPos[1] - bobWorldPos.y);
         const dTip = Math.hypot(indexTip[0] - bobWorldPos.x, indexTip[1] - bobWorldPos.y);
         const dist2D = Math.min(dPalm, dTip);
-        const isHandNear = dist2D < (s.isHeld ? 0.95 : 0.70);
-        const isGrabOrTouch = isHolding || dist2D < 0.42;
 
-        // Nếu đang kéo bằng chuột hoặc bằng tay
+        // Bán kính tiếp cận: 32cm khi chưa cầm, 75cm khi đang cầm kéo
+        const isHandNear = dist2D < (s.isHeld ? 0.75 : 0.32);
+
+        // ĐIỀU KIỆN CẦM QUẢ LẮC:
+        // Cần cầm/nắm/chụm tay (isHolding) VÀ ở gần quả lắc (isHandNear)!
+        // Tuyệt đối không cho cầm chỉ bằng việc xòe tay đưa lại gần.
+        const canGrab = isHolding && isHandNear;
+
+        // Nếu đang kéo bằng chuột
         if (isPointerDragging.current) {
             // Đang được điều khiển trực tiếp bởi chuột qua con trỏ
             s.time = 0;
             s.velocity = 0;
             s.initialAngle = s.angle;
-        } else if (isGrabOrTouch && isHandNear) {
-            unholdFramesRef.current = 0;
-            if (!s.isHeld) {
-                playLabSound("pick");
+        } else if (s.isHeld) {
+            // ─── ĐANG ĐƯỢC CẦM BỞI TAY ───
+            // Chỉ tiếp tục kéo nếu người dùng VẪN ĐANG CẦM (isHolding = true) và tay không văng quá xa
+            // NẾU NGƯỜI DÙNG THẢ TAY (isHolding = false hoặc xòe tay): LẬP TỨC BUÔNG VÀ THẢ DAO ĐỘNG ĐIỀU HÒA!
+            if (isHolding && dist2D < 0.75) {
+                unholdFramesRef.current = 0;
+                const deltaX = handPos[0] - pivotWorldPos.x;
+                const deltaY = handPos[1] - pivotWorldPos.y;
+                const targetAngle = Math.atan2(deltaX, -deltaY);
+                s.angle = THREE.MathUtils.lerp(
+                    s.angle,
+                    Math.max(-1.15, Math.min(1.15, targetAngle)),
+                    Math.min(1, delta * 20)
+                );
+                s.initialAngle = s.angle;
+                s.velocity = 0;
+                s.time = 0;
+            } else {
+                // NGƯỜI DÙNG THẢ TAY -> THẢ TỰ DO CON LẮC NGAY LẬP TỨC!
+                s.isHeld = false;
+                unholdFramesRef.current = 0;
+                s.initialAngle = Math.abs(s.angle) < 0.04 ? (s.angle < 0 ? -0.04 : 0.04) : s.angle;
+                s.time = 0;
+                s.velocity = 0;
+                justReleasedTimeRef.current = performance.now() + 3500;
+                playLabSound("place");
             }
+        } else if (canGrab) {
+            // ─── BẮT ĐẦU CẦM QUẢ LẮC ───
+            // Người dùng nắm tay lại khi ở gần quả lắc -> Nhấc quả lắc lên!
+            unholdFramesRef.current = 0;
             s.isHeld = true;
-            // Tính góc kéo dựa trên độ lệch so với trục quay
+            playLabSound("pick");
             const deltaX = handPos[0] - pivotWorldPos.x;
             const deltaY = handPos[1] - pivotWorldPos.y;
             const targetAngle = Math.atan2(deltaX, -deltaY);
-            s.angle = THREE.MathUtils.lerp(
-                s.angle,
-                Math.max(-1.15, Math.min(1.15, targetAngle)),
-                Math.min(1, delta * 20)
-            );
+            s.angle = Math.max(-1.15, Math.min(1.15, targetAngle));
             s.initialAngle = s.angle;
             s.velocity = 0;
             s.time = 0;
-        } else if (s.isHeld) {
-            // Khi người dùng thả tay / xòe tay ra: buông ngay lập tức, thả tự do dao động điều hòa!
-            s.isHeld = false;
-            unholdFramesRef.current = 0;
-            s.initialAngle = Math.abs(s.angle) < 0.04 ? (s.angle < 0 ? -0.04 : 0.04) : s.angle;
-            s.time = 0;
-            playLabSound("place");
         } else {
-            // Tích hợp Cảm biến Điện thoại: Nghiêng điện thoại trái/phải hoặc lắc để truyền xung lực
+            // ─── DAO ĐỘNG TỰ DO DƯỚI TÁC DỤNG TRỌNG LỰC ───
+            const now = performance.now();
             const sensor = deviceSensors.getData();
-            if (sensor.isShaking) {
+
+            // Nếu vừa mới thả tay: ưu tiên tuyệt đối dao động điều hòa tự do, không bị phone gyro đè
+            const isFreeOscillating = now < justReleasedTimeRef.current;
+
+            if (!isFreeOscillating && sensor.isShaking) {
                 // Lắc điện thoại -> Truyền xung lực dao động mạnh
                 s.initialAngle = s.angle >= 0 ? 0.62 : -0.62;
                 s.time = 0;
                 s.velocity = 0;
-            } else if (Math.abs(sensor.roll) > 12) {
+            } else if (!isFreeOscillating && Math.abs(sensor.roll) > 16 && (Date.now() - sensor.lastUpdated < 350)) {
                 // Nghiêng điện thoại -> con lắc lệch theo trọng lực góc nghiêng
-                const targetRollAngle = (sensor.roll * Math.PI) / 180;
+                const targetRollAngle = -(sensor.roll * Math.PI) / 180;
                 s.angle = THREE.MathUtils.lerp(s.angle, Math.max(-1.1, Math.min(1.1, targetRollAngle)), delta * 8);
                 s.initialAngle = s.angle;
                 s.time = 0;
             } else {
                 // Dao động điều hòa tắt dần tự nhiên, bảo toàn hướng xuất phát (không bị giật lật dấu)
                 s.time += clampedDelta;
-                const damping = Math.exp(-0.045 * s.time);
+                const damping = Math.exp(-0.035 * s.time);
                 s.angle = s.initialAngle * Math.cos(omega * s.time) * damping;
                 s.velocity = -omega * s.initialAngle * Math.sin(omega * s.time) * damping;
             }
@@ -172,8 +199,8 @@ function Pendulum3D({
             auraRef.current.visible = s.isHeld || isHandNear || isPointerDragging.current;
             const mat = auraRef.current.material as THREE.MeshBasicMaterial;
             if (mat) {
-                mat.color.set(s.isHeld ? "#22c55e" : "#38bdf8");
-                mat.opacity = s.isHeld ? 0.9 : 0.6;
+                mat.color.set(s.isHeld || isPointerDragging.current ? "#22c55e" : "#38bdf8");
+                mat.opacity = s.isHeld || isPointerDragging.current ? 0.9 : 0.55;
             }
         }
 
@@ -192,8 +219,12 @@ function Pendulum3D({
     // ─── Mouse / Touch Handlers for Direct 3D Dragging ───
     const handlePointerDown = (e: any) => {
         e.stopPropagation();
+        try {
+            e.target.setPointerCapture(e.pointerId);
+        } catch {}
         isPointerDragging.current = true;
         setOrbitEnabled(false);
+        justReleasedTimeRef.current = performance.now() + 3500;
         playLabSound("pick");
     };
 
@@ -211,6 +242,9 @@ function Pendulum3D({
     const handlePointerUp = (e: any) => {
         if (isPointerDragging.current) {
             e.stopPropagation();
+            try {
+                e.target.releasePointerCapture(e.pointerId);
+            } catch {}
             isPointerDragging.current = false;
             setOrbitEnabled(true);
             state.current.initialAngle =
@@ -220,9 +254,33 @@ function Pendulum3D({
                         : 0.04
                     : state.current.angle;
             state.current.time = 0;
+            state.current.velocity = 0;
+            justReleasedTimeRef.current = performance.now() + 3500;
             playLabSound("place");
         }
     };
+
+    // Bắt sự kiện thả chuột toàn cục (tránh bị kẹt nếu thả chuột bên ngoài canvas)
+    useEffect(() => {
+        const handleGlobalPointerUp = () => {
+            if (isPointerDragging.current) {
+                isPointerDragging.current = false;
+                setOrbitEnabled(true);
+                state.current.initialAngle =
+                    Math.abs(state.current.angle) < 0.04
+                        ? state.current.angle < 0
+                            ? -0.04
+                            : 0.04
+                        : state.current.angle;
+                state.current.time = 0;
+                state.current.velocity = 0;
+                justReleasedTimeRef.current = performance.now() + 3500;
+                playLabSound("place");
+            }
+        };
+        window.addEventListener("pointerup", handleGlobalPointerUp);
+        return () => window.removeEventListener("pointerup", handleGlobalPointerUp);
+    }, [setOrbitEnabled]);
 
     return (
         <group ref={groupRef} position={position}>
@@ -1256,34 +1314,23 @@ const PhysicsSceneContent = memo(function PhysicsSceneContent({
             ];
             indexTipRef.current = tip;
 
-            const grip = Math.max(
-                hs.gripStrength ?? 0,
-                hs.rightHand?.gripStrength ?? 0,
-                hs.leftHand?.gripStrength ?? 0
-            );
-            const pinch = Math.min(
-                hs.pinchDistance ?? 1,
-                hs.rightHand?.pinchDistance ?? 1,
-                hs.leftHand?.pinchDistance ?? 1
-            );
-            const extCount = Math.min(
-                hs.extendedFingersCount ?? 5,
-                hs.rightHand?.detected ? (hs.rightHand.extendedFingersCount ?? 5) : 5,
-                hs.leftHand?.detected ? (hs.leftHand.extendedFingersCount ?? 5) : 5
-            );
+            const activeHand = hs.rightHand?.detected ? hs.rightHand : hs.leftHand?.detected ? hs.leftHand : hs;
+            const grip = activeHand.gripStrength ?? 0;
+            const pinch = activeHand.pinchDistance ?? 1;
+            const extCount = activeHand.extendedFingersCount ?? 5;
 
-            // Kiểm tra trạng thái xòe tay, dơ ngón trỏ & ngón áp út
-            const isOpeningHand = hs.gesture === "OPEN" || extCount >= 3;
-            const isPointing = Boolean(hs.isIndexExtended && !hs.isRingExtended && !hs.isPinkyExtended);
-            const isRingGrab = Boolean(hs.isRingExtended && !hs.isIndexExtended);
+            // Kiểm tra trạng thái xòe tay (OPEN): xòe bàn tay (>= 3 ngón mở rộng) hoặc grip thả lỏng (< 0.38)
+            const isOpeningHand = activeHand.gesture === "OPEN" || extCount >= 3 || grip < 0.38;
+            const isPointing = Boolean(activeHand.isIndexExtended && !activeHand.isRingExtended && !activeHand.isPinkyExtended);
+            const isRingGrab = Boolean(activeHand.isRingExtended && !activeHand.isIndexExtended);
 
             // Nhận diện CẦM / NẮM:
-            // - Nắm tay (GRAB / Fist), Chụm ngón thật sự (Pinch < 0.16), hoặc ngón áp út (isRingGrab)
+            // - Nắm tay (GRAB / Fist), Chụm ngón thật sự (Pinch < 0.18), hoặc ngón áp út (isRingGrab), hoặc grip > 0.52
             // - TUYỆT ĐỐI KHÔNG CẦM khi đang Xòe tay (isOpeningHand) hoặc Dơ ngón trỏ (isPointing)
             const isGrabbingOrHolding =
                 !isOpeningHand &&
                 !isPointing &&
-                (hs.gesture === "GRAB" || grip > 0.60 || pinch < 0.16 || isRingGrab || (extCount <= 2 && extCount > 0));
+                (activeHand.gesture === "GRAB" || grip > 0.52 || pinch < 0.18 || isRingGrab || (extCount <= 2 && extCount > 0));
 
             isHoldingRef.current = isGrabbingOrHolding;
 
