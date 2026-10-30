@@ -74,7 +74,7 @@ export interface InteractiveWorkbenchItem {
     fillLevel: number; // 0.0 to 1.0
     position: [number, number, number];
     defaultPosition: [number, number, number];
-    heldBy: "left" | "right" | null;
+    heldBy: "left" | "right" | "user" | null;
     tiltAngle: number;
     pitchAngle?: number;
     solidChemical?: Chemical | null; // Chất rắn dạng cục / thỏi kim loại / tinh thể nếu có
@@ -1012,13 +1012,13 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
             const mouthHSource = getVesselMouthHeight(source.type);
             const mouthHTarget = getVesselMouthHeight(target.type);
 
-            // 1. Tự động nâng và di chuyển bình rót tới ngay trên miệng bình nhận kèm góc nghiêng 44 độ
+            // 1. Tự động nâng và di chuyển bình rót tới bên trái ngay trên miệng bình nhận kèm góc nghiêng -44 độ
             const pourPos: [number, number, number] = [
-                target.position[0] + 0.16,
+                target.position[0] - 0.18,
                 target.position[1] + mouthHTarget + 0.08,
                 target.position[2],
             ];
-            const pourTilt = 0.76; // ~44 độ nghiêng rót
+            const pourTilt = -0.76; // ~-44 độ nghiêng rót hướng sang phải (+X) vào lòng cốc
 
             setItems((prev) =>
                 prev.map((it) =>
@@ -1027,7 +1027,7 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                               ...it,
                               position: pourPos,
                               tiltAngle: pourTilt,
-                              heldBy: "right",
+                              heldBy: "user",
                           }
                         : it
                 )
@@ -1035,8 +1035,8 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
 
             // 2. Dòng nước/chất chảy từ mép miệng bình nguồn vào miệng bình đích
             const streamFrom: [number, number, number] = [
-                pourPos[0] - 0.07,
-                pourPos[1] + mouthHSource - 0.04,
+                pourPos[0] + 0.14,
+                pourPos[1] + mouthHSource - 0.08,
                 pourPos[2],
             ];
             const streamTo: [number, number, number] = [
@@ -1178,34 +1178,49 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
         [setTeacherMessage, setTeacherMode]
     );
 
-    // ─── Tích hợp Cảm biến Điện thoại: Nghiêng rót & Lắc trộn phản ứng ───
+    // ─── Tích hợp Cảm biến Con quay hồi chuyển & Cảm biến Gia tốc Điện thoại ───
     useEffect(() => {
         let lastPourTime = 0;
         let lastShakeTime = 0;
 
         const unsubscribe = deviceSensors.subscribe((sensor) => {
             const now = Date.now();
+            const source = itemsRef.current.find((it) => it.id === "bottle-reagent");
+            const roll = sensor.roll || 0;
 
-            // 1. Cầm điện thoại nghiêng chúc xuống -> Tự động dốc bình rót vào cốc như ngoài đời thật
-            if (sensor.isPourTilted && now - lastPourTime > 2600) {
-                lastPourTime = now;
-                const source = itemsRef.current.find((it) => it.id === "bottle-reagent");
-                if (source && source.fillLevel > 0.05) {
-                    handleExecutePour("bottle-reagent", "beaker-1");
+            // Xoay quanh trục Z trong Three.js:
+            // Khi người dùng nghiêng điện thoại sang PHẢI (roll > 0) hướng về phía cốc (X = +0.32):
+            // Cần góc âm (-) để nghiêng theo chiều kim đồng hồ (nghiêng miệng sang phải hướng vào lòng cốc).
+            // Dấu trừ (-) ở đây là chuẩn xác 100%!
+            const tiltRad = -THREE.MathUtils.clamp((roll / 180) * Math.PI * 0.85, -1.2, 1.2);
+
+            // 1. Cầm điện thoại nghiêng rót (nghiêng phải > 16° hoặc chúc đầu điện thoại xuống isPourTilted)
+            const isPourGesture = (sensor.isPourTilted || roll > 16);
+
+            if (isPourGesture && source && source.fillLevel > 0.05) {
+                if (now - lastPourTime > 2400) {
+                    lastPourTime = now;
                     deviceSensors.triggerHaptic([50, 70]);
-                } else if (source && source.fillLevel <= 0.05) {
-                    setTeacherMode("warning");
-                    setTeacherMessage("Lọ hóa chất trên bàn đã rót hết rồi! Em hãy chọn Tủ Hóa Chất để lấy thêm hóa chất mới nhé!");
+                    handleExecutePour("bottle-reagent", "beaker-1");
                 }
-            } else if (!sensor.isPourTilted && Math.abs(sensor.roll) > 4) {
-                // Phản hồi thời gian thực: Nghiêng điện thoại làm bình trên bàn nghiêng nhẹ theo tay người dùng
-                const tiltRad = (sensor.roll / 180) * Math.PI * 0.75;
+            } else if (!sensor.isPourTilted && Math.abs(roll) > 3) {
+                // Phản hồi con quay góc nghiêng thời gian thực theo tay cầm điện thoại
                 setItems((prev) =>
-                    prev.map((it) =>
-                        it.id === "bottle-reagent" && !it.heldBy
-                            ? { ...it, tiltAngle: THREE.MathUtils.clamp(tiltRad, -0.65, 0.65) }
-                            : it
-                    )
+                    prev.map((it) => {
+                        if (it.id !== "bottle-reagent") return it;
+                        return {
+                            ...it,
+                            tiltAngle: THREE.MathUtils.clamp(tiltRad, -0.65, 0.65),
+                        };
+                    })
+                );
+            } else if (!sensor.isPourTilted && Math.abs(roll) <= 3) {
+                // Đứng thẳng: trả bình về thẳng đứng
+                setItems((prev) =>
+                    prev.map((it) => {
+                        if (it.id !== "bottle-reagent" || it.tiltAngle === 0) return it;
+                        return { ...it, tiltAngle: 0 };
+                    })
                 );
             }
 
@@ -1285,33 +1300,33 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
         }
         playLabSound("pick");
         setSelectedItemId(id);
-        const activeSide: "left" | "right" = actualHandRef.current.leftHand?.detected ? "left" : "right";
         setItems((prev) =>
-            prev.map((it) =>
-                it.id === id
-                    ? { ...it, heldBy: activeSide, position: [it.position[0], 0.18, 0.35] }
-                    : it
-            )
+            prev.map((it) => {
+                if (it.id !== id) return it;
+                // Khi cầm lọ lên: nhấc cao lên khỏi mặt bàn (Y = 0.16) và đưa sát bên trái cốc phản ứng (X = 0.14) để sẵn sàng dốc rót
+                const targetX = it.id === "bottle-reagent" ? 0.14 : it.position[0];
+                return {
+                    ...it,
+                    heldBy: "user",
+                    position: [targetX, 0.16, 0.36],
+                    tiltAngle: 0,
+                    pitchAngle: 0,
+                };
+            })
         );
-    }, [actualHandRef]);
+    }, []);
 
     // Đặt 1 dụng cụ xuống mặt bàn
     const handleReleaseItem = useCallback((id: string) => {
         playLabSound("place");
-        releaseCooldownRef.current = { itemId: id, until: performance.now() + 1800 };
-        if (actualHandRef.current) {
-            actualHandRef.current.isHolding = false;
-            actualHandRef.current.gesture = "OPEN";
-            if (actualHandRef.current.rightHand) actualHandRef.current.rightHand.isHolding = false;
-            if (actualHandRef.current.leftHand) actualHandRef.current.leftHand.isHolding = false;
-        }
+        releaseCooldownRef.current = { itemId: id, until: performance.now() + 800 };
         setItems((prev) =>
             prev.map((it) =>
                 it.id === id
                     ? {
                           ...it,
                           heldBy: null,
-                          position: [it.position[0], -0.06, it.defaultPosition[2]],
+                          position: [...it.defaultPosition] as [number, number, number],
                           tiltAngle: 0,
                           pitchAngle: 0,
                       }
@@ -1319,7 +1334,7 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
             )
         );
         setPourState(null);
-    }, [actualHandRef]);
+    }, []);
 
     // Đặt lại vị trí ban đầu
     const handleResetPosition = useCallback((id: string) => {

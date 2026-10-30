@@ -33,6 +33,7 @@ export default function RemotePairingModal({
   const [copied, setCopied] = useState(false);
 
   const eventSourceRef = useRef<EventSource | null>(null);
+  const phoneConnectedNotifiedRef = useRef<boolean>(false);
 
   // Tạo mã phòng khi modal mở ra (giữ phòng cũ nếu đã tạo)
   useEffect(() => {
@@ -91,8 +92,11 @@ export default function RemotePairingModal({
     remoteSyncService.listenOnLaptop(id, {
       onPhoneConnected: (name) => {
         setConnectedDevice(name);
-        playLabSound("pick");
-        if (onPhoneConnected) onPhoneConnected(name);
+        if (!phoneConnectedNotifiedRef.current) {
+          phoneConnectedNotifiedRef.current = true;
+          playLabSound("pick");
+          if (onPhoneConnected) onPhoneConnected(name);
+        }
       },
       onMotion: (motion) => {
         deviceSensors.updateRemoteData(motion);
@@ -122,7 +126,8 @@ export default function RemotePairingModal({
       sse.onmessage = (event) => {
         try {
           const room = JSON.parse(event.data);
-          if (room.phoneConnected && !connectedDevice) {
+          if (room.phoneConnected && !phoneConnectedNotifiedRef.current) {
+            phoneConnectedNotifiedRef.current = true;
             const name = room.phoneDeviceName || "Điện thoại";
             setConnectedDevice(name);
             playLabSound("pick");

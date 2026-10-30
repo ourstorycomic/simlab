@@ -37,17 +37,17 @@ export default function RealisticWaterStream({
     const ripple2Ref = useRef<THREE.Mesh>(null);
     const splashGroupRef = useRef<THREE.Group>(null);
 
-    // Phát âm thanh rót nước tự nhiên (Chỉ khi dòng nước rơi từ trên xuống chuẩn trọng lực)
+    // Phát âm thanh rót nước tự nhiên (Chỉ kích hoạt theo trạng thái active, không phụ thuộc tọa độ tránh re-trigger 60Hz)
     useEffect(() => {
-        if (active && from[1] > to[1] + 0.015) {
-            playLabSound("bubbles");
+        if (active) {
+            playLabSound("bubbles", true);
         } else {
             stopLabSound("bubbles");
         }
         return () => {
             stopLabSound("bubbles");
         };
-    }, [active, from, to]);
+    }, [active]);
 
     // Tạo BufferGeometry hình ống côn (Tapered Tube) uốn theo đường parabol trọng lực
     const { basePoints, baseTangents } = useMemo(() => {

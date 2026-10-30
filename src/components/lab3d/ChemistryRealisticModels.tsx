@@ -18,9 +18,16 @@ import { useFBX, useTexture } from "@react-three/drei";
 let bubbleAudio: HTMLAudioElement | null = null;
 let pickAudio: HTMLAudioElement | null = null;
 let placeAudio: HTMLAudioElement | null = null;
+const lastPlayedTimes: Record<string, number> = {};
 
 export function playLabSound(type: "bubbles" | "pick" | "place", loop: boolean = false) {
     if (typeof window === "undefined") return;
+    const now = performance.now();
+    if (!loop && lastPlayedTimes[type] && now - lastPlayedTimes[type] < 350) {
+        return; // Chống spam âm thanh liên tục (tối thiểu 350ms giữa 2 lần kích hoạt)
+    }
+    lastPlayedTimes[type] = now;
+
     try {
         if (type === "bubbles") {
             if (!bubbleAudio) {
