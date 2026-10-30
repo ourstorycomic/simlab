@@ -374,15 +374,14 @@ export default function Lab3DAITutorVoice({
 
         if (handStateRef?.current) {
           const hs = handStateRef.current;
-          const hand = hs.rightHand?.detected
-            ? hs.rightHand
-            : hs.leftHand?.detected
-            ? hs.leftHand
-            : hs.detected
-            ? hs
-            : null;
+          // Kiểm tra cả 2 tay (Trái & Phải độc lập) để dù tay kia đang cầm điện thoại thì tay còn lại vẫn giơ 2 ngón nói được
+          const hands = [hs.rightHand, hs.leftHand, hs].filter(
+            (h): h is NonNullable<typeof h> => Boolean(h && h.detected && h.landmarks && h.landmarks.length >= 21)
+          );
 
-          if (hand && hand.detected && hand.landmarks && hand.landmarks.length >= 21) {
+          let isTwoFingersGesture = false;
+
+          for (const hand of hands) {
             // CỬ CHỈ GIƠ 2 NGÓN TAY (✌️ Ngón trỏ & Ngón giữa duỗi lên):
             // 1. Ngón trỏ (Index) VÀ Ngón giữa (Middle) cùng duỗi thẳng
             // 2. Các ngón khác (Ngón áp út, Ngón út) gập lại
@@ -392,23 +391,27 @@ export default function Lab3DAITutorVoice({
             const isTwoFingersPeace = isIndexMiddleExt && isRingPinkyFolded;
             const isTwoFingersCount = hand.extendedFingersCount === 2 && (hand.isIndexExtended || hand.isMiddleExtended);
 
-            const isTwoFingersGesture = isTwoFingersPeace || isTwoFingersCount;
+            if (isTwoFingersPeace || isTwoFingersCount) {
+              isTwoFingersGesture = true;
+              break;
+            }
+          }
 
-            if (isTwoFingersGesture) {
-              if (!isGestureListeningRef.current) {
-                // Giữ cử chỉ 2 ngón tay khoảng 180ms để bắt đầu thu âm
-                if (now - gestureHoldTimerRef.current > 180) {
-                  isGestureListeningRef.current = true;
-                  startVoiceRecognition();
-                }
+          if (isTwoFingersGesture) {
+            if (!isGestureListeningRef.current) {
+              // Giữ cử chỉ 2 ngón tay khoảng 150ms để bắt đầu thu âm
+              if (now - gestureHoldTimerRef.current > 150) {
+                isGestureListeningRef.current = true;
+                setIsOpen(true);
+                startVoiceRecognition();
               }
-            } else {
-              gestureHoldTimerRef.current = now;
-              if (isGestureListeningRef.current) {
-                // Người dùng hạ 2 ngón tay xuống: TỰ ĐỘNG GỬI CÂU HỎI NGAY LẬP TỨC!
-                isGestureListeningRef.current = false;
-                stopVoiceRecognitionAndSend();
-              }
+            }
+          } else {
+            gestureHoldTimerRef.current = now;
+            if (isGestureListeningRef.current) {
+              // Người dùng hạ 2 ngón tay xuống: TỰ ĐỘNG GỬI CÂU HỎI NGAY LẬP TỨC!
+              isGestureListeningRef.current = false;
+              stopVoiceRecognitionAndSend();
             }
           }
         }

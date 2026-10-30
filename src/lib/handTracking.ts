@@ -189,6 +189,50 @@ export function isPinching(landmarks: HandLandmark[]): boolean {
 }
 
 /**
+ * Kiểm tra xem ngón tay có bị cong / gập quanh thân đồ vật / điện thoại hay không
+ */
+export function isFingerBentOrCurled(
+    mcp: HandLandmark,
+    pip: HandLandmark,
+    tip: HandLandmark
+): boolean {
+    const directDist = dist2D(mcp, tip);
+    const jointDist = dist2D(mcp, pip) + dist2D(pip, tip);
+    if (jointDist === 0) return false;
+    return (directDist / jointDist) < 0.88;
+}
+
+/**
+ * Nhận diện tư thế bàn tay đang cầm điện thoại hoặc cầm bình thí nghiệm:
+ * - Khi cầm điện thoại: Các ngón tay ôm quanh thân máy (khớp cong lại)
+ * - Ngón cái đối xứng kẹp ở cạnh bên kia
+ * - Bàn tay không xòe rộng các ngón
+ */
+export function isPhoneOrObjectGrip(landmarks: HandLandmark[]): boolean {
+    if (landmarks.length < 21) return false;
+    const thumbTip = landmarks[THUMB_TIP];
+    const indexTip = landmarks[INDEX_TIP];
+    const middleTip = landmarks[MIDDLE_TIP];
+    const ringTip = landmarks[RING_TIP];
+    const pinkyTip = landmarks[PINKY_TIP];
+
+    let bentFingers = 0;
+    if (isFingerBentOrCurled(landmarks[INDEX_MCP], landmarks[INDEX_PIP], indexTip)) bentFingers++;
+    if (isFingerBentOrCurled(landmarks[MIDDLE_MCP], landmarks[MIDDLE_PIP], middleTip)) bentFingers++;
+    if (isFingerBentOrCurled(landmarks[RING_MCP], landmarks[RING_PIP], ringTip)) bentFingers++;
+    if (isFingerBentOrCurled(landmarks[PINKY_MCP], landmarks[PINKY_PIP], pinkyTip)) bentFingers++;
+
+    // Khi cầm điện thoại: ít nhất 2 ngón bị cong quanh thân máy
+    // Và độ xòe ngang giữa ngón trỏ và ngón út nhỏ (< 0.22) do các ngón khép song song ôm máy
+    const spread = dist2D(indexTip, pinkyTip);
+    const thumbToIndex = dist2D(thumbTip, indexTip);
+    const thumbToMiddle = dist2D(thumbTip, middleTip);
+    const thumbClasp = thumbToIndex < 0.28 || thumbToMiddle < 0.28;
+
+    return bentFingers >= 2 && spread < 0.22 && thumbClasp;
+}
+
+/**
  * Kiểm tra nắm tay / gập các ngón tay để cầm đồ (chính xác 100%, không bị nhận nhầm khi xòe tay)
  */
 export function isFistClosed(landmarks: HandLandmark[]): boolean {
@@ -242,17 +286,17 @@ export function recognizeGesture(
     const normMiddlePinch = dist2D(thumb, middleTip) / palmSpan;
     const isPinchGrab = normPinch < 0.42 || normMiddlePinch < 0.42 || pinchDist < 0.085;
 
-    // Nắm tay (Fist) tự nhiên và nhạy
+    // Nắm tay (Fist) hoặc Cầm điện thoại / đồ vật (Phone/Object Grip)
     const fistClosed = isFistClosed(landmarks);
-    const isFistGrab = fistClosed || gripStrength > 0.50;
+    const phoneGrip = isPhoneOrObjectGrip(landmarks);
+    const isFistGrab = fistClosed || phoneGrip || gripStrength > 0.46;
 
     const isGrabbingNow = isPinchGrab || isFistGrab;
 
     // ─── KHI ĐANG CẦM VẬT: KIỂM TRA MỞ TAY (OPEN) TRƯỚC TIÊN ĐỂ ĐẶT XUỐNG ───
     if (prevState.isHolding) {
-        // Nhả vật dứt khoát ngay khi người dùng xòe các ngón tay ra tự nhiên:
-        // Không nắm đấm (fistClosed = false) VÀ ngón tay mở rộng (gripStrength < 0.48 hoặc normPinch > 0.44)
-        const isOpeningFingers = !fistClosed && (gripStrength < 0.48 || normPinch > 0.44 || pinchDist > 0.09);
+        // Nhả vật chỉ khi KHÔNG cầm điện thoại / đồ vật VÀ KHÔNG nắm tay VÀ xòe các ngón tay ra rộng
+        const isOpeningFingers = !fistClosed && !phoneGrip && (gripStrength < 0.44 || normPinch > 0.44 || pinchDist > 0.09);
         if (isOpeningFingers) {
             return "OPEN";
         }
@@ -347,6 +391,11 @@ export function updateSingleHand(
 
     // ─── 3.5. Nhận diện duỗi từng ngón tay theo chuẩn giải phẫu (Finger Extensions) ───
     const isFingerExtended = (tip: HandLandmark, pip: HandLandmark, mcp: HandLandmark) => {
+        // Ngón bị gập hoặc cong quanh đồ vật / điện thoại thì TUYỆT ĐỐI không tính là duỗi thẳng
+        if (isFingerBentOrCurled(mcp, pip, tip)) {
+            return false;
+        }
+
         const dWristTip = dist2D(tip, wrist);
         const dWristPip = dist2D(pip, wrist);
         const dMcpTip = dist2D(tip, mcp);

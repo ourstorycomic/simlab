@@ -154,11 +154,13 @@ export default function Lab3DHandTracker({
                             setGestureLabel("Đưa tay vào khung hình...");
                         } else {
                             const gestureIcon = (hand: any) => {
+                                const isPeace = hand.isIndexExtended && hand.isMiddleExtended && !hand.isRingExtended && !hand.isPinkyExtended;
+                                if (isPeace) return "✌️ Hỏi Cô Giáo AI";
                                 if (hand.isPinkyExtended && !hand.isMiddleExtended && !hand.isIndexExtended) return "Mở tủ (Út)";
-                                if (hand.isIndexExtended && !hand.isPinkyExtended) return "Cầm bình (Trỏ)";
+                                if (hand.isIndexExtended && !hand.isPinkyExtended && !hand.isMiddleExtended) return "Chỉ trỏ";
                                 if (hand.isMiddleExtended && !hand.isIndexExtended && !hand.isPinkyExtended) return "Chọn chất (Giữa)";
                                 if (hand.gesture === "POUR") return "Rót";
-                                if (hand.extendedFingersCount === 0 || hand.gesture === "GRAB") return "Nắm (Thả)";
+                                if (hand.gesture === "GRAB" || hand.isHolding || hand.extendedFingersCount <= 1) return "Cầm ĐT / Bình";
                                 return "Xòe / Thả";
                             };
 

@@ -475,38 +475,25 @@ function SceneContent({
                 pinkyWasActiveRef.current = false;
             }
 
-            // 2. THAO TÁC TAY WEBCAM CAMERA (CAM HAND AI):
-            // - DƠ NGÓN TRỎ (POINTING): Dùng để chỉ điểm nút bấm, lật trang tủ, chọn chất -> TUYỆT ĐỐI KHÔNG CẦM BÌNH!
-            // - DƠ NGÓN TRỎ LÊN CAO ☝️ (hoặc ngón cái 👍): Kích hoạt Push-to-Talk đặt câu hỏi với Cô Giáo AI.
-            // - PHẤT TAY (SWIPE): Đổi môn học hoặc chuyển trang.
-            // - YÊU CẦU CỦA NGƯỜI DÙNG: Tay thường trước camera KHÔNG CẦM ĐỔ BÌNH THUỐC!
-            //   Việc cầm và đổ bình thuốc được thực hiện bằng ĐIỆN THOẠI QUÉT QR (Cảm biến Gyro nghiêng rót & lắc) hoặc nút Rót!
+            // 2. THAO TÁC TAY WEBCAM CAMERA & ĐIỆN THOẠI CẢM BIẾN (CAM HAND AI):
             const isPointingWithIndex = Boolean(data.isIndexExtended && !data.isPinkyExtended && !data.isRingExtended);
-            const isGrabbing = false; // Tay thường không cầm đổ bình thuốc
+            const isGrabbing = Boolean(data.gesture === "GRAB" || data.isHolding);
 
             const palm = data.palmPos;
             const pinch = data.pinchPos || palm;
 
-            // Nếu bình nào đang bị gán cầm bởi tay camera thì lập tức đặt vững về bàn
-            let heldItem = currentList.find((it) => it.heldBy === side);
-            if (heldItem) {
-                data.isHolding = false;
-                heldItem.heldBy = null;
-                heldItem.position = [
-                    heldItem.position[0],
-                    -0.06,
-                    heldItem.defaultPosition[2],
-                ];
-                heldItem.tiltAngle = 0;
-                heldItem.pitchAngle = 0;
-                setPourState(null);
-                stateChanged = true;
-            }
+            // Tìm bình đang được cầm bởi tay này, hoặc bình vừa bấm nút "Cầm lên" (heldBy === "user")
+            let heldItem = currentList.find((it) => it.heldBy === side || it.heldBy === "user");
 
-            const shouldDrop = true;
             if (heldItem) {
+                // Kiểm tra xem người dùng có muốn đặt bình xuống bàn không:
+                // Người dùng phải thực sự xòe tay ra (OPEN) VÀ hạ tay sát mặt bàn (palm[1] <= 0.08)
+                const isOpeningHand = data.gesture === "OPEN" && !data.isHolding && data.extendedFingersCount >= 3;
+                const isHandNearTable = palm[1] <= 0.08;
+                const shouldDrop = isOpeningHand && isHandNearTable;
+
                 if (shouldDrop) {
-                    // Thả bình dứt khoát và mượt mà ngay khi xòe tay hoặc hạ tay xuống bàn
+                    // Thả bình dứt khoát và mượt mà ngay khi xòe tay và hạ sát mặt bàn
                     ungrabStartTimeRef.current = null;
                     releaseCooldownRef.current = { itemId: heldItem.id, until: performance.now() + 800 };
                     data.isHolding = false;
@@ -523,20 +510,30 @@ function SceneContent({
                     stateChanged = true;
                 } else {
                     ungrabStartTimeRef.current = null;
-                    // ─── ĐANG CẦM (GRAB): Chuẩn vật lý thực tế ngoài đời ───
-                    // 1. Khi cầm và di chuyển bình thường: Bình luôn dựng THẲNG ĐỨNG 100% (targetTilt = 0)
-                    // 2. Chỉ tự động nghiêng rót KHI VÀ CHỈ KHI bình được nhấc cao lên TRÊN miệng bình nhận!
+                    // ─── ĐANG CẦM BÌNH (GRAB / HELD): Bình đi theo tay 100%! ───
+                    data.isHolding = true;
+                    heldItem.heldBy = side; // Gán chặt vào tay đang cầm để bình di chuyển theo tay
 
+                    // Vị trí bình: Khóa chặt tâm eo bình vào trọng tâm bàn tay (palm), nhấc cao rõ rệt lên khỏi bàn
+                    const targetGripY = Math.max(0.12, palm[1] + 0.04);
+                    const targetZ = Math.max(0.08, Math.min(0.55, palm[2]));
+
+                    // Bám theo tay mượt mà 60fps
+                    const followFactor = Math.min(1, delta * 24);
+                    heldItem.position[0] = THREE.MathUtils.lerp(heldItem.position[0], palm[0], followFactor);
+                    heldItem.position[1] = THREE.MathUtils.lerp(heldItem.position[1], targetGripY, followFactor);
+                    heldItem.position[2] = THREE.MathUtils.lerp(heldItem.position[2], targetZ, followFactor);
+
+                    // ─── TÍNH TOÁN ĐÍCH RÓT VÀ ĐỘ NGHIÊNG BÌNH ───
                     const otherItems = currentList.filter((it) => it.id !== heldItem!.id);
                     let closestTarget: InteractiveWorkbenchItem | null = null;
-                    let minPourDist = 0.38; // Nâng tầm nhận diện bình nhận từ 0.28 lên 0.38m để rót dễ dàng
+                    let minPourDist = 0.38;
 
                     const mouthHSource = getVesselMouthHeight(heldItem.type);
 
                     otherItems.forEach((target) => {
                         const mouthHTarget = getVesselMouthHeight(target.type);
                         const targetMouthY = target.position[1] + mouthHTarget;
-                        // Chỉ xét đích rót nếu bình rót được nhấc cao ngang hoặc hơn miệng bình nhận:
                         const isElevatedAbove = heldItem!.position[1] + 0.10 >= targetMouthY - 0.04;
                         const d = Math.hypot(heldItem!.position[0] - target.position[0], heldItem!.position[2] - target.position[2]);
                         if (d < minPourDist && isElevatedAbove) {
@@ -547,36 +544,16 @@ function SceneContent({
 
                     let targetTilt = 0;
                     if (closestTarget) {
-                        // Tự động nghiêng miệng chai hướng về phía cốc nhận chuẩn xác khi đã đưa lên trên miệng cốc:
                         const isRightOfTarget = heldItem.position[0] > (closestTarget as InteractiveWorkbenchItem).position[0];
                         targetTilt = isRightOfTarget ? 1.15 : -1.15;
                     } else if (data.gesture === "POUR") {
-                        // Nghiêng cổ tay sang trái (dương) / phải (âm) để rót tự do
                         targetTilt = THREE.MathUtils.clamp((data.wristAngle || 0) * 1.3, -Math.PI * 0.48, Math.PI * 0.48);
                     } else if (Math.abs(data.wristAngle || 0) > 0.45) {
-                        // Người dùng cố ý vặn mạnh cổ tay (> 26 độ)
                         targetTilt = THREE.MathUtils.clamp((data.wristAngle || 0) * 1.1, -Math.PI * 0.48, Math.PI * 0.48);
-                    } else {
-                        // Khi di chuyển bình thường: Giữ thẳng đứng 100% vững như bàn thạch
-                        targetTilt = 0;
                     }
 
-                    // Chuyển động nghiêng êm ái, mượt mà 60fps
                     heldItem.tiltAngle = THREE.MathUtils.lerp(heldItem.tiltAngle, targetTilt, Math.min(1, delta * 12));
                     heldItem.pitchAngle = THREE.MathUtils.lerp(heldItem.pitchAngle || 0, 0, Math.min(1, delta * 12));
-
-                    // Vị trí bình: Khóa chặt tâm eo bình vào trọng tâm bàn tay, nhấc cao rõ rệt lên khỏi bàn thí nghiệm
-                    const targetGripY = Math.max(0.12, palm[1] + 0.04);
-                    const targetZ = Math.max(0.08, Math.min(0.55, palm[2]));
-
-                    // Bộ lọc chống rung Deadband: Triệt tiêu hoàn toàn rung giật vi sai
-                    const dPos = Math.hypot(heldItem.position[0] - palm[0], heldItem.position[1] - targetGripY);
-                    const followFactor = dPos < 0.003 ? 0 : Math.min(1, delta * 24);
-                    if (followFactor > 0) {
-                        heldItem.position[0] = THREE.MathUtils.lerp(heldItem.position[0], palm[0], followFactor);
-                        heldItem.position[1] = THREE.MathUtils.lerp(heldItem.position[1], targetGripY, followFactor);
-                        heldItem.position[2] = THREE.MathUtils.lerp(heldItem.position[2], targetZ, followFactor);
-                    }
 
                     // 3. Kích hoạt Rót dung dịch / chất rắn CHUẨN VẬT LÝ TRỌNG LỰC:
                     // Hỗ trợ rót thông minh (Smart Pour Assist): Chỉ cần nghiêng nhẹ >= 15° hoặc đưa bình tới sát miệng cốc nhận
