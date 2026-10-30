@@ -23,7 +23,8 @@ interface Global3DHandOverlayProps {
 export default function Global3DHandOverlay({ handStateRef, subject, onIndexTipUpdate }: Global3DHandOverlayProps) {
     const cameraSettings = React.useMemo(() => {
         if (subject === "physics") {
-            return { position: [0, 0.65, 2.1] as [number, number, number], fov: 50 };
+            // Hạ thấp góc nhìn camera đồng bộ với PhysicsScene để bàn tay khớp chuẩn xác với mặt bàn và thiết bị mạch điện
+            return { position: [0, 0.55, 1.85] as [number, number, number], fov: 48 };
         }
         if (subject === "biology") {
             return { position: [0, 0, 3] as [number, number, number], fov: 45 };
@@ -34,7 +35,8 @@ export default function Global3DHandOverlay({ handStateRef, subject, onIndexTipU
 
     const positionOffset = React.useMemo(() => {
         if (subject === "physics") {
-            return [0, 0.02, -0.35] as [number, number, number];
+            // Hạ cao độ bàn tay Y từ +0.02 xuống -0.28m để tay lơ lửng vừa vặn ngay trên mặt bàn mạch điện (Y = -0.16)
+            return [0, -0.28, -0.32] as [number, number, number];
         }
         if (subject === "biology") {
             return [0, 0.16, 1.45] as [number, number, number];
