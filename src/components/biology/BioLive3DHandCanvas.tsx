@@ -311,6 +311,20 @@ export default function BioLive3DHandCanvas({
         </div>
       )}
 
+      {/* Floating Hover Info Badge khi ngón tay đang chỉ vào bào quan/cơ quan */}
+      {hoverInfo && (
+        <div className="absolute top-18 left-1/2 -translate-x-1/2 pointer-events-none z-50 animate-in fade-in zoom-in-95 duration-150">
+          <div className="px-4 py-2 rounded-2xl bg-slate-950/95 border border-sky-400 text-white shadow-2xl backdrop-blur-xl flex items-center gap-2.5 ring-2 ring-sky-500/20">
+            <span
+              className="w-3 h-3 rounded-full animate-ping shrink-0"
+              style={{ backgroundColor: hoverInfo.color || "#38bdf8" }}
+            />
+            <span className="text-xs font-bold tracking-wide">{hoverInfo.name}</span>
+            <span className="text-[10px] text-sky-300 font-normal">(Giữ 0.6s để chọn)</span>
+          </div>
+        </div>
+      )}
+
       {/* Floating Gesture Guide & Quick Zoom Controller - Chỉ hiện khi tabMode !== "human" để không đè thanh Phân tách cấu trúc */}
       {tabMode !== "human" && (
         <div className="absolute bottom-5 left-1/2 -translate-x-1/2 pointer-events-auto z-40 flex items-center gap-3 bg-slate-950/95 backdrop-blur-2xl px-4 py-2 rounded-2xl border border-slate-700/80 shadow-2xl ring-1 ring-white/10">
@@ -320,17 +334,16 @@ export default function BioLive3DHandCanvas({
               <Hand className="w-3.5 h-3.5 text-sky-400" />
               <span>Nắm tay: Xoay 360°</span>
             </span>
-            <span className="flex items-center gap-1.5 bg-slate-900/80 px-2 py-1 rounded-lg border border-slate-800 text-emerald-300">
-              <Maximize2 className="w-3.5 h-3.5 text-emerald-400" />
-              <span>2 ngón: Phóng to</span>
+            <span className="flex items-center gap-1.5 bg-slate-900/80 px-2 py-1 rounded-lg border border-slate-800 text-rose-300">
+              <MousePointer className="w-3.5 h-3.5 text-rose-400" />
+              <span>Chỉ ngón: Chọn cấu trúc</span>
+            </span>
+            <span className="flex items-center gap-1.5 bg-slate-900/80 px-2 py-1 rounded-lg border border-slate-800 text-purple-300">
+              <span>✌️ Giơ 2 ngón: Hỏi Cô Giáo AI</span>
             </span>
             <span className="flex items-center gap-1.5 bg-slate-900/80 px-2 py-1 rounded-lg border border-slate-800 text-amber-300">
               <Minimize2 className="w-3.5 h-3.5 text-amber-400" />
               <span>Ngón út: Thu nhỏ</span>
-            </span>
-            <span className="flex items-center gap-1.5 bg-slate-900/80 px-2 py-1 rounded-lg border border-slate-800 text-rose-300">
-              <MousePointer className="w-3.5 h-3.5 text-rose-400" />
-              <span>Chỉ ngón: Chọn cấu trúc</span>
             </span>
           </div>
 

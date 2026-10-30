@@ -27,7 +27,8 @@ export default function Global3DHandOverlay({ handStateRef, subject, onIndexTipU
             return { position: [0, 0.55, 1.85] as [number, number, number], fov: 48 };
         }
         if (subject === "biology") {
-            return { position: [0, 0, 3] as [number, number, number], fov: 45 };
+            // Camera Sinh Học: Góc nhìn hạ thấp vừa tầm để bàn tay 3D lơ lửng ngay trước mô hình tế bào & cơ quan
+            return { position: [0, 0.20, 2.5] as [number, number, number], fov: 46 };
         }
         // Chemistry default
         return { position: [0, 0.45, 1.45] as [number, number, number], fov: 50 };
@@ -39,7 +40,8 @@ export default function Global3DHandOverlay({ handStateRef, subject, onIndexTipU
             return [0, -0.28, -0.32] as [number, number, number];
         }
         if (subject === "biology") {
-            return [0, 0.16, 1.45] as [number, number, number];
+            // Hạ cao độ Y từ +0.16m xuống -0.26m và đưa Z về +0.25m để bàn tay xuất hiện tự nhiên ngay giữa mô hình tế bào/nội tạng (không bị dính trên mép đỉnh màn hình)
+            return [0, -0.26, 0.25] as [number, number, number];
         }
         // Chemistry default - cân bằng chuẩn xác với mặt bàn và kích thước bình thủy tinh
         return [0, 0.04, 0.12] as [number, number, number];
@@ -47,7 +49,7 @@ export default function Global3DHandOverlay({ handStateRef, subject, onIndexTipU
 
     const scaleFactor = React.useMemo(() => {
         // Tỷ lệ chuẩn giải phẫu thực tế: bàn tay vừa vặn cầm bình thủy tinh 150-250ml
-        if (subject === "biology") return 0.95;
+        if (subject === "biology") return 0.82;
         if (subject === "physics") return 0.78;
         return 0.75;
     }, [subject]);
