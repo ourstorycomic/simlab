@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useDeviceSensors } from "@/hooks/useDeviceSensors";
+import { useToast } from "@/components/toast";
 import {
   Smartphone,
   Sparkles,
@@ -12,6 +13,7 @@ import {
   Hand,
   Volume2,
   Wifi,
+  X,
 } from "lucide-react";
 import RemotePairingModal from "./RemotePairingModal";
 
@@ -46,6 +48,31 @@ export default function DeviceMotionControlBar({
   const [simulatedPouring, setSimulatedPouring] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [showPairingModal, setShowPairingModal] = useState(false);
+
+  const { showToast } = useToast();
+  const [connectedPhoneName, setConnectedPhoneName] = useState<string | null>(null);
+  const [showConnectedToast, setShowConnectedToast] = useState(false);
+  const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
+
+  const handlePhoneConnected = (deviceName: string) => {
+    setConnectedPhoneName(deviceName);
+    setShowConnectedToast(true);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => {
+      setShowConnectedToast(false);
+    }, 6000);
+
+    showToast(
+      `🎉 Đã kết nối điện thoại "${deviceName}" thành công! Cầm nghiêng để rót & lắc để trộn`,
+      "success"
+    );
+  };
 
   const handleSimulateShake = () => {
     simulateShake();
@@ -130,12 +157,30 @@ export default function DeviceMotionControlBar({
           {/* Nút Ghép Nối Điện Thoại (Pairing Remote) */}
           <button
             onClick={() => setShowPairingModal(true)}
-            className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-[11px] flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
-            title="Kết nối điện thoại để làm tay cầm cảm biến (Quét mã QR hoặc nhập mã PIN)"
+            className={`px-2.5 py-1 rounded-xl text-white font-bold text-[11px] flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer ${
+              connectedPhoneName
+                ? "bg-emerald-600 hover:bg-emerald-500 border border-emerald-400/60 shadow-emerald-500/25 ring-2 ring-emerald-500/30"
+                : "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500"
+            }`}
+            title={
+              connectedPhoneName
+                ? `Đang kết nối: ${connectedPhoneName} (Bấm để xem mã / kết nối lại)`
+                : "Kết nối điện thoại để làm tay cầm cảm biến (Quét mã QR hoặc nhập mã PIN)"
+            }
           >
-            <Smartphone className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Ghép Nối ĐT</span>
-            <span className="sm:hidden">Ghép ĐT</span>
+            <Smartphone className="w-3.5 h-3.5 shrink-0" />
+            {connectedPhoneName ? (
+              <span className="flex items-center gap-1.5 text-emerald-100">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping shrink-0" />
+                <span className="hidden sm:inline truncate max-w-[90px]">{connectedPhoneName}</span>
+                <span className="sm:hidden">Đã nối ĐT</span>
+              </span>
+            ) : (
+              <>
+                <span className="hidden sm:inline">Ghép Nối ĐT</span>
+                <span className="sm:hidden">Ghép ĐT</span>
+              </>
+            )}
           </button>
 
           {/* Nút Hướng dẫn Cảm biến */}
@@ -221,10 +266,43 @@ export default function DeviceMotionControlBar({
         </div>
       )}
 
+      {/* ─── Thông Báo Nổi Bật Khi Quét Xong & Kết Nối Thành Công ─── */}
+      {showConnectedToast && (
+        <div className="fixed top-18 sm:top-20 left-1/2 -translate-x-1/2 z-[110] pointer-events-auto animate-in fade-in slide-in-from-top-4 duration-300 select-none max-w-lg w-[92vw] sm:w-auto">
+          <div className="bg-slate-950/95 backdrop-blur-2xl border-2 border-emerald-400 text-white p-3.5 sm:px-5 sm:py-3.5 rounded-3xl shadow-2xl shadow-emerald-500/30 flex items-center gap-3.5 ring-4 ring-emerald-500/20">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center text-white shrink-0 shadow-lg shadow-emerald-500/30">
+              <Smartphone className="w-5 h-5 animate-bounce" />
+            </div>
+            <div className="flex-1 min-w-0 pr-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs sm:text-sm font-black text-white flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Kết Nối Điện Thoại Thành Công!</span>
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/25 border border-emerald-400/50 text-emerald-300 font-mono truncate max-w-[140px]">
+                  {connectedPhoneName || "Thiết bị di động"}
+                </span>
+              </div>
+              <p className="text-[11px] sm:text-xs text-slate-300 mt-1 leading-snug">
+                Mã QR đã tự đóng. Bây giờ bạn có thể cầm điện thoại <strong>nghiêng rót</strong> & <strong>lắc trộn</strong> trực tiếp!
+              </p>
+            </div>
+            <button
+              onClick={() => setShowConnectedToast(false)}
+              className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
+              title="Đóng thông báo"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ─── Modal Ghép Nối Điện Thoại (QR Code & Mã PIN 6 Chữ Số) ─── */}
       <RemotePairingModal
         isOpen={showPairingModal}
         onClose={() => setShowPairingModal(false)}
+        onPhoneConnected={handlePhoneConnected}
       />
     </div>
   );

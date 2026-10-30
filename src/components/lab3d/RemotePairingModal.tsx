@@ -34,6 +34,13 @@ export default function RemotePairingModal({
 
   const eventSourceRef = useRef<EventSource | null>(null);
   const phoneConnectedNotifiedRef = useRef<boolean>(false);
+  const autoCloseTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
+    };
+  }, []);
 
   // Tạo mã phòng khi modal mở ra (giữ phòng cũ nếu đã tạo)
   useEffect(() => {
@@ -42,9 +49,26 @@ export default function RemotePairingModal({
     }
   }, [isOpen, roomId]);
 
+  const handlePhoneConnected = (name: string) => {
+    setConnectedDevice(name);
+    if (!phoneConnectedNotifiedRef.current) {
+      phoneConnectedNotifiedRef.current = true;
+      playLabSound("pick");
+      if (onPhoneConnected) {
+        onPhoneConnected(name);
+      }
+      // Tự động đóng modal sau 750ms để người dùng thấy xác nhận rồi quay về màn hình lab
+      if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
+      autoCloseTimerRef.current = setTimeout(() => {
+        onClose();
+      }, 750);
+    }
+  };
+
   const createRoom = async () => {
     setLoading(true);
     setConnectedDevice(null);
+    phoneConnectedNotifiedRef.current = false;
 
     try {
       const res = await fetch("/api/remote/room", {
@@ -91,12 +115,7 @@ export default function RemotePairingModal({
     // 1. Kênh chính: Supabase Realtime Broadcast (WebSockets < 20ms, chạy ngầm liên tục cả khi đóng popup)
     remoteSyncService.listenOnLaptop(id, {
       onPhoneConnected: (name) => {
-        setConnectedDevice(name);
-        if (!phoneConnectedNotifiedRef.current) {
-          phoneConnectedNotifiedRef.current = true;
-          playLabSound("pick");
-          if (onPhoneConnected) onPhoneConnected(name);
-        }
+        handlePhoneConnected(name);
       },
       onMotion: (motion) => {
         deviceSensors.updateRemoteData(motion);
@@ -127,11 +146,8 @@ export default function RemotePairingModal({
         try {
           const room = JSON.parse(event.data);
           if (room.phoneConnected && !phoneConnectedNotifiedRef.current) {
-            phoneConnectedNotifiedRef.current = true;
             const name = room.phoneDeviceName || "Điện thoại";
-            setConnectedDevice(name);
-            playLabSound("pick");
-            if (onPhoneConnected) onPhoneConnected(name);
+            handlePhoneConnected(name);
           }
 
           if (room.sensorData) {
@@ -200,14 +216,20 @@ export default function RemotePairingModal({
         {/* Trạng thái kết nối */}
         <div className="my-4">
           {connectedDevice ? (
-            <div className="p-3.5 rounded-2xl bg-emerald-500/15 border-2 border-emerald-500/50 text-emerald-300 flex items-center gap-3 animate-pulse">
-              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-              <div>
-                <p className="text-xs font-bold text-white">
-                  Đã kết nối thành công với: {connectedDevice}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-cyan-500/20 border-2 border-emerald-400 text-emerald-300 flex items-center gap-3.5 shadow-xl shadow-emerald-500/10 animate-in fade-in zoom-in-95 duration-200">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/30">
+                <CheckCircle2 className="w-6 h-6 animate-pulse" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-white flex items-center gap-2">
+                  <span>🎉 Kết nối thành công!</span>
+                  <span className="text-xs text-emerald-300 font-mono font-medium truncate max-w-[140px]">
+                    ({connectedDevice})
+                  </span>
                 </p>
-                <p className="text-[11px] text-emerald-400">
-                  Bây giờ bạn có thể cầm điện thoại nghiêng rót và lắc trộn trên màn hình này!
+                <p className="text-xs text-emerald-300 mt-0.5 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
+                  <span>Đang tự động đóng mã QR để bạn làm thí nghiệm...</span>
                 </p>
               </div>
             </div>
