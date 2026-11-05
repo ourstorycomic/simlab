@@ -12,7 +12,18 @@ import {
   Zap,
   RotateCcw,
   Check,
+  Compass,
+  FlaskConical,
 } from "lucide-react";
+
+const COMMON_CHEMICALS = [
+  { name: "Đồng(II) Sunfat", formula: "CuSO4", color: "#38bdf8", id: "cuso4" },
+  { name: "Axit Clohidric", formula: "HCl", color: "#e2e8f0", id: "hcl" },
+  { name: "Natri Hiđroxit", formula: "NaOH", color: "#f1f5f9", id: "naoh" },
+  { name: "Phenolphthalein", formula: "C20H14O4", color: "#f43f5e", id: "phenolphthalein" },
+  { name: "Sắt(II) Sunfat", formula: "FeSO4", color: "#86efac", id: "feso4" },
+  { name: "Nước cất", formula: "H2O", color: "#67e8f9", id: "h2o" },
+];
 
 function RemoteControllerContent() {
   const searchParams = useSearchParams();
@@ -22,6 +33,7 @@ function RemoteControllerContent() {
   const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [connected, setConnected] = useState(false);
+  const [sensorActivated, setSensorActivated] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Mức chất lỏng trong bình trên điện thoại (100% -> giảm dần khi dốc đổ)
@@ -30,12 +42,12 @@ function RemoteControllerContent() {
   const [chemicalName, setChemicalName] = useState<string>("Đồng(II) Sunfat");
   const [chemicalFormula, setChemicalFormula] = useState<string>("CuSO4");
   const [liquidColor, setLiquidColor] = useState<string>("#38bdf8");
-  const [isManualPouring, setIsManualPouring] = useState<boolean>(false);
 
   const {
     isSupported,
     permissionGranted,
     requestPermission,
+    calibrateZero,
     pitch,
     roll,
     isPourTilted,
@@ -48,7 +60,7 @@ function RemoteControllerContent() {
   const lastSentRef = useRef<number>(0);
   const pourIntervalRef = useRef<any>(null);
 
-  // Tự động kết nối nếu có mã phòng trong URL
+  // Tự động kết nối phòng nếu có mã phòng trong URL
   useEffect(() => {
     if (initialRoom && initialRoom.length === 6 && !connected) {
       handleConnect(initialRoom);
@@ -64,9 +76,6 @@ function RemoteControllerContent() {
 
     setConnecting(true);
     setErrorMessage(null);
-
-    // Kích hoạt cảm biến chuyển động điện thoại
-    await requestPermission();
 
     const deviceName =
       typeof navigator !== "undefined"
@@ -109,20 +118,26 @@ function RemoteControllerContent() {
     }
   };
 
-  // Xác định góc nghiêng thực tế: Nghiêng trái dốc trái, nghiêng phải dốc phải
-  // Đảo lại dấu: roll dương = nghiêng phải, roll âm = nghiêng trái
+  // Kích hoạt cảm biến và Cân bằng góc 0° bằng cử chỉ chạm trực tiếp của người dùng
+  const handleActivateAndCalibrate = async () => {
+    await requestPermission();
+    calibrateZero();
+    setSensorActivated(true);
+    triggerHaptic([30, 40]);
+  };
+
+  // Góc nghiêng tương đối sau khi đã cân bằng 0°
+  // Roll dương = nghiêng sang phải, Roll âm = nghiêng sang trái
   const tiltDeg = Math.max(-85, Math.min(85, roll * 1.15));
 
-  // Kiểm tra điều kiện đang dốc bình rót ngoài đời thực:
-  // 1. Nghiêng trái quá 24° HOẶC nghiêng phải quá 24°
-  // 2. HOẶC dốc đầu điện thoại chúc xuống (isPourTilted)
-  // 3. HOẶC nhấn giữ nút rót trên màn hình (isManualPouring)
-  const isActualPouring = (Math.abs(tiltDeg) > 24 || isPourTilted || isManualPouring) && fillPercent > 2;
+  // CHỈ COI LÀ RÓT KHI NGHIÊNG THỰC TẾ TRÊN ĐỜI THẬT (> 20° nghiêng)
+  // Tuyệt đối không tự động rót chỉ vì ấn màn hình!
+  const isActualPouring = Math.abs(tiltDeg) > 20 && fillPercent > 2;
   const pourDirection = tiltDeg < 0 ? "left" : "right";
 
   // Khi đang dốc bình: Nước chảy ra ngoài, mức nước giảm dần và rung haptic
   useEffect(() => {
-    if (isActualPouring && connected) {
+    if (isActualPouring && connected && sensorActivated) {
       triggerHaptic([25, 35]);
 
       if (!pourIntervalRef.current) {
@@ -148,11 +163,11 @@ function RemoteControllerContent() {
         pourIntervalRef.current = null;
       }
     };
-  }, [isActualPouring, connected, triggerHaptic]);
+  }, [isActualPouring, connected, sensorActivated, triggerHaptic]);
 
-  // Gửi dữ liệu con quay hồi chuyển & gia tốc từ điện thoại lên Laptop liên tục (25fps)
+  // Gửi dữ liệu cảm biến từ điện thoại lên Laptop liên tục (25fps)
   useEffect(() => {
-    if (!connected || !activeRoomId) return;
+    if (!connected || !activeRoomId || !sensorActivated) return;
 
     const now = Date.now();
     if (now - lastSentRef.current < 40) return;
@@ -162,19 +177,17 @@ function RemoteControllerContent() {
       pitch,
       roll: tiltDeg,
       isPourTilted: isActualPouring,
-      pourIntensity: isActualPouring ? Math.max(pourIntensity, Math.min(1.0, Math.abs(tiltDeg) / 50)) : 0,
+      pourIntensity: isActualPouring ? Math.min(1.0, (Math.abs(tiltDeg) - 20) / 25) : 0,
       isShaking,
       chemicalName,
       chemicalFormula,
       liquidColor,
     };
 
-    // 1. Gửi qua Supabase Realtime Broadcast (Tức thì < 20ms)
     if (phoneSenderRef.current) {
       phoneSenderRef.current.sendMotion(motionPayload);
     }
 
-    // 2. Gửi qua HTTP Sync (Fallback)
     fetch("/api/remote/sync", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -183,9 +196,9 @@ function RemoteControllerContent() {
         sensorData: motionPayload,
       }),
     }).catch(() => {});
-  }, [connected, activeRoomId, pitch, tiltDeg, isActualPouring, pourIntensity, isShaking, chemicalName, chemicalFormula, liquidColor]);
+  }, [connected, activeRoomId, sensorActivated, pitch, tiltDeg, isActualPouring, isShaking, chemicalName, chemicalFormula, liquidColor]);
 
-  // Làm đầy lại bình (Reset bình khi muốn đổ lại)
+  // Làm đầy lại bình hóa chất
   const handleRefillBottle = () => {
     setFillPercent(100);
     setBeakerFillPercent(0);
@@ -195,8 +208,28 @@ function RemoteControllerContent() {
     }
   };
 
+  // Chọn hóa chất nạp vào bình trực tiếp từ điện thoại
+  const handleSelectChemical = (chem: (typeof COMMON_CHEMICALS)[0]) => {
+    setChemicalName(chem.name);
+    setChemicalFormula(chem.formula);
+    setLiquidColor(chem.color);
+    setFillPercent(100);
+    triggerHaptic([40, 40]);
+
+    if (phoneSenderRef.current) {
+      phoneSenderRef.current.sendAction({
+        type: "select_chemical",
+        chemicalId: chem.id,
+        chemicalName: chem.name,
+        chemicalFormula: chem.formula,
+        liquidColor: chem.color,
+        timestamp: Date.now(),
+      });
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col justify-between p-4 select-none font-sans overflow-hidden">
+    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col justify-between p-3 sm:p-4 select-none font-sans overflow-hidden">
       {/* ─── Top Bar: Trạng thái & Tiêu đề ─── */}
       <header className="flex items-center justify-between py-2 border-b border-slate-800/80">
         <div className="flex items-center gap-2">
@@ -208,15 +241,28 @@ function RemoteControllerContent() {
               SimLab Wand Remote
             </h1>
             <p className="text-[10px] text-slate-400 font-medium">
-              Tay cầm cảm biến • Thao tác như đời thật
+              Tay cầm cảm biến • Cầm nghiêng để rót
             </p>
           </div>
         </div>
 
         {connected ? (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Phòng: {activeRoomId}</span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                calibrateZero();
+                triggerHaptic(50);
+              }}
+              className="text-[10px] px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-300 border border-slate-700 flex items-center gap-1 font-semibold"
+              title="Cân bằng lại vị trí cầm hiện tại thành 0°"
+            >
+              <Compass className="w-3 h-3 text-sky-400" />
+              <span>Cân bằng 0°</span>
+            </button>
+            <div className="flex items-center gap-1 px-2 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>{activeRoomId}</span>
+            </div>
           </div>
         ) : (
           <span className="text-[10px] px-2 py-0.5 rounded-lg bg-slate-800 text-slate-400 font-mono">
@@ -227,7 +273,7 @@ function RemoteControllerContent() {
 
       {/* ─── MAIN CONTENT ─── */}
       {!connected ? (
-        // ── Form Ghép nối 6 Chữ Số ──
+        // ── 1. Form Ghép Nối 6 Chữ Số ──
         <main className="flex-1 flex flex-col items-center justify-center max-w-sm mx-auto w-full py-8 text-center">
           <div className="w-16 h-16 rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl flex items-center justify-center mb-5 ring-1 ring-white/10">
             <Zap className="w-8 h-8 text-emerald-400 animate-pulse" />
@@ -237,7 +283,7 @@ function RemoteControllerContent() {
             Ghép Nối Với Laptop / PC
           </h2>
           <p className="text-xs text-slate-400 mb-6 leading-relaxed">
-            Nhập mã PIN 6 chữ số đang hiển thị trên màn hình Laptop của bạn để kết nối điện thoại làm tay cầm cảm biến.
+            Nhập mã PIN 6 chữ số đang hiển thị trên màn hình Laptop để kết nối điện thoại làm tay cầm cảm biến.
           </p>
 
           <div className="w-full space-y-3">
@@ -276,30 +322,53 @@ function RemoteControllerContent() {
             </button>
           </div>
         </main>
-      ) : (
-        // ── Giao diện Bình Hóa Chất Chân Thật (Nghiêng Là Đổ, Lắc Là Trộn) ──
-        <main className="flex-1 flex flex-col justify-between py-2 max-w-sm mx-auto w-full text-center">
-          {/* Hướng dẫn thao tác tự nhiên */}
-          <div className="px-3 py-1.5 bg-slate-900/90 rounded-2xl border border-slate-800 text-slate-300 text-[11px] flex items-center justify-between">
-            <span className="flex items-center gap-1 font-semibold text-emerald-400">
-              <span>📱</span>
-              <span>Cầm nghiêng để rót • Lắc để trộn</span>
-            </span>
-            <button
-              onClick={handleRefillBottle}
-              className="text-[10px] text-sky-400 hover:text-white px-2 py-0.5 rounded-lg bg-sky-950/60 border border-sky-800 flex items-center gap-1"
-              title="Lấy lại đầy bình hóa chất"
-            >
-              <RotateCcw className="w-2.5 h-2.5" />
-              <span>Đổ đầy lại</span>
-            </button>
+      ) : !sensorActivated ? (
+        // ── 2. MÀN HÌNH KÍCH HOẠT CẢM BIẾN & CÂN BẰNG 0° BẰNG CHẠM TRỰC TIẾP ──
+        <main className="flex-1 flex flex-col items-center justify-center max-w-sm mx-auto w-full py-6 text-center animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-20 h-20 rounded-full bg-emerald-500/20 border-2 border-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.3)] flex items-center justify-center mb-5 animate-pulse">
+            <Smartphone className="w-10 h-10 text-emerald-400" />
           </div>
 
-          {/* ── KHU VỰC BÌNH HÓA CHẤT & CỐC HỨNG CHUYÊN DỤNG PHÒNG THÍ NGHIỆM ── */}
-          <div className="relative w-full h-80 flex items-center justify-center my-auto overflow-hidden">
+          <h2 className="text-base font-bold text-white mb-2">
+            Đã Ghép Nối Với Phòng {activeRoomId}
+          </h2>
+          <p className="text-xs text-slate-300 mb-6 leading-relaxed px-2">
+            Hãy cầm điện thoại đứng tự nhiên trên tay như một bình hóa chất, sau đó bấm nút bên dưới để <strong className="text-emerald-400 font-bold">Kích hoạt cảm biến & Cân bằng 0°</strong>.
+          </p>
+
+          <button
+            onClick={handleActivateAndCalibrate}
+            className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-black text-sm shadow-2xl shadow-emerald-500/40 active:scale-95 transition-all flex items-center justify-center gap-2.5 cursor-pointer ring-2 ring-white/30"
+          >
+            <Compass className="w-5 h-5 text-slate-950" />
+            <span>BẮT ĐẦU ĐIỀU KHIỂN (CÂN BẰNG 0°)</span>
+          </button>
+        </main>
+      ) : (
+        // ── 3. Giao diện Bình Hóa Chất Chân Thật (Nghiêng Thật Ngoài Đời Là Đổ) ──
+        <main className="flex-1 flex flex-col justify-between py-1 max-w-sm mx-auto w-full text-center">
+          {/* Thanh hiển thị trạng thái góc nghiêng thời gian thực */}
+          <div className="px-3 py-1.5 bg-slate-900/90 rounded-2xl border border-slate-800 text-slate-300 text-[11px] flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <span className={`w-2.5 h-2.5 rounded-full ${isActualPouring ? "bg-amber-400 animate-ping" : "bg-emerald-400"}`} />
+              <span className="font-semibold text-slate-200">
+                Góc nghiêng: <strong className={isActualPouring ? "text-amber-400 font-bold" : "text-emerald-400 font-bold"}>{Math.round(tiltDeg)}°</strong>
+              </span>
+            </div>
+            <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${
+              isActualPouring
+                ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                : "bg-slate-800 text-slate-400"
+            }`}>
+              {isActualPouring ? "ĐANG RÓT VÀO CỐC" : "THẲNG ĐỨNG TRÊN BÀN"}
+            </span>
+          </div>
+
+          {/* ── KHU VỰC BÌNH HÓA CHẤT & CỐC HỨNG CHUYÊN DỤNG ── */}
+          <div className="relative w-full h-72 flex items-center justify-center my-auto overflow-hidden">
             {/* Vòng hào quang định vị góc nghiêng */}
             <div
-              className={`absolute w-64 h-64 rounded-full border transition-all duration-200 pointer-events-none ${
+              className={`absolute w-60 h-60 rounded-full border transition-all duration-200 pointer-events-none ${
                 isActualPouring
                   ? "border-cyan-400/80 shadow-[0_0_40px_rgba(56,189,248,0.5)] scale-105"
                   : isShaking
@@ -308,7 +377,7 @@ function RemoteControllerContent() {
               }`}
             />
 
-            {/* BÌNH HÓA CHẤT THỦY TINH VECTOR CAO CẤP (Reagent Bottle) */}
+            {/* BÌNH HÓA CHẤT THỦY TINH VECTOR CAO CẤP */}
             <div
               className="relative transition-transform duration-75 ease-out select-none"
               style={{
@@ -316,9 +385,8 @@ function RemoteControllerContent() {
                 transformOrigin: "50% 80%",
               }}
             >
-              <svg width="150" height="220" viewBox="0 0 150 220" className="drop-shadow-2xl overflow-visible">
+              <svg width="140" height="210" viewBox="0 0 150 220" className="drop-shadow-2xl overflow-visible">
                 <defs>
-                  {/* Gradient Thủy Tinh Trong Suốt */}
                   <linearGradient id="glassBodyGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                     <stop offset="0%" stopColor="rgba(255,255,255,0.45)" />
                     <stop offset="15%" stopColor="rgba(255,255,255,0.12)" />
@@ -327,43 +395,37 @@ function RemoteControllerContent() {
                     <stop offset="100%" stopColor="rgba(255,255,255,0.50)" />
                   </linearGradient>
 
-                  {/* Gradient Nút Thủy Tinh Mài Nhám (Ground Stopper) */}
                   <linearGradient id="stopperGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="rgba(241,245,249,0.7)" />
                     <stop offset="50%" stopColor="rgba(148,163,184,0.4)" />
                     <stop offset="100%" stopColor="rgba(241,245,249,0.8)" />
                   </linearGradient>
 
-                  {/* Vệt Sáng Phản Chiếu Thủy Tinh */}
                   <linearGradient id="glassShineGrad" x1="0%" y1="0%" x2="0%" y2="100%">
                     <stop offset="0%" stopColor="rgba(255,255,255,0.85)" />
                     <stop offset="60%" stopColor="rgba(255,255,255,0.3)" />
                     <stop offset="100%" stopColor="rgba(255,255,255,0.05)" />
                   </linearGradient>
 
-                  {/* Mask / Clip-path Lòng Bình Hóa Chất */}
                   <clipPath id="flaskInnerClip">
                     <path d="M 62 48 L 88 48 L 88 78 Q 132 88 132 128 L 132 196 Q 132 212 116 212 L 34 212 Q 18 212 18 196 L 18 128 Q 18 88 62 78 Z" />
                   </clipPath>
                 </defs>
 
-                {/* 1. NÚT MÀI THỦY TINH TRÊN NẮP (Glass Stopper) */}
-                <g className="cursor-pointer">
-                  {/* Tay nắm nút mài bo tròn */}
+                {/* 1. NÚT MÀI THỦY TINH TRÊN NẮP */}
+                <g>
                   <rect x="58" y="6" width="34" height="15" rx="5" fill="url(#stopperGrad)" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5" />
-                  {/* Phần thân nút mài nhám cắm vào cổ bình */}
                   <polygon points="63,21 87,21 84,36 66,36" fill="url(#stopperGrad)" stroke="rgba(255,255,255,0.6)" strokeWidth="1" />
-                  {/* Khía rãnh chống trượt trên nắp */}
                   <line x1="68" y1="9" x2="68" y2="18" stroke="rgba(255,255,255,0.7)" strokeWidth="1" />
                   <line x1="75" y1="9" x2="75" y2="18" stroke="rgba(255,255,255,0.7)" strokeWidth="1" />
                   <line x1="82" y1="9" x2="82" y2="18" stroke="rgba(255,255,255,0.7)" strokeWidth="1" />
                 </g>
 
-                {/* 2. VÀNH MIỆNG BÌNH RÓT LOE TRÒN (Flared Rim) */}
+                {/* 2. VÀNH MIỆNG BÌNH RÓT */}
                 <ellipse cx="75" cy="36" rx="20" ry="5.5" fill="rgba(255,255,255,0.25)" stroke="rgba(255,255,255,0.9)" strokeWidth="2" />
                 <ellipse cx="75" cy="36" rx="14" ry="3.5" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1" />
 
-                {/* 2.5. NỀN THÂN BÌNH THỦY TINH ĐẬM RÕ (Solid Glass Silhouette) */}
+                {/* 2.5. NỀN THÂN BÌNH THỦY TINH */}
                 <path
                   d="M 62 38 L 88 38 L 88 78 Q 132 88 132 128 L 132 196 Q 132 212 116 212 L 34 212 Q 18 212 18 196 L 18 128 Q 18 88 62 78 Z"
                   fill="#0b1329"
@@ -371,9 +433,8 @@ function RemoteControllerContent() {
                   strokeWidth="2.5"
                 />
 
-                {/* 3. DUNG DỊCH HÓA CHẤT BÊN TRONG (Liquid Fill inside Clip-path) */}
+                {/* 3. DUNG DỊCH HÓA CHẤT BÊN TRONG */}
                 <g clipPath="url(#flaskInnerClip)">
-                  {/* Khối chất lỏng dâng cao theo fillPercent */}
                   <rect
                     x="10"
                     y={212 - (fillPercent * 1.55)}
@@ -384,7 +445,7 @@ function RemoteControllerContent() {
                     className="transition-all duration-100 ease-out"
                   />
 
-                  {/* Mặt thoáng chất lỏng (Meniscus) nghiêng ngược góc để giữ thăng bằng tự nhiên theo trọng lực */}
+                  {/* Mặt thoáng chất lỏng (Meniscus) nghiêng ngược góc để giữ thăng bằng tự nhiên */}
                   <ellipse
                     cx="75"
                     cy={212 - (fillPercent * 1.55)}
@@ -404,13 +465,11 @@ function RemoteControllerContent() {
                       <circle cx="45" cy="180" r="3" fill="white" opacity="0.8" />
                       <circle cx="75" cy="160" r="4.5" fill="white" opacity="0.9" />
                       <circle cx="105" cy="175" r="3.5" fill="white" opacity="0.85" />
-                      <circle cx="60" cy="140" r="2.5" fill="white" opacity="0.75" />
-                      <circle cx="90" cy="150" r="3" fill="white" opacity="0.8" />
                     </g>
                   )}
                 </g>
 
-                {/* 4. VỎ THỦY TINH BÌNH HÓA CHẤT (Thân trụ & Vai bình bầu) */}
+                {/* 4. VỎ THỦY TINH BÌNH HÓA CHẤT */}
                 <path
                   d="M 62 38 L 88 38 L 88 78 Q 132 88 132 128 L 132 196 Q 132 212 116 212 L 34 212 Q 18 212 18 196 L 18 128 Q 18 88 62 78 Z"
                   fill="url(#glassBodyGrad)"
@@ -419,53 +478,33 @@ function RemoteControllerContent() {
                   strokeLinejoin="round"
                 />
 
-                {/* Đáy bình gia cố dày 2 lớp */}
-                <path
-                  d="M 22 196 Q 22 210 34 210 L 116 210 Q 128 210 128 196"
-                  fill="none"
-                  stroke="rgba(255,255,255,0.4)"
-                  strokeWidth="3"
-                />
-
-                {/* 5. VẠCH CHIA ĐỘ THỂ TÍCH (Graduation Marks) */}
+                {/* 5. VẠCH CHIA ĐỘ THỂ TÍCH */}
                 <g className="font-mono text-[7.5px] fill-white/80 select-none">
                   <line x1="22" y1="80" x2="32" y2="80" stroke="rgba(255,255,255,0.8)" strokeWidth="1.2" />
                   <text x="35" y="83">200ml</text>
 
-                  <line x1="22" y1="115" x2="30" y2="115" stroke="rgba(255,255,255,0.8)" strokeWidth="1.2" />
-                  <text x="33" y="118">150ml</text>
+                  <line x1="22" y1="120" x2="30" y2="120" stroke="rgba(255,255,255,0.8)" strokeWidth="1.2" />
+                  <text x="33" y="123">150ml</text>
 
-                  <line x1="22" y1="150" x2="30" y2="150" stroke="rgba(255,255,255,0.8)" strokeWidth="1.2" />
-                  <text x="33" y="153">100ml</text>
-
-                  <line x1="22" y1="185" x2="28" y2="185" stroke="rgba(255,255,255,0.8)" strokeWidth="1.2" />
-                  <text x="31" y="188">50ml</text>
+                  <line x1="22" y1="160" x2="30" y2="160" stroke="rgba(255,255,255,0.8)" strokeWidth="1.2" />
+                  <text x="33" y="163">100ml</text>
                 </g>
 
-                {/* 6. TEM NHÃN DÁN HÓA CHẤT PHÒNG THÍ NGHIỆM TIÊU CHUẨN */}
+                {/* 6. TEM NHÃN DÁN HÓA CHẤT TIÊU CHUẨN */}
                 <g className="select-none pointer-events-none">
-                  {/* Nền nhãn giấy trắng viền kép */}
-                  <rect x="36" y="110" width="78" height="54" rx="4" fill="rgba(255,255,255,0.96)" stroke="#cbd5e1" strokeWidth="1" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.25))" />
-                  <rect x="38.5" y="112.5" width="73" height="49" rx="2" fill="none" stroke="#94a3b8" strokeWidth="0.5" strokeDasharray="2,2" />
-
-                  {/* Tên công thức hóa học to rõ */}
-                  <text x="75" y="128" textAnchor="middle" fill="#0f172a" fontSize="13" fontWeight="900" fontFamily="sans-serif" letterSpacing="0.5">
+                  <rect x="36" y="112" width="78" height="52" rx="4" fill="rgba(255,255,255,0.96)" stroke="#cbd5e1" strokeWidth="1" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.25))" />
+                  <text x="75" y="130" textAnchor="middle" fill="#0f172a" fontSize="13" fontWeight="900" fontFamily="sans-serif">
                     {chemicalFormula}
                   </text>
-
-                  {/* Tên hóa học tiếng Việt */}
-                  <text x="75" y="142" textAnchor="middle" fill="#334155" fontSize="8" fontWeight="bold" fontFamily="sans-serif">
+                  <text x="75" y="144" textAnchor="middle" fill="#334155" fontSize="8" fontWeight="bold" fontFamily="sans-serif">
                     {chemicalName}
                   </text>
-
-                  {/* Biểu tượng an toàn GHS / P.A */}
-                  <text x="75" y="156" textAnchor="middle" fill="#64748b" fontSize="6.5" fontWeight="600" fontFamily="sans-serif">
+                  <text x="75" y="157" textAnchor="middle" fill="#64748b" fontSize="6.5" fontWeight="600" fontFamily="sans-serif">
                     ⚠️ GHS07 • Dung dịch P.A
                   </text>
                 </g>
 
-                {/* 7. VỆT SÁNG PHẢN CHIẾU THỦY TINH BÓNG LOÁNG (Specular Glass Highlights) */}
-                {/* Vệt sáng cong theo vai bình bên phải */}
+                {/* 7. VỆT SÁNG PHẢN CHIẾU THỦY TINH */}
                 <path
                   d="M 126 128 L 126 195 Q 126 206 116 206"
                   fill="none"
@@ -473,11 +512,9 @@ function RemoteControllerContent() {
                   strokeWidth="3.5"
                   strokeLinecap="round"
                 />
-                {/* Vệt sáng trên cổ bình */}
-                <line x1="84" y1="42" x2="84" y2="72" stroke="rgba(255,255,255,0.5)" strokeWidth="1.8" strokeLinecap="round" />
               </svg>
 
-              {/* TIA NƯỚC RÓT CHẢY KHI DỐC BÌNH (Pouring Stream) */}
+              {/* TIA NƯỚC RÓT CHẢY KHI DỐC BÌNH */}
               {isActualPouring && (
                 <div
                   className={`absolute top-6 pointer-events-none z-30 flex flex-col items-center ${
@@ -487,34 +524,27 @@ function RemoteControllerContent() {
                     transform: `rotate(${-tiltDeg}deg)`,
                   }}
                 >
-                  {/* Dòng nước chảy óng ánh phát sáng */}
                   <div
-                    className="w-3 h-44 rounded-full shadow-lg animate-pulse"
+                    className="w-3 h-40 rounded-full shadow-lg animate-pulse"
                     style={{
                       background: `linear-gradient(to bottom, ${liquidColor}, rgba(255,255,255,0.9), ${liquidColor})`,
                       boxShadow: `0 0 16px ${liquidColor}`,
                     }}
                   />
-                  {/* Bọt nước và tia giọt lách tách */}
-                  <div className="flex gap-1.5 mt-1">
-                    <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-                    <span className="w-2.5 h-2.5 rounded-full bg-cyan-300 animate-bounce" />
-                  </div>
                 </div>
               )}
             </div>
 
-            {/* CỐC ĐONG THỦY TINH CÓ MỎ HỨNG BÊN DƯỚI (Griffin Beaker) */}
+            {/* CỐC ĐONG THỦY TINH CÓ MỎ HỨNG BÊN DƯỚI */}
             <div className="absolute -bottom-1 right-2 flex flex-col items-center select-none pointer-events-none">
               <span className="text-[10px] text-slate-400 font-bold mb-0.5">Cốc hứng ({Math.round(beakerFillPercent)}%)</span>
-              <svg width="88" height="105" viewBox="0 0 88 105" className="drop-shadow-xl overflow-visible">
+              <svg width="84" height="98" viewBox="0 0 88 105" className="drop-shadow-xl overflow-visible">
                 <defs>
                   <clipPath id="beakerInnerClip">
                     <rect x="10" y="16" width="68" height="84" rx="4" />
                   </clipPath>
                 </defs>
 
-                {/* Nước dâng lên bên trong cốc hứng */}
                 <g clipPath="url(#beakerInnerClip)">
                   <rect
                     x="10"
@@ -525,17 +555,8 @@ function RemoteControllerContent() {
                     opacity={0.85}
                     className="transition-all duration-150 ease-out"
                   />
-                  {/* Mặt thoáng chất lỏng trong cốc */}
-                  <ellipse
-                    cx="44"
-                    cy={100 - (beakerFillPercent * 0.85)}
-                    rx="32"
-                    ry="4"
-                    fill="rgba(255,255,255,0.4)"
-                  />
                 </g>
 
-                {/* Thân cốc đong có mỏ rót bên trái */}
                 <path
                   d="M 6 16 L 12 20 L 12 96 Q 12 102 18 102 L 70 102 Q 76 102 76 96 L 76 16 Q 80 16 80 14 Q 76 12 72 16 L 16 16 Z"
                   fill="rgba(255,255,255,0.08)"
@@ -543,99 +564,62 @@ function RemoteControllerContent() {
                   strokeWidth="2"
                   strokeLinejoin="round"
                 />
-
-                {/* Vạch chia độ trên thành cốc */}
-                <g className="fill-white/60 font-mono text-[6.5px]">
-                  <line x1="62" y1="36" x2="72" y2="36" stroke="rgba(255,255,255,0.7)" strokeWidth="1" />
-                  <text x="46" y="38">200ml</text>
-
-                  <line x1="64" y1="56" x2="72" y2="56" stroke="rgba(255,255,255,0.7)" strokeWidth="1" />
-                  <text x="46" y="58">150ml</text>
-
-                  <line x1="64" y1="76" x2="72" y2="76" stroke="rgba(255,255,255,0.7)" strokeWidth="1" />
-                  <text x="46" y="78">100ml</text>
-
-                  <line x1="66" y1="92" x2="72" y2="92" stroke="rgba(255,255,255,0.7)" strokeWidth="1" />
-                  <text x="48" y="94">50ml</text>
-                </g>
-
-                {/* Vệt phản chiếu thủy tinh */}
-                <line x1="72" y1="22" x2="72" y2="94" stroke="rgba(255,255,255,0.4)" strokeWidth="2" strokeLinecap="round" />
               </svg>
             </div>
           </div>
 
-          {/* NÚT CHẠM & GIỮ ĐỂ RÓT (Hỗ trợ tương tác cảm ứng trực tiếp trên màn hình) */}
-          <div className="flex gap-2">
-            <button
-              onMouseDown={() => setIsManualPouring(true)}
-              onMouseUp={() => setIsManualPouring(false)}
-              onTouchStart={() => setIsManualPouring(true)}
-              onTouchEnd={() => setIsManualPouring(false)}
-              className={`flex-1 py-3 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-lg cursor-pointer ${
-                isActualPouring
-                  ? "bg-cyan-500 text-white shadow-cyan-500/40 scale-[0.98]"
-                  : "bg-slate-800/90 hover:bg-slate-700/90 text-cyan-300 border border-cyan-500/30"
-              }`}
-            >
-              <span>💧</span>
-              <span>{isActualPouring ? "Đang rót vào cốc..." : "Chạm & Giữ nút để Rót (Hoặc nghiêng máy)"}</span>
-            </button>
-            <button
-              onClick={handleRefillBottle}
-              className="px-3.5 py-3 rounded-2xl bg-slate-800/90 hover:bg-slate-700/90 text-slate-300 border border-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
-              title="Đổ đầy lại bình"
-            >
-              <RotateCcw className="w-4 h-4 text-emerald-400" />
-              <span>Đổ đầy</span>
-            </button>
-          </div>
-
-          {/* Dữ liệu góc nghiêng & Trạng thái con quay hồi chuyển */}
-          <div className="grid grid-cols-2 gap-2 text-[11px] bg-slate-900/90 border border-slate-800 p-2.5 rounded-2xl">
-            <div className="flex flex-col items-center">
-              <span className="text-slate-400 text-[10px]">Góc dốc bình (Roll)</span>
-              <span className="font-bold text-white font-mono text-base flex items-center gap-1">
-                <span>{Math.round(tiltDeg)}°</span>
-                {isActualPouring && <span className="text-cyan-400 animate-bounce">💧</span>}
+          {/* CHỌN NHANH HÓA CHẤT TRÊN ĐIỆN THOẠI & NÚT ĐỔ ĐẦY LẠI */}
+          <div className="bg-slate-900/90 p-2.5 rounded-2xl border border-slate-800 flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-300 flex items-center gap-1">
+                <FlaskConical className="w-3 h-3 text-cyan-400" />
+                <span>Nạp hóa chất vào bình:</span>
               </span>
-              <span className="text-[9px] text-slate-500">
-                {tiltDeg < -15 ? "👈 Dốc sang trái" : tiltDeg > 15 ? "👉 Dốc sang phải" : "Thẳng đứng"}
-              </span>
+              <button
+                onClick={handleRefillBottle}
+                className="text-[10px] text-sky-300 hover:text-white px-2 py-0.5 rounded-lg bg-sky-950/80 border border-sky-800 flex items-center gap-1 font-semibold"
+              >
+                <RotateCcw className="w-2.5 h-2.5" />
+                <span>Đổ đầy lại</span>
+              </button>
             </div>
 
-            <div className="flex flex-col items-center">
-              <span className="text-slate-400 text-[10px]">Lượng chất trong bình</span>
-              <span className="font-bold text-emerald-400 font-mono text-base">
-                {Math.round(fillPercent)}%
-              </span>
-              <span className="text-[9px] text-slate-500">
-                {fillPercent <= 2 ? "⚠️ Đã hết (bấm Đổ đầy)" : isActualPouring ? "Đang rót..." : "Sẵn sàng"}
-              </span>
+            <div className="grid grid-cols-3 gap-1.5">
+              {COMMON_CHEMICALS.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => handleSelectChemical(c)}
+                  className={`p-1.5 rounded-xl border text-left transition-all ${
+                    chemicalFormula === c.formula
+                      ? "bg-cyan-500/20 border-cyan-400 text-white font-bold ring-1 ring-cyan-400/50"
+                      : "bg-slate-800/80 border-slate-700/80 text-slate-300 hover:bg-slate-700"
+                  }`}
+                >
+                  <span className="block text-[11px] font-black text-cyan-300">{c.formula}</span>
+                  <span className="block text-[9px] text-slate-400 truncate">{c.name}</span>
+                </button>
+              ))}
             </div>
-          </div>
 
-          {/* Thông báo tương tác thời gian thực với Laptop */}
-          <div className="p-2.5 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs flex items-center justify-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span className="font-medium text-[11px]">
-              Đang đồng bộ trực tiếp lên Laptop: <strong>Nghiêng là đổ • Lắc là trộn</strong>
-            </span>
+            <div className="text-[10px] text-slate-400 text-center pt-1 border-t border-slate-800/80">
+              💡 Cầm nghiêng điện thoại &gt; 20° để rót • Lắc điện thoại để hòa trộn phản ứng
+            </div>
           </div>
         </main>
       )}
-
-      {/* ─── Footer ─── */}
-      <footer className="text-center py-1 text-[10px] text-slate-600">
-        SimLab Edu • Cảm biến chuyển động phòng Lab 3D
-      </footer>
     </div>
   );
 }
 
-export default function RemoteControllerPage() {
+export default function RemotePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#070b14] text-white p-6">Đang tải tay cầm...</div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#070b14] flex items-center justify-center text-slate-300 text-xs">
+          Đang nạp SimLab Wand Remote...
+        </div>
+      }
+    >
       <RemoteControllerContent />
     </Suspense>
   );

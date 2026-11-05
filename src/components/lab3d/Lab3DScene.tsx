@@ -468,98 +468,99 @@ function SceneContent({
         const beaker = currentList.find((it) => it.id === "beaker-1");
 
         if (isPhoneActive && bottle && beaker) {
-            // Khi điện thoại kết nối: Bình hóa chất do điện thoại làm chủ 100%!
-            bottle.heldBy = "phone";
-
-            const roll = sensorData.roll || 0; // Roll dương = nghiêng sang phải (về phía cốc), Roll âm = nghiêng trái
+            const roll = sensorData.roll || 0; // Đã được hiệu chuẩn qua calibrateZero()
             const isPourTilted = sensorData.isPourTilted;
-
-            // Tiến trình nghiêng rót (0.0: cầm thẳng đứng trên bàn, 1.0: dốc hết cỡ vào cốc)
-            // Ngưỡng kích hoạt > 14° nghiêng để tránh rung lắc nhẹ tự động đổ
             const absRoll = Math.abs(roll);
-            const rollProgress = THREE.MathUtils.clamp((absRoll - 14) / 26, 0, 1);
-            const pourProgress = isPourTilted ? Math.max(rollProgress, sensorData.pourIntensity || 0.85) : rollProgress;
+
+            const hasChemical = Boolean(bottle.chemical && bottle.fillLevel > 0.01);
+            // Chỉ bắt đầu tiến trình dốc rót khi nghiêng thật sự (>= 18°) VÀ bình có hóa chất
+            const isIntentionalTilt = absRoll >= 18 || (isPourTilted && hasChemical);
 
             const mouthHTarget = getVesselMouthHeight(beaker.type);
-            // Khi không rót: Bình nằm vững chãi trên mặt bàn đá tại vị trí mặc định
             const restX = bottle.defaultPosition[0]; // -0.32
             const restY = bottle.defaultPosition[1]; // -0.06
             const restZ = bottle.defaultPosition[2]; // 0.36
 
-            // Khi rót: Bình nhấc bổng lên và bay áp sát sát mép cốc đong (beaker)
             const pourX = beaker.position[0] - 0.11;
             const pourY = beaker.position[1] + mouthHTarget + 0.10;
             const pourZ = beaker.position[2];
 
-            // Nếu người dùng bắt đầu nghiêng điện thoại (absRoll > 8° hoặc isPourTilted),
-            // bình lập tức nâng lên và di chuyển tới sát miệng cốc đong trước,
-            // sau đó khi dốc đủ góc (pourProgress > 0) mới nghiêng đổ chất lỏng thẳng đứng vào cốc!
-            const isPouringIntent = absRoll > 8 || isPourTilted || pourProgress > 0.05;
-            const moveProgress = isPouringIntent ? Math.max(0.85, pourProgress) : 0;
+            if (isIntentionalTilt && hasChemical) {
+                bottle.heldBy = "phone";
+                // Tiến trình nghiêng dốc từ 18° đến 40°
+                const tiltFactor = THREE.MathUtils.clamp((absRoll - 18) / 22, 0, 1);
+                const targetX = THREE.MathUtils.lerp(restX, pourX, tiltFactor);
+                const targetY = THREE.MathUtils.lerp(restY, pourY, tiltFactor);
+                const targetZ = THREE.MathUtils.lerp(restZ, pourZ, tiltFactor);
+                const targetTilt = -tiltFactor * 0.85;
 
-            const targetX = THREE.MathUtils.lerp(restX, pourX, moveProgress);
-            const targetY = THREE.MathUtils.lerp(restY, pourY, moveProgress);
-            const targetZ = THREE.MathUtils.lerp(restZ, pourZ, moveProgress);
-            const targetTilt = -pourProgress * 0.85; // Góc nghiêng dốc miệng sang phải vào cốc
+                bottle.position[0] = THREE.MathUtils.lerp(bottle.position[0], targetX, Math.min(1, delta * 12));
+                bottle.position[1] = THREE.MathUtils.lerp(bottle.position[1], targetY, Math.min(1, delta * 12));
+                bottle.position[2] = THREE.MathUtils.lerp(bottle.position[2], targetZ, Math.min(1, delta * 12));
+                bottle.tiltAngle = THREE.MathUtils.lerp(bottle.tiltAngle, targetTilt, Math.min(1, delta * 12));
+                stateChanged = true;
 
-            bottle.position[0] = THREE.MathUtils.lerp(bottle.position[0], targetX, Math.min(1, delta * 14));
-            bottle.position[1] = THREE.MathUtils.lerp(bottle.position[1], targetY, Math.min(1, delta * 14));
-            bottle.position[2] = THREE.MathUtils.lerp(bottle.position[2], targetZ, Math.min(1, delta * 14));
-            bottle.tiltAngle = THREE.MathUtils.lerp(bottle.tiltAngle, targetTilt, Math.min(1, delta * 14));
-            stateChanged = true;
+                // Rót chất lỏng khi góc nghiêng đạt mức đủ lớn (tiltFactor >= 0.40)
+                if (tiltFactor >= 0.40) {
+                    const streamFrom: [number, number, number] = [
+                        bottle.position[0] + 0.08,
+                        bottle.position[1] + 0.08,
+                        bottle.position[2],
+                    ];
+                    const streamTo: [number, number, number] = [
+                        beaker.position[0],
+                        beaker.position[1] + mouthHTarget,
+                        beaker.position[2],
+                    ];
+                    const streamColor = bottle.liquidColor || bottle.chemical?.color || "#38bdf8";
 
-            // Rót chất lỏng theo thời gian thực (CHỈ RÓT KHI BÌNH CÓ HÓA CHẤT & MỨC CHẤT > 0!)
-            if (pourProgress >= 0.40 && bottle.fillLevel > 0.01 && bottle.chemical) {
-                const streamFrom: [number, number, number] = [
-                    bottle.position[0] + 0.08,
-                    bottle.position[1] + 0.08,
-                    bottle.position[2],
-                ];
-                const streamTo: [number, number, number] = [
-                    beaker.position[0],
-                    beaker.position[1] + mouthHTarget,
-                    beaker.position[2],
-                ];
-                const streamColor = bottle.liquidColor || bottle.chemical?.color || "#38bdf8";
-
-                if (!pourState || !pourState.active) {
-                    setPourState({
-                        active: true,
-                        sourceId: bottle.id,
-                        targetId: beaker.id,
-                        from: streamFrom,
-                        to: streamTo,
-                        color: streamColor,
-                    });
-                    playLabSound("bubbles");
-                }
-
-                // Tốc độ rót: Dòng chảy tự nhiên êm ái
-                const flow = delta * 0.28;
-                bottle.fillLevel = Math.max(0, bottle.fillLevel - flow);
-                beaker.fillLevel = Math.min(0.85, (beaker.fillLevel || 0) + flow);
-
-                if (bottle.chemical) {
-                    if (!beaker.chemical) {
-                        beaker.chemical = bottle.chemical;
-                        beaker.liquidColor = bottle.liquidColor;
-                        beaker.label = beaker.chemical.name;
-                    } else if (beaker.chemical.id !== bottle.chemical.id && !beaker.solidChemical) {
-                        beaker.solidChemical = bottle.chemical;
-                        beaker.label = `${beaker.chemical.name} + ${bottle.chemical.name}`;
+                    if (!pourState || !pourState.active) {
+                        setPourState({
+                            active: true,
+                            sourceId: bottle.id,
+                            targetId: beaker.id,
+                            from: streamFrom,
+                            to: streamTo,
+                            color: streamColor,
+                        });
+                        playLabSound("bubbles");
                     }
-                }
-            } else if (pourProgress < 0.32 && pourState) {
-                setPourState(null);
-            }
 
-            if (bottle.fillLevel <= 0.01 && bottle.chemical) {
-                bottle.chemical = null;
-                bottle.fillLevel = 0;
-                bottle.label = "Lọ rỗng (Đã đổ hết)";
+                    const flow = delta * 0.28;
+                    bottle.fillLevel = Math.max(0, bottle.fillLevel - flow);
+                    beaker.fillLevel = Math.min(0.85, (beaker.fillLevel || 0) + flow);
+
+                    if (bottle.chemical) {
+                        if (!beaker.chemical) {
+                            beaker.chemical = bottle.chemical;
+                            beaker.liquidColor = bottle.liquidColor;
+                            beaker.label = beaker.chemical.name;
+                        } else if (beaker.chemical.id !== bottle.chemical.id && !beaker.solidChemical) {
+                            beaker.solidChemical = bottle.chemical;
+                            beaker.label = `${beaker.chemical.name} + ${bottle.chemical.name}`;
+                        }
+                    }
+                } else if (pourState) {
+                    setPourState(null);
+                }
+
+                if (bottle.fillLevel <= 0.01 && bottle.chemical) {
+                    bottle.chemical = null;
+                    bottle.fillLevel = 0;
+                    bottle.label = "Lọ rỗng (Đã đổ hết)";
+                    if (pourState) setPourState(null);
+                    setTeacherMode("speaking");
+                    setTeacherMessage("Đã đổ hết hóa chất vào cốc! Em có thể chọn thêm chất từ tủ hóa chất hoặc lắc điện thoại để hòa trộn nhé!");
+                }
+            } else {
+                // Khi KHÔNG nghiêng hoặc BÌNH HẾT: Bình nằm cố định 100% trên mặt bàn tại vị trí mặc định!
+                bottle.heldBy = null;
+                bottle.position[0] = THREE.MathUtils.lerp(bottle.position[0], restX, Math.min(1, delta * 12));
+                bottle.position[1] = THREE.MathUtils.lerp(bottle.position[1], restY, Math.min(1, delta * 12));
+                bottle.position[2] = THREE.MathUtils.lerp(bottle.position[2], restZ, Math.min(1, delta * 12));
+                bottle.tiltAngle = THREE.MathUtils.lerp(bottle.tiltAngle, 0, Math.min(1, delta * 12));
+                stateChanged = true;
                 if (pourState) setPourState(null);
-                setTeacherMode("speaking");
-                setTeacherMessage("Đã đổ hết hóa chất vào cốc! Em có thể chọn thêm chất từ tủ hóa chất hoặc lắc điện thoại để hòa trộn nhé!");
             }
 
             // Lắc điện thoại -> Phản ứng hóa học hoặc khuấy trộn
@@ -915,11 +916,11 @@ function SceneContent({
             {/* Bàn tay 3D được hiển thị toàn cục ở page.tsx trên layer z-[60] (ở phía trước thanh Tab) */}
             {/* <Lab3DFullHandModel handStateRef={handStateRef} /> */}
 
-            {/* Nhân vật Cô Giáo AI (Đứng trên sàn phòng Lab Y = -1.20 phía sau bàn giảng bài, thân trên nổi bật trên bàn) */}
+            {/* Nhân vật Cô Giáo AI Đồng Hành 3D (Đứng bên phải bàn thí nghiệm Y = -0.48 trên sàn, đối diện học sinh) */}
             {show3DTeacher && (
                 <Lab3DAITeacher
-                    position={[1.20, -0.48, -0.15]}
-                    rotation={[0, -0.28, 0]}
+                    position={[2.35, -0.48, 0.35]}
+                    rotation={[0, -0.62, 0]}
                     scale={1.15}
                     mode={teacherMode}
                     message={teacherMessage}
@@ -1070,6 +1071,20 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
             )
         );
     }, [selectedItemId]);
+
+    // Đồng bộ chọn hóa chất từ màn hình điều khiển điện thoại di động
+    useEffect(() => {
+        const handleRemoteSelect = (e: Event) => {
+            const detail = (e as CustomEvent<{ chemicalId?: string; chemicalName?: string }>).detail;
+            if (!detail?.chemicalId) return;
+            const chem = allChemicals.find((c) => c.id === detail.chemicalId) || getChemicalById(detail.chemicalId);
+            if (chem) {
+                handleSelectChemicalFromCabinet(chem);
+            }
+        };
+        window.addEventListener("remote-select-chemical", handleRemoteSelect);
+        return () => window.removeEventListener("remote-select-chemical", handleRemoteSelect);
+    }, [handleSelectChemicalFromCabinet]);
 
     // Trạng thái dòng chảy rót nước (Realistic Water Stream)
     const [pourState, setPourState] = useState<{

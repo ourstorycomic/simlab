@@ -61,6 +61,12 @@ class DeviceSensorManager {
   private listeners: Set<SensorListener> = new Set();
   private isListening: boolean = false;
 
+  // Zero-calibration baseline
+  private baselineRoll: number = 0;
+  private baselinePitch: number = 0;
+  private lastRawGamma: number = 0;
+  private lastRawBeta: number = 0;
+
   // Shake detection state
   private lastX: number | null = null;
   private lastY: number | null = null;
@@ -143,28 +149,43 @@ class DeviceSensorManager {
     this.isListening = false;
   }
 
+  /**
+   * Cân bằng 0° theo tư thế cầm điện thoại hiện tại của người dùng (Zero Calibration)
+   */
+  public calibrateZero() {
+    this.baselineRoll = this.lastRawGamma;
+    this.baselinePitch = this.lastRawBeta;
+    this.data.roll = 0;
+    this.data.pitch = 0;
+    this.data.isPourTilted = false;
+    this.data.pourIntensity = 0;
+    this.triggerHaptic(40);
+    this.notify();
+  }
+
   private handleOrientation = (e: DeviceOrientationEvent) => {
-    // beta: độ nghiêng trước-sau (-180 đến 180).
-    // Ở tư thế cầm điện thoại đứng tự nhiên: beta ~ 60° đến 80°.
-    // Khi dốc điện thoại chúc xuống để đổ: beta giảm xuống < 40° hoặc âm.
     const rawBeta = e.beta ?? 0;
     const rawGamma = e.gamma ?? 0;
     const rawAlpha = e.alpha ?? 0;
 
-    // Phân biệt chính xác giữa cầm điện thoại xem màn hình và thao tác dốc bình rót:
-    // 1. Nghiêng cạnh điện thoại sang bên (Roll / rawGamma): dốc bình rót qua trái/phải (|gamma| > 24°)
-    // 2. Chúc đầu điện thoại chúi thẳng xuống đất (Pitch / rawBeta): chỉ rót khi rawBeta âm sâu (< -15°)
-    // TUYỆT ĐỐI KHÔNG tự động rót khi đặt máy nằm phẳng trên bàn (beta ~ 0, gamma ~ 0) hoặc cầm đứng xem (beta ~ 40-70)
-    const isRollTilted = Math.abs(rawGamma) > 24;
-    const isPitchTilted = rawBeta < -15;
+    this.lastRawGamma = rawGamma;
+    this.lastRawBeta = rawBeta;
+
+    // Góc nghiêng tương đối so với vị trí cầm điện thoại tự nhiên lúc hiệu chỉnh
+    const effRoll = rawGamma - this.baselineRoll;
+    const effPitch = rawBeta - this.baselinePitch;
+
+    // Chỉ coi là nghiêng rót khi người dùng chủ động nghiêng điện thoại > 20°
+    const isRollTilted = Math.abs(effRoll) > 20;
+    const isPitchTilted = effPitch < -22;
     const isPourTilted = isRollTilted || isPitchTilted;
 
-    const rollIntensity = isRollTilted ? Math.min(1.0, (Math.abs(rawGamma) - 24) / 35) : 0;
-    const pitchIntensity = isPitchTilted ? Math.min(1.0, Math.abs(rawBeta - (-15)) / 45) : 0;
+    const rollIntensity = isRollTilted ? Math.min(1.0, (Math.abs(effRoll) - 20) / 25) : 0;
+    const pitchIntensity = isPitchTilted ? Math.min(1.0, Math.abs(effPitch - (-22)) / 30) : 0;
     const pourIntensity = isPourTilted ? Math.max(rollIntensity, pitchIntensity) : 0;
 
-    this.data.pitch = Math.round(rawBeta * 10) / 10;
-    this.data.roll = Math.round(rawGamma * 10) / 10;
+    this.data.pitch = Math.round(effPitch * 10) / 10;
+    this.data.roll = Math.round(effRoll * 10) / 10;
     this.data.yaw = Math.round(rawAlpha * 10) / 10;
     this.data.isPourTilted = isPourTilted;
     this.data.pourIntensity = pourIntensity;

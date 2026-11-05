@@ -548,7 +548,7 @@ export default function Lab3DAITeacher({
                 </group>
             </group>
 
-            {/* ─── 5. CÁNH TAY TRÁI: ÔM MÁY TÍNH BẢNG ĐIỆN TỬ (Seamless Connected Left Arm) ─── */}
+            {/* ─── 5. CÁNH TAY TRÁI: ÔM MÁY TÍNH BẢNG ĐIỆN TỬ NGANG NGỰC (Seamless Connected Left Arm at Chest Level) ─── */}
             <group position={[-0.17, 0.62, 0.02]}>
                 {/* Khớp vai áo blouse tròn trịa nối liền vào thân */}
                 <mesh position={[0, 0, 0]}>
@@ -556,27 +556,27 @@ export default function Lab3DAITeacher({
                     <primitive object={mats.labCoat} />
                 </mesh>
                 {/* Bắp tay áo blouse đi xuống */}
-                <mesh position={[-0.02, -0.12, 0.02]}>
-                    <cylinderGeometry args={[0.046, 0.042, 0.24, 16]} />
+                <mesh position={[-0.02, -0.09, 0.02]}>
+                    <cylinderGeometry args={[0.046, 0.042, 0.18, 16]} />
                     <primitive object={mats.labCoat} />
                 </mesh>
-                {/* Khớp khuỷu tay gập về trước */}
-                <mesh position={[-0.02, -0.24, 0.06]}>
+                {/* Khớp khuỷu tay gập về trước ở tầm ngực */}
+                <mesh position={[-0.02, -0.16, 0.06]}>
                     <sphereGeometry args={[0.042, 14, 14]} />
                     <primitive object={mats.labCoat} />
                 </mesh>
                 {/* Cẳng tay đưa về trước đỡ máy tính bảng */}
-                <mesh position={[0.01, -0.23, 0.16]} rotation={[Math.PI / 2 - 0.2, 0.1, -0.3]}>
-                    <cylinderGeometry args={[0.038, 0.034, 0.22, 16]} />
+                <mesh position={[0.01, -0.14, 0.16]} rotation={[Math.PI / 2 - 0.15, 0.1, -0.3]}>
+                    <cylinderGeometry args={[0.038, 0.034, 0.20, 16]} />
                     <primitive object={mats.labCoat} />
                 </mesh>
                 {/* Bàn tay đỡ mép máy tính bảng */}
-                <mesh position={[0.03, -0.22, 0.27]}>
+                <mesh position={[0.03, -0.12, 0.27]}>
                     <sphereGeometry args={[0.026, 14, 14]} />
                     <primitive object={mats.skin} />
                 </mesh>
-                {/* Máy tính bảng hiển thị giao diện phân tử hóa học */}
-                <group position={[0.06, -0.19, 0.29]} rotation={[0.35, -0.25, 0.15]}>
+                {/* Máy tính bảng hiển thị giao diện phân tử hóa học (Ngang tầm ngực, hoàn toàn không chạm bàn) */}
+                <group position={[0.06, -0.08, 0.29]} rotation={[0.35, -0.25, 0.15]}>
                     <mesh>
                         <boxGeometry args={[0.2, 0.26, 0.014]} />
                         <primitive object={mats.tablet} />

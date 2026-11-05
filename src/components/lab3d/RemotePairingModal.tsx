@@ -129,6 +129,10 @@ export default function RemotePairingModal({
           if (typeof window !== "undefined") {
             window.dispatchEvent(new CustomEvent("clean-workbench"));
           }
+        } else if ((action as any).type === "select_chemical") {
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("remote-select-chemical", { detail: action }));
+          }
         }
       },
     });

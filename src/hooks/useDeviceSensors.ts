@@ -46,10 +46,15 @@ export function useDeviceSensors() {
     deviceSensors.simulatePour(intensity);
   }, []);
 
+  const calibrateZero = useCallback(() => {
+    deviceSensors.calibrateZero();
+  }, []);
+
   return {
     ...sensorData,
     isMobileDevice,
     requestPermission,
+    calibrateZero,
     triggerHaptic,
     simulateShake,
     simulatePour,
