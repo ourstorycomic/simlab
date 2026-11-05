@@ -24,6 +24,27 @@ import {
   X,
   Play,
 } from "lucide-react";
+
+function GripIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="8" cy="9" r="1.5" fill="currentColor" />
+      <circle cx="8" cy="15" r="1.5" fill="currentColor" />
+      <circle cx="12" cy="9" r="1.5" fill="currentColor" />
+      <circle cx="12" cy="15" r="1.5" fill="currentColor" />
+      <circle cx="16" cy="9" r="1.5" fill="currentColor" />
+      <circle cx="16" cy="15" r="1.5" fill="currentColor" />
+    </svg>
+  );
+}
 import { Chemical } from "@/lib/chemicals";
 import { ReactionResult } from "@/lib/reactions";
 import { HandState } from "@/lib/handTracking";
@@ -94,9 +115,63 @@ export default function Lab3DAITutorVoice({
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [teacherResponse, setTeacherResponse] = useState<string>(
-    "Chào em! Cô là cô giáo Mai. Em có thể giơ 2 ngón tay ✌️ để hỏi cô và khi hạ tay cô sẽ tự động trả lời nhé!"
+    "Chào em! Cô là cô giáo Mai. Em có thể giơ 3 ngón tay 🤟 để hỏi cô và khi hạ tay cô sẽ tự động trả lời nhé!"
   );
   const [inputQuery, setInputQuery] = useState("");
+
+  // Vị trí cửa sổ chat có thể kéo thả di chuyển linh hoạt khắp màn hình
+  const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef<boolean>(false);
+  const dragStartRef = useRef<{ startX: number; startY: number; initX: number; initY: number }>({
+    startX: 0,
+    startY: 0,
+    initX: 0,
+    initY: 0,
+  });
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    // Không kích hoạt kéo khi bấm vào nút bấm hoặc ô nhập liệu
+    if ((e.target as HTMLElement).closest("button, input, textarea, form, a")) return;
+
+    const box = cardRef.current?.getBoundingClientRect();
+    if (!box) return;
+
+    isDraggingRef.current = true;
+    dragStartRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      initX: box.left,
+      initY: box.top,
+    };
+
+    const handlePointerMove = (ev: PointerEvent) => {
+      if (!isDraggingRef.current) return;
+      const dx = ev.clientX - dragStartRef.current.startX;
+      const dy = ev.clientY - dragStartRef.current.startY;
+      const cardW = cardRef.current?.offsetWidth || 350;
+      const cardH = cardRef.current?.offsetHeight || 280;
+
+      const maxX = Math.max(10, window.innerWidth - cardW - 10);
+      const maxY = Math.max(10, window.innerHeight - cardH - 10);
+
+      const nextX = Math.max(10, Math.min(maxX, dragStartRef.current.initX + dx));
+      const nextY = Math.max(10, Math.min(maxY, dragStartRef.current.initY + dy));
+
+      setPosition({ x: nextX, y: nextY });
+    };
+
+    const handlePointerUp = () => {
+      isDraggingRef.current = false;
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerUp);
+  }, []);
 
   const recognitionRef = useRef<any>(null);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
@@ -532,7 +607,7 @@ export default function Lab3DAITutorVoice({
     }
   }, [onTeacherModeChange, submitVoiceQuestion]);
 
-  // ─── 6. Cử chỉ Giơ 2 Ngón Tay Push-To-Talk (✌️ Victory: Trỏ + Giữa) ───
+  // ─── 6. Cử chỉ Giơ 3 Ngón Tay Push-To-Talk (🤟 / 3 Fingers: Trỏ + Giữa + Áp út hoặc Cái + Trỏ + Giữa) ───
   useEffect(() => {
     let animId: number;
 
@@ -543,30 +618,42 @@ export default function Lab3DAITutorVoice({
 
         if (handStateRef?.current) {
           const hs = handStateRef.current;
-          // Kiểm tra cả 2 tay (Trái & Phải độc lập) để dù tay kia đang cầm điện thoại thì tay còn lại vẫn giơ 2 ngón nói được
+          // Kiểm tra cả 2 tay (Trái & Phải độc lập) để dù tay kia đang cầm điện thoại thì tay còn lại vẫn giơ 3 ngón nói được
           const hands = [hs.rightHand, hs.leftHand, hs].filter(
             (h): h is NonNullable<typeof h> => Boolean(h && h.detected && h.landmarks && h.landmarks.length >= 21)
           );
 
-          let isTwoFingersGesture = false;
+          let isThreeFingersGesture = false;
 
           for (const hand of hands) {
-            // CỬ CHỈ GIƠ 2 NGÓN TAY (✌️ Ngón trỏ & Ngón giữa duỗi lên):
-            const isIndexMiddleExt = Boolean(hand.isIndexExtended && hand.isMiddleExtended);
-            const isRingPinkyFolded = Boolean(!hand.isRingExtended && !hand.isPinkyExtended);
-            const isTwoFingersPeace = isIndexMiddleExt && isRingPinkyFolded;
-            const isTwoFingersCount = hand.extendedFingersCount === 2 && (hand.isIndexExtended || hand.isMiddleExtended);
+            // CỬ CHỈ GIƠ 3 NGÓN TAY ĐỂ MỞ MIC:
+            // 1. Đếm đúng 3 ngón tay đang duỗi
+            const isCountThree = hand.extendedFingersCount === 3;
 
-            if (isTwoFingersPeace || isTwoFingersCount) {
-              isTwoFingersGesture = true;
+            // 2. Kiểu 1: Ngón trỏ + ngón giữa + ngón áp út duỗi (Scout 3-finger salute, ngón út & cái gập)
+            const isIndexMiddleRing = Boolean(
+              hand.isIndexExtended && hand.isMiddleExtended && hand.isRingExtended && !hand.isPinkyExtended
+            );
+
+            // 3. Kiểu 2: Ngón cái + ngón trỏ + ngón giữa duỗi (Kiểu đếm 1-2-3 quen thuộc của người Việt)
+            const isThumbIndexMiddle = Boolean(
+              hand.isThumbExtended && hand.isIndexExtended && hand.isMiddleExtended && !hand.isPinkyExtended
+            );
+
+            // 4. Kiểu 3: 3 ngón bất kỳ nhưng có ngón trỏ hoặc ngón giữa
+            const isFlexibleThree =
+              hand.extendedFingersCount === 3 && (hand.isIndexExtended || hand.isMiddleExtended);
+
+            if (isCountThree || isIndexMiddleRing || isThumbIndexMiddle || isFlexibleThree) {
+              isThreeFingersGesture = true;
               break;
             }
           }
 
-          if (isTwoFingersGesture) {
+          if (isThreeFingersGesture) {
             if (!isGestureListeningRef.current) {
-              // Giữ cử chỉ 2 ngón tay khoảng 150ms để bắt đầu thu âm
-              if (now - gestureHoldTimerRef.current > 150) {
+              // Giữ cử chỉ 3 ngón tay khoảng 120ms để bắt đầu thu âm
+              if (now - gestureHoldTimerRef.current > 120) {
                 isGestureListeningRef.current = true;
                 setIsOpen(true);
                 startVoiceRecognition();
@@ -575,7 +662,7 @@ export default function Lab3DAITutorVoice({
           } else {
             gestureHoldTimerRef.current = now;
             if (isGestureListeningRef.current) {
-              // Người dùng hạ 2 ngón tay xuống: TỰ ĐỘNG GỬI CÂU HỎI NGAY LẬP TỨC!
+              // Người dùng hạ 3 ngón tay xuống: TỰ ĐỘNG GỬI CÂU HỎI NGAY LẬP TỨC!
               isGestureListeningRef.current = false;
               stopVoiceRecognitionAndSend();
             }
@@ -591,11 +678,39 @@ export default function Lab3DAITutorVoice({
   }, [handStateRef, startVoiceRecognition, stopVoiceRecognitionAndSend]);
 
   return (
-    <div className="absolute top-16 right-3 sm:right-4 z-40 pointer-events-auto select-none max-w-sm w-[92vw] sm:w-88 transition-all duration-300">
+    <div
+      ref={cardRef}
+      style={
+        position
+          ? {
+              left: `${position.x}px`,
+              top: `${position.y}px`,
+              right: "auto",
+              bottom: "auto",
+            }
+          : undefined
+      }
+      className={`fixed ${!position ? "top-16 right-3 sm:right-4" : ""} z-40 pointer-events-auto select-none max-w-sm w-[92vw] sm:w-88 transition-shadow`}
+    >
       {isOpen ? (
         <div className="bg-slate-950/90 backdrop-blur-2xl border border-sky-400/50 rounded-3xl p-3.5 shadow-2xl text-white ring-1 ring-sky-400/20">
+          {/* ── Thanh Kéo Thả Di Chuyển (Drag Handle) ── */}
+          <div
+            onPointerDown={handlePointerDown}
+            className="flex items-center justify-center -mt-1 mb-1.5 py-0.5 text-slate-500 hover:text-sky-300 transition-colors cursor-grab active:cursor-grabbing touch-none select-none"
+            title="Kéo thả để di chuyển vị trí bảng chat Cô Giáo Mai bất kỳ đâu trên màn hình"
+          >
+            <div className="flex items-center gap-1 px-3 py-0.5 rounded-full bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50">
+              <GripIcon className="w-4 h-3 opacity-70" />
+              <span className="text-[9px] text-slate-400 font-medium">Di chuyển bảng</span>
+            </div>
+          </div>
+
           {/* ── Header Cô Giáo Mai AI ── */}
-          <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800">
+          <div
+            onPointerDown={handlePointerDown}
+            className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 cursor-grab active:cursor-grabbing touch-none"
+          >
             <div className="flex items-center gap-2">
               <div className="relative">
                 <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-sky-500/30">
@@ -701,10 +816,10 @@ export default function Lab3DAITutorVoice({
             <div className="p-2.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 flex items-center justify-between mb-2.5 animate-pulse">
               <div className="flex items-center gap-2 text-xs">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
-                <span className="truncate">{transcript || "Cô đang lắng nghe (Hạ 2 ngón tay để gửi)..."}</span>
+                <span className="truncate">{transcript || "Cô đang lắng nghe (Hạ 3 ngón tay để gửi)..."}</span>
               </div>
               <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-full shrink-0">
-                REC ✌️
+                REC 🤟
               </span>
             </div>
           )}
@@ -722,7 +837,7 @@ export default function Lab3DAITutorVoice({
                   ? "bg-rose-600 text-white animate-pulse shadow-rose-500/30 ring-2 ring-rose-400"
                   : "bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white shadow-sky-500/25"
               }`}
-              title="Nhấn giữ để nói (hoặc giơ 2 ngón tay ✌️ trước webcam), buông ra sẽ tự động gửi"
+              title="Nhấn giữ để nói (hoặc giơ 3 ngón tay 🤟 trước webcam), buông ra sẽ tự động gửi"
             >
               <Mic className="w-3.5 h-3.5" />
               <span className="whitespace-nowrap">{isListening ? "Đang thu..." : "Giữ Nói"}</span>
@@ -763,8 +878,8 @@ export default function Lab3DAITutorVoice({
           {/* ── Gợi ý cử chỉ ngón tay & nút ẩn/hiện 3D Teacher ── */}
           <div className="mt-2.5 pt-2 border-t border-slate-900 flex items-center justify-between text-[10px] text-slate-400">
             <span className="flex items-center gap-1 text-amber-300/90 font-medium">
-              <span>✌️</span>
-              <span>Giơ 2 ngón tay để hỏi • Hạ tay tự gửi</span>
+              <span>🤟</span>
+              <span>Giơ 3 ngón tay để hỏi • Hạ tay tự gửi</span>
             </span>
 
             <button
@@ -776,17 +891,22 @@ export default function Lab3DAITutorVoice({
           </div>
         </div>
       ) : (
-        /* Widget khi thu nhỏ */
-        <button
-          onClick={() => setIsOpen(true)}
-          className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-slate-950/90 border border-sky-500/50 hover:border-sky-400 shadow-xl text-white backdrop-blur-xl transition-all group hover:scale-105"
+        /* Widget khi thu nhỏ (có thể kéo di chuyển vị trí) */
+        <div
+          onPointerDown={handlePointerDown}
+          className="cursor-grab active:cursor-grabbing touch-none inline-block"
         >
-          <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white">
-            <GraduationCap className="w-3.5 h-3.5" />
-          </div>
-          <span className="text-xs font-semibold">Cô Giáo Mai AI</span>
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-        </button>
+          <button
+            onClick={() => setIsOpen(true)}
+            className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-slate-950/90 border border-sky-500/50 hover:border-sky-400 shadow-xl text-white backdrop-blur-xl transition-all group hover:scale-105"
+          >
+            <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white">
+              <GraduationCap className="w-3.5 h-3.5" />
+            </div>
+            <span className="text-xs font-semibold">Cô Giáo Mai AI</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          </button>
+        </div>
       )}
     </div>
   );
