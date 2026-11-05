@@ -577,7 +577,7 @@ function SceneContent({
                         const rx = getReaction(c1, c2) || getReaction(c2, c1);
                         if (rx) {
                             setActiveReaction(rx);
-                            setReactionPosition([beaker.position[0], beaker.position[1] + 0.12, beaker.position[2]]);
+                            setReactionPosition([beaker.position[0], beaker.position[1], beaker.position[2]]);
                             const effectColor = rx.effects.find((e) => e.targetColor)?.targetColor;
                             if (effectColor) beaker.liquidColor = effectColor;
                             beaker.label = `Sản phẩm: ${rx.equation}`;
@@ -754,8 +754,7 @@ function SceneContent({
                                         }
                                         if (!activeReaction || activeReaction.equation !== reaction.equation) {
                                             setActiveReaction(reaction);
-                                            setReactionPosition([target.position[0], target.position[1] + 0.12, target.position[2]]);
-                                            playLabSound("bubbles");
+                                            setReactionPosition([target.position[0], target.position[1], target.position[2]]);
                                             setTeacherMode(reaction.type === "combustion" ? "warning" : "success");
                                             setTeacherMessage(`Phản ứng xảy ra! ${reaction.equation}\n${reaction.description}`);
                                         }
@@ -1111,7 +1110,7 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
     }, [pourState?.active]);
 
     const [activeReaction, setActiveReaction] = useState<ReactionResult | null>(null);
-    const [reactionPosition, setReactionPosition] = useState<[number, number, number]>([0.0, 0.1, 0.25]);
+    const [reactionPosition, setReactionPosition] = useState<[number, number, number]>([0.0, -0.06, 0.25]);
 
     // ─── Thao tác Rót từ nguồn sang đích (Tự động di chuyển & nghiêng rót như thật) ───
     const handleExecutePour = useCallback(
@@ -1195,8 +1194,7 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
 
                 if (reactionResult) {
                     setActiveReaction(reactionResult);
-                    setReactionPosition([target!.position[0], target!.position[1] + 0.12, target!.position[2]]);
-                    playLabSound("bubbles");
+                    setReactionPosition([target!.position[0], target!.position[1], target!.position[2]]);
                     setTeacherMode(reactionResult.type === "combustion" ? "warning" : "success");
                     setTeacherMessage(`Phản ứng hóa học xảy ra!\n${reactionResult.equation}\nHiện tượng: ${reactionResult.description}`);
 

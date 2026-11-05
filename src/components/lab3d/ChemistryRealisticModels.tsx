@@ -12,6 +12,7 @@
 
 import React, { useMemo, useEffect, useRef } from "react";
 import * as THREE from "three";
+import { useFrame } from "@react-three/fiber";
 import { useFBX, useTexture } from "@react-three/drei";
 
 // ─── Sound Effects Utility ───
@@ -20,15 +21,146 @@ let pickAudio: HTMLAudioElement | null = null;
 let placeAudio: HTMLAudioElement | null = null;
 const lastPlayedTimes: Record<string, number> = {};
 
-export function playLabSound(type: "bubbles" | "pick" | "place", loop: boolean = false) {
+let labAudioCtx: AudioContext | null = null;
+function getLabAudioContext(): AudioContext | null {
+    if (typeof window === "undefined") return null;
+    try {
+        const AudioContextClass =
+            window.AudioContext ||
+            (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        if (!AudioContextClass) return null;
+        if (!labAudioCtx) {
+            labAudioCtx = new AudioContextClass();
+        }
+        if (labAudioCtx.state === "suspended") {
+            labAudioCtx.resume().catch(() => {});
+        }
+        return labAudioCtx;
+    } catch {
+        return null;
+    }
+}
+
+function synthesizeSound(type: "explosion" | "fizz" | "crackle" | "hiss") {
+    const ctx = getLabAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    if (type === "explosion") {
+        try {
+            // 1. Sub-bass boom oscillator
+            const osc = ctx.createOscillator();
+            const oscGain = ctx.createGain();
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(170, now);
+            osc.frequency.exponentialRampToValueAtTime(28, now + 0.7);
+            oscGain.gain.setValueAtTime(0.85, now);
+            oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+            osc.connect(oscGain);
+            oscGain.connect(ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.85);
+
+            // 2. Filtered blast noise
+            const bufferSize = Math.floor(ctx.sampleRate * 0.9);
+            const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.22));
+            }
+            const noise = ctx.createBufferSource();
+            noise.buffer = buffer;
+            const filter = ctx.createBiquadFilter();
+            filter.type = "lowpass";
+            filter.frequency.setValueAtTime(480, now);
+            filter.frequency.exponentialRampToValueAtTime(75, now + 0.8);
+            const noiseGain = ctx.createGain();
+            noiseGain.gain.setValueAtTime(0.75, now);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+            noise.connect(filter);
+            filter.connect(noiseGain);
+            noiseGain.connect(ctx.destination);
+            noise.start(now);
+        } catch {}
+    } else if (type === "fizz") {
+        try {
+            const bufferSize = Math.floor(ctx.sampleRate * 1.5);
+            const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1;
+            }
+            const noise = ctx.createBufferSource();
+            noise.buffer = buffer;
+            const filter = ctx.createBiquadFilter();
+            filter.type = "bandpass";
+            filter.frequency.setValueAtTime(2200, now);
+            filter.Q.setValueAtTime(2.8, now);
+            const gain = ctx.createGain();
+            gain.gain.setValueAtTime(0.28, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(ctx.destination);
+            noise.start(now);
+        } catch {}
+    } else if (type === "crackle") {
+        try {
+            for (let j = 0; j < 6; j++) {
+                const burstTime = now + j * 0.07 + Math.random() * 0.03;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = "triangle";
+                osc.frequency.setValueAtTime(700 + Math.random() * 1400, burstTime);
+                gain.gain.setValueAtTime(0.18, burstTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, burstTime + 0.03);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(burstTime);
+                osc.stop(burstTime + 0.035);
+            }
+        } catch {}
+    } else if (type === "hiss") {
+        try {
+            const bufferSize = Math.floor(ctx.sampleRate * 1.2);
+            const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1;
+            }
+            const noise = ctx.createBufferSource();
+            noise.buffer = buffer;
+            const filter = ctx.createBiquadFilter();
+            filter.type = "highpass";
+            filter.frequency.setValueAtTime(2600, now);
+            const gain = ctx.createGain();
+            gain.gain.setValueAtTime(0.22, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 1.1);
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(ctx.destination);
+            noise.start(now);
+        } catch {}
+    }
+}
+
+export function playLabSound(
+    type: "bubbles" | "pick" | "place" | "explosion" | "fizz" | "crackle" | "hiss",
+    loop: boolean = false
+) {
     if (typeof window === "undefined") return;
     const now = performance.now();
-    if (!loop && lastPlayedTimes[type] && now - lastPlayedTimes[type] < 350) {
-        return; // Chống spam âm thanh liên tục (tối thiểu 350ms giữa 2 lần kích hoạt)
+    if (!loop && lastPlayedTimes[type] && now - lastPlayedTimes[type] < 300) {
+        return; // Chống spam âm thanh liên tục
     }
     lastPlayedTimes[type] = now;
 
     try {
+        if (type === "explosion" || type === "fizz" || type === "crackle" || type === "hiss") {
+            synthesizeSound(type);
+            return;
+        }
+
         if (type === "bubbles") {
             if (!bubbleAudio) {
                 bubbleAudio = new Audio("/models/chemistry/bubbles.wav");
@@ -39,6 +171,8 @@ export function playLabSound(type: "bubbles" | "pick" | "place", loop: boolean =
                 bubbleAudio.currentTime = 0;
                 bubbleAudio.play().catch(() => {});
             }
+            // Kết hợp thêm âm thanh xèo xèo nhẹ từ web audio
+            synthesizeSound("fizz");
         } else if (type === "pick") {
             if (!pickAudio) {
                 pickAudio = new Audio("/models/chemistry/pickItem.wav");
@@ -209,11 +343,11 @@ export function RealisticGlasswareMesh({
         return [s, s, s];
     }, [scale, defaultScale]);
 
-    // Material dung dịch bên trong: Màu sắc đậm đà rõ ràng, phản xạ mặt thoáng nước
+    // Material dung dịch bên trong: Tự động chuyển đổi màu mượt mà qua các frame (Smooth color transition)
     const liquidMaterial = useMemo(() => {
         return new THREE.MeshStandardMaterial({
-            color: new THREE.Color(liquidColor),
-            emissive: new THREE.Color(liquidColor),
+            color: new THREE.Color(liquidColor && liquidColor !== "transparent" ? liquidColor : "#38bdf8"),
+            emissive: new THREE.Color(liquidColor && liquidColor !== "transparent" ? liquidColor : "#38bdf8"),
             emissiveIntensity: 0.25,
             roughness: 0.1,
             metalness: 0.05,
@@ -221,7 +355,29 @@ export function RealisticGlasswareMesh({
             opacity: 0.92,
             depthWrite: true,
         });
-    }, [liquidColor]);
+    }, []);
+
+    const surfaceMaterial = useMemo(() => {
+        return new THREE.MeshStandardMaterial({
+            color: new THREE.Color(liquidColor && liquidColor !== "transparent" ? liquidColor : "#38bdf8"),
+            emissive: new THREE.Color(liquidColor && liquidColor !== "transparent" ? liquidColor : "#38bdf8"),
+            emissiveIntensity: 0.25,
+            roughness: 0.05,
+            transparent: true,
+            opacity: 0.9,
+        });
+    }, []);
+
+    useFrame((_, delta) => {
+        if (!liquidColor || liquidColor === "transparent") return;
+        try {
+            const target = new THREE.Color(liquidColor);
+            liquidMaterial.color.lerp(target, Math.min(1.0, delta * 2.8));
+            liquidMaterial.emissive.copy(liquidMaterial.color);
+            surfaceMaterial.color.lerp(target, Math.min(1.0, delta * 2.8));
+            surfaceMaterial.emissive.copy(surfaceMaterial.color);
+        } catch {}
+    });
 
     const liquidScaleY = Math.max(0.05, Math.min(1.0, fillLevel)) * maxSolutionScaleY;
 
@@ -240,17 +396,7 @@ export function RealisticGlasswareMesh({
                             <cylinderGeometry args={[beakerR - 0.004, beakerR - 0.005, liquidH, 24]} />
                         </mesh>
                         {/* Mặt thoáng chất lỏng */}
-                        <mesh position={[0, liquidH / 2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-                            <circleGeometry args={[beakerR - 0.004, 24]} />
-                            <meshStandardMaterial
-                                color={liquidColor}
-                                emissive={liquidColor}
-                                emissiveIntensity={0.25}
-                                roughness={0.05}
-                                transparent
-                                opacity={0.9}
-                            />
-                        </mesh>
+                        <mesh position={[0, liquidH / 2, 0]} rotation={[-Math.PI / 2, 0, 0]} material={surfaceMaterial} />
                     </group>
                 )}
 
@@ -260,17 +406,7 @@ export function RealisticGlasswareMesh({
                         <mesh material={liquidMaterial} renderOrder={0}>
                             <cylinderGeometry args={[beakerR - 0.004, beakerR - 0.005, liquidH, 24]} />
                         </mesh>
-                        <mesh position={[0, liquidH / 2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-                            <circleGeometry args={[beakerR - 0.004, 24]} />
-                            <meshStandardMaterial
-                                color={liquidColor}
-                                emissive={liquidColor}
-                                emissiveIntensity={0.25}
-                                roughness={0.05}
-                                transparent
-                                opacity={0.88}
-                            />
-                        </mesh>
+                        <mesh position={[0, liquidH / 2, 0]} rotation={[-Math.PI / 2, 0, 0]} material={surfaceMaterial} />
                     </group>
                 )}
 
@@ -331,7 +467,7 @@ export function RealisticGlasswareMesh({
                         <mesh material={liquidMaterial} renderOrder={0}>
                             <cylinderGeometry args={[0.024, 0.024, fillLevel * 0.18, 20]} />
                         </mesh>
-                        <mesh position={[0, (fillLevel * 0.18) / 2, 0]} rotation={[-Math.PI / 2, 0, 0]} material={liquidMaterial} renderOrder={0}>
+                        <mesh position={[0, (fillLevel * 0.18) / 2, 0]} rotation={[-Math.PI / 2, 0, 0]} material={surfaceMaterial} renderOrder={0}>
                             <circleGeometry args={[0.024, 20]} />
                         </mesh>
                     </group>
