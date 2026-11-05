@@ -618,24 +618,81 @@ function HandOrganInteraction({
     controlsRef: React.MutableRefObject<any>;
 }) {
     const lastPosRef = useRef<{ x: number; y: number } | null>(null);
+    const prevSpanRef = useRef<number | null>(null);
 
     useFrame(() => {
         if (!handStateRef || !handStateRef.current || !controlsRef.current) return;
         const hs = handStateRef.current;
         if (!hs.detected || hs.landmarks.length < 9) {
             lastPosRef.current = null;
+            prevSpanRef.current = null;
             return;
         }
 
-        const lm = hs.landmarks[9] || hs.landmarks[0];
+        const controls = controlsRef.current;
+        const camera = controls?.object;
+        const target = controls?.target;
+        if (!camera || !target) return;
+
+        // 1. ZOOM BẰNG 2 BÀN TAY (Dual Hand Stretch: Kéo 2 tay ra xa để Phóng to, khép lại để Thu nhỏ)
+        if (hs.leftHand && hs.leftHand.detected && hs.rightHand && hs.rightHand.detected) {
+            const span = Math.hypot(
+                hs.leftHand.palmPos[0] - hs.rightHand.palmPos[0],
+                hs.leftHand.palmPos[1] - hs.rightHand.palmPos[1]
+            );
+            if (prevSpanRef.current !== null) {
+                const dSpan = span - prevSpanRef.current;
+                if (Math.abs(dSpan) > 0.003) {
+                    const factor = Math.max(0.95, Math.min(1.05, 1 - dSpan * 2.0));
+                    const offset = new THREE.Vector3().copy(camera.position).sub(target);
+                    const currentDist = offset.length();
+                    const newDist = Math.max(0.6, Math.min(12.0, currentDist * factor));
+                    offset.setLength(newDist);
+                    camera.position.copy(target).add(offset);
+                    if (typeof controls.update === "function") controls.update();
+                }
+            }
+            prevSpanRef.current = span;
+            lastPosRef.current = null;
+            return;
+        }
+        prevSpanRef.current = null;
+
+        const activeHand = hs.rightHand?.detected ? hs.rightHand : hs.leftHand?.detected ? hs.leftHand : hs;
+
+        // 2. GESTURE ZOOM: Giơ 2 ngón (✌️) phóng to, ngón út & cái (🤙) thu nhỏ
+        const isVSign = activeHand.isIndexExtended && activeHand.isMiddleExtended && !activeHand.isRingExtended && !activeHand.isPinkyExtended;
+        const isShaka = activeHand.isPinkyExtended && activeHand.isThumbExtended && !activeHand.isIndexExtended && !activeHand.isMiddleExtended;
+
+        if (isVSign) {
+            const offset = new THREE.Vector3().copy(camera.position).sub(target);
+            const currentDist = offset.length();
+            const newDist = Math.max(0.6, currentDist * 0.985);
+            offset.setLength(newDist);
+            camera.position.copy(target).add(offset);
+            if (typeof controls.update === "function") controls.update();
+            lastPosRef.current = null;
+            return;
+        } else if (isShaka) {
+            const offset = new THREE.Vector3().copy(camera.position).sub(target);
+            const currentDist = offset.length();
+            const newDist = Math.min(12.0, currentDist * 1.015);
+            offset.setLength(newDist);
+            camera.position.copy(target).add(offset);
+            if (typeof controls.update === "function") controls.update();
+            lastPosRef.current = null;
+            return;
+        }
+
+        const lm = activeHand.landmarks?.[9] || hs.landmarks[9] || hs.landmarks[0];
         const screenX = 1 - lm.x; // Mirrored webcam
         const screenY = lm.y;
 
         const isGrabbing =
-            hs.gesture === "GRAB" ||
-            (hs.rightHand?.gripStrength || 0) > 0.32 ||
-            (hs.rightHand?.pinchDistance || 1) < 0.40 ||
-            (hs.rightHand?.isIndexExtended && !hs.rightHand?.isPinkyExtended);
+            activeHand.gesture === "GRAB" ||
+            (activeHand.gripStrength || 0) > 0.35 ||
+            (activeHand.pinchDistance || 1) < 0.35 ||
+            (!activeHand.isIndexExtended && !activeHand.isMiddleExtended);
 
         if (isGrabbing) {
             if (lastPosRef.current) {
@@ -643,20 +700,15 @@ function HandOrganInteraction({
                 const dy = screenY - lastPosRef.current.y;
 
                 if (Math.abs(dx) > 0.001 || Math.abs(dy) > 0.001) {
-                    const controls = controlsRef.current;
-                    const camera = controls?.object;
-                    const target = controls?.target;
-                    if (camera && target) {
-                        const offset = new THREE.Vector3().copy(camera.position).sub(target);
-                        const spherical = new THREE.Spherical().setFromVector3(offset);
-                        spherical.theta += dx * 4.2;
-                        spherical.phi = Math.max(0.08, Math.min(Math.PI - 0.08, spherical.phi - dy * 3.2));
-                        offset.setFromSpherical(spherical);
-                        camera.position.copy(target).add(offset);
-                        camera.lookAt(target);
-                        if (typeof controls.update === "function") {
-                            controls.update();
-                        }
+                    const offset = new THREE.Vector3().copy(camera.position).sub(target);
+                    const spherical = new THREE.Spherical().setFromVector3(offset);
+                    spherical.theta += dx * 4.2;
+                    spherical.phi = Math.max(0.08, Math.min(Math.PI - 0.08, spherical.phi - dy * 3.2));
+                    offset.setFromSpherical(spherical);
+                    camera.position.copy(target).add(offset);
+                    camera.lookAt(target);
+                    if (typeof controls.update === "function") {
+                        controls.update();
                     }
                 }
             }
@@ -667,23 +719,18 @@ function HandOrganInteraction({
             // Tích hợp Cảm biến Điện thoại: Nghiêng điện thoại để xoay quan sát 360° cơ quan (Spatial Viewing)
             const sensor = deviceSensors.getData();
             if (sensor.isSupported && (Math.abs(sensor.roll) > 8 || Math.abs(sensor.pitch - 60) > 8)) {
-                const controls = controlsRef.current;
-                const camera = controls?.object;
-                const target = controls?.target;
-                if (camera && target) {
-                    const rollDelta = (sensor.roll / 90) * 0.015;
-                    const pitchDelta = ((sensor.pitch - 60) / 90) * 0.012;
+                const rollDelta = (sensor.roll / 90) * 0.015;
+                const pitchDelta = ((sensor.pitch - 60) / 90) * 0.012;
 
-                    const offset = new THREE.Vector3().copy(camera.position).sub(target);
-                    const spherical = new THREE.Spherical().setFromVector3(offset);
-                    spherical.theta += rollDelta;
-                    spherical.phi = Math.max(0.12, Math.min(Math.PI - 0.12, spherical.phi - pitchDelta));
-                    offset.setFromSpherical(spherical);
-                    camera.position.copy(target).add(offset);
-                    camera.lookAt(target);
-                    if (typeof controls.update === "function") {
-                        controls.update();
-                    }
+                const offset = new THREE.Vector3().copy(camera.position).sub(target);
+                const spherical = new THREE.Spherical().setFromVector3(offset);
+                spherical.theta += rollDelta;
+                spherical.phi = Math.max(0.12, Math.min(Math.PI - 0.12, spherical.phi - pitchDelta));
+                offset.setFromSpherical(spherical);
+                camera.position.copy(target).add(offset);
+                camera.lookAt(target);
+                if (typeof controls.update === "function") {
+                    controls.update();
                 }
             }
         }
@@ -780,6 +827,30 @@ export default function ModelViewer({
 
     const handleZoomIn = () => zoomCamera(0.85);
     const handleZoomOut = () => zoomCamera(1.18);
+
+    // Lắng nghe sự kiện Zoom và Xoay bằng cử chỉ bàn tay từ BioLive3DHandCanvas (Hỗ trợ toàn bộ tim, thận, não, gan...)
+    React.useEffect(() => {
+        const onHandZoom = (e: Event) => {
+            const detail = (e as CustomEvent<{ factor: number | "reset" }>).detail;
+            if (!detail) return;
+            if (detail.factor === "reset") {
+                handleResetCamera();
+            } else if (typeof detail.factor === "number") {
+                zoomCamera(detail.factor);
+            }
+        };
+        const onHandRotate = (e: Event) => {
+            const detail = (e as CustomEvent<{ dx: number; dy: number }>).detail;
+            if (!detail) return;
+            rotateCamera(-detail.dx * 0.007, -detail.dy * 0.007);
+        };
+        window.addEventListener("bio-hand-zoom", onHandZoom);
+        window.addEventListener("bio-hand-rotate", onHandRotate);
+        return () => {
+            window.removeEventListener("bio-hand-zoom", onHandZoom);
+            window.removeEventListener("bio-hand-rotate", onHandRotate);
+        };
+    }, []);
 
     const handleModelClick = (e: ThreeEvent<MouseEvent>) => {
         e.stopPropagation();

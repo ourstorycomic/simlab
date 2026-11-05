@@ -621,7 +621,12 @@ function SceneContent({
 
             // 2. THAO TÁC TAY WEBCAM CAMERA & ĐIỆN THOẠI CẢM BIẾN (CAM HAND AI):
             const isPointingWithIndex = Boolean(data.isIndexExtended && !data.isPinkyExtended && !data.isRingExtended);
-            const isGrabbing = Boolean(data.gesture === "GRAB" || data.isHolding);
+            const isGrabbing = Boolean(
+                data.gesture === "GRAB" ||
+                data.isHolding ||
+                (data.gripStrength || 0) > 0.35 ||
+                (data.pinchDistance || 1) < 0.35
+            );
 
             const palm = data.palmPos;
             const pinch = data.pinchPos || palm;
@@ -824,11 +829,11 @@ function SceneContent({
                         }
 
                         // 2. Grab Target Filtering:
-                        // - Giới hạn dx <= 0.18m: Bàn tay phải ở cự ly sát bình
-                        // - Tay bắt buộc phải hạ thấp xuống sát mặt bàn thí nghiệm (palm[1] <= 0.14m, dy <= 0.20m)
-                        // - Tuyệt đối KHÔNG tự động bốc bình khi tay đang giơ lên cao hoặc đang chỉ ngón trỏ!
-                        if (dx <= 0.18 && dy <= 0.20 && palm[1] <= 0.14 && !isPointingWithIndex) {
-                            let score = dx * 2.5 + dy;
+                        // - Giới hạn dx <= 0.25m, dy <= 0.28m: Vùng bắt phóng khoáng, dễ cầm nắm
+                        // - Tay hạ thấp xuống sát mặt bàn (palm[1] <= 0.25m)
+                        // - Không tự động bốc bình khi tay đang giơ lên cao hoặc đang chỉ ngón trỏ
+                        if (dx <= 0.25 && dy <= 0.28 && palm[1] <= 0.25 && !isPointingWithIndex) {
+                            let score = dx * 2.0 + dy;
                             if (score < bestScore) {
                                 bestScore = score;
                                 bestCandidate = it;

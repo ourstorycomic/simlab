@@ -495,8 +495,8 @@ function Pendulum3D({
                 s.initialAngle = s.angle;
                 s.velocity = 0;
                 s.time = 0;
-            } else if (dist2D < 0.90 && unholdFramesRef.current < 7) {
-                // Vùng đệm 7 frame (120-150ms): Bỏ qua hiện tượng nháy nhận diện bàn tay tạm thời
+            } else if (dist2D < 0.90 && unholdFramesRef.current < 12) {
+                // Vùng đệm 12 frame (~200ms): Bỏ qua hiện tượng nháy nhận diện bàn tay tạm thời, chống rớt giữa chừng
                 unholdFramesRef.current++;
                 s.time = 0;
                 s.velocity = 0;
@@ -1975,14 +1975,27 @@ const PhysicsSceneContent = memo(function PhysicsSceneContent({
             const pinch = activeHand.pinchDistance ?? 1;
             const extCount = activeHand.extendedFingersCount ?? 5;
 
-            const isOpeningHand = activeHand.gesture === "OPEN" || extCount >= 3 || grip < 0.38;
-            const isPointing = Boolean(activeHand.isIndexExtended && !activeHand.isRingExtended && !activeHand.isPinkyExtended);
+            const isPointing = Boolean(activeHand.isIndexExtended && !activeHand.isRingExtended && !activeHand.isPinkyExtended && extCount >= 2);
             const isRingGrab = Boolean(activeHand.isRingExtended && !activeHand.isIndexExtended);
 
-            const isGrabbingOrHolding =
-                !isOpeningHand &&
-                !isPointing &&
-                (activeHand.gesture === "GRAB" || grip > 0.52 || pinch < 0.18 || isRingGrab || (extCount <= 2 && extCount > 0));
+            // Cơ chế khóa trạng thái chống rung giật (Hysteresis Grip Lock):
+            // - Khi đang cầm: Chỉ nhả khi người dùng thực sự xòe rộng cả bàn tay (OPEN)
+            // - Khi chưa cầm: Nhạy bén bắt lấy ngay khi nắm tay hoặc chụm ngón nhẹ
+            const prevHolding = isHoldingRef.current;
+            let isGrabbingOrHolding = false;
+
+            if (prevHolding) {
+                const isRealOpenHand = activeHand.gesture === "OPEN" && (extCount >= 4 || grip < 0.22);
+                isGrabbingOrHolding = !isRealOpenHand;
+            } else {
+                const isGrabGesture =
+                    activeHand.gesture === "GRAB" ||
+                    grip > 0.36 ||
+                    pinch < 0.35 ||
+                    isRingGrab ||
+                    (extCount <= 2 && extCount > 0);
+                isGrabbingOrHolding = isGrabGesture && !isPointing;
+            }
 
             isHoldingRef.current = isGrabbingOrHolding;
 

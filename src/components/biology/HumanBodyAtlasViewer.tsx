@@ -357,16 +357,20 @@ export default function HumanBodyAtlasViewer({
 
       let targetMesh: THREE.Mesh | null = null;
       if (organKey === "heart") {
-        // Tìm cấu trúc Cavity of right atrium (FMA11359 / FJ2424) chính xác như Ảnh 3
+        // Tìm cấu trúc Tim chuẩn xác trong lồng ngực (FJ2424 / FMA11359 hoặc các mesh tim FJ24xx trong khoảng Y: 1.25 - 1.38)
         targetMesh =
           allMeshesRef.current.find(
             (m) => m.userData.conceptId === "FMA11359" || m.userData.id === "FJ2424"
           ) ||
           allMeshesRef.current.find(
             (m) =>
+              (m.userData.id?.startsWith("FJ24") || (m.userData.conceptId && ["FMA9466", "FMA9291", "FMA11359", "FMA9465", "FMA13884"].includes(m.userData.conceptId)))
+          ) ||
+          allMeshesRef.current.find(
+            (m) =>
               m.userData.system === "cardiac" &&
-              (m.userData.name?.toLowerCase().includes("atrium") ||
-                ((m.userData.origCenter?.y || 0) < 1.25 && (m.userData.origCenter?.y || 0) > 0.8))
+              (m.userData.origCenter?.y || 0) >= 1.22 &&
+              (m.userData.origCenter?.y || 0) <= 1.40
           ) ||
           null;
       } else if (organKey === "brain") {
@@ -1735,23 +1739,37 @@ export default function HumanBodyAtlasViewer({
                 <Layers className="w-4 h-4 text-sky-400" />
                 <span>Phân tách cấu trúc:</span>
               </span>
-              <div className="flex-1 flex items-center gap-2">
+              <div className="flex-1 flex items-center gap-1.5 sm:gap-2">
+                <button
+                  onClick={() => setExplodeLevel((prev) => Math.max(0, prev - 15))}
+                  className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-300 font-bold flex items-center justify-center shrink-0 border border-slate-700 active:scale-95 transition-all text-sm cursor-pointer shadow-sm"
+                  title="Thu bớt khoảng cách phân tách (-15%)"
+                >
+                  -
+                </button>
                 <input
                   type="range"
                   min="0"
                   max="100"
                   value={explodeLevel}
                   onChange={(e) => setExplodeLevel(Number(e.target.value))}
-                  className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-400"
+                  className="flex-1 h-3 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-400 py-1"
                   title="Kéo thanh trượt để phân tách các cấu trúc giải phẫu ra xa nhau"
                 />
-                <span className="font-mono text-xs text-sky-200 w-11 text-center font-bold bg-sky-950/70 px-1.5 py-0.5 rounded border border-sky-800/50">
+                <button
+                  onClick={() => setExplodeLevel((prev) => Math.min(100, prev + 15))}
+                  className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-300 font-bold flex items-center justify-center shrink-0 border border-slate-700 active:scale-95 transition-all text-sm cursor-pointer shadow-sm"
+                  title="Tăng thêm khoảng cách phân tách (+15%)"
+                >
+                  +
+                </button>
+                <span className="font-mono text-xs text-sky-200 w-11 text-center font-bold bg-sky-950/70 px-1.5 py-1 rounded-lg border border-sky-800/50 shrink-0">
                   {explodeLevel}%
                 </span>
                 <button
                   onClick={() => setExplodeLevel(0)}
-                  className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors flex items-center gap-1 text-[11px] font-medium"
-                  title="Đặt lại vị trí (0%)"
+                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors flex items-center gap-1 text-[11px] font-medium shrink-0 cursor-pointer border border-slate-700"
+                  title="Thu về trạng thái giải phẫu ban đầu (0%)"
                 >
                   <svg className="w-3.5 h-3.5 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -1883,24 +1901,73 @@ export default function HumanBodyAtlasViewer({
                   {/* 3D Linked Organ Card (Ảnh 4) */}
                   {(() => {
                     const sys = selectedStructure.system;
-                    const structLower = (selectedStructure.id + " " + selectedStructure.name).toLowerCase();
+                    const structLower = (selectedStructure.id + " " + selectedStructure.name + " " + (selectedStructure.viName || "")).toLowerCase();
                     
                     let linked = { id: "heart", name: "Tim", image: "/images/organs/heart.webp" };
-                    if (structLower.includes("stomach") || structLower.includes("dạ dày") || structLower.includes("gaster")) {
-                      linked = { id: "stomach", name: "Dạ dày", image: "/images/organs/stomach.webp" };
-                    } else if (structLower.includes("kidney") || structLower.includes("thận") || structLower.includes("ren")) {
+                    // 1. TIM (Cardiac / Heart): Ưu tiên cao nhất khi thuộc hệ tuần hoàn hoặc tên liên quan tim/nhĩ/thất
+                    if (
+                      sys === "cardiac" ||
+                      /\b(heart|cardiac|cor|atrium|ventricle|myocard|endocard|pericard|mitral|tricuspid|aortic valve|pulmonary valve)\b/i.test(structLower) ||
+                      structLower.includes("tim") ||
+                      structLower.includes("tâm nhĩ") ||
+                      structLower.includes("tâm thất") ||
+                      structLower.includes("van tim")
+                    ) {
+                      linked = { id: "heart", name: "Tim", image: "/images/organs/heart.webp" };
+                    } else if (
+                      // 2. THẬN (Kidney / Urinary): Chỉ nhận khi đúng cơ quan tiết niệu/thận, tuyệt đối không bắt nhầm phrenic/hoành
+                      sys === "urinary" ||
+                      /\b(kidney|renal|renes|nephr|ureter|bladder|urethra)\b/i.test(structLower) ||
+                      structLower.includes("thận") ||
+                      structLower.includes("tiết niệu") ||
+                      structLower.includes("bàng quang") ||
+                      structLower.includes("niệu quản")
+                    ) {
                       linked = { id: "kidney", name: "Thận", image: "/images/organs/kidneys.webp" };
-                    } else if (structLower.includes("pancreas") || structLower.includes("tụy")) {
-                      linked = { id: "pancreas", name: "Tụy", image: "/images/organs/pancreas.webp" };
-                    } else if (structLower.includes("liver") || structLower.includes("gan") || structLower.includes("mật")) {
-                      linked = { id: "liver", name: "Gan", image: "/images/organs/liver.webp" };
-                    } else if (structLower.includes("lung") || structLower.includes("phổi") || structLower.includes("khí quản") || structLower.includes("phế quản")) {
+                    } else if (
+                      sys === "respiratory" ||
+                      /\b(lung|pulmon|bronch|trachea|alveol|pleura)\b/i.test(structLower) ||
+                      structLower.includes("phổi") ||
+                      structLower.includes("khí quản") ||
+                      structLower.includes("phế quản")
+                    ) {
                       linked = { id: "lungs", name: "Phổi", image: "/images/organs/lungs.webp" };
-                    } else if (structLower.includes("brain") || structLower.includes("não") || structLower.includes("tủy") || structLower.includes("cerebr")) {
+                    } else if (
+                      sys === "nervous" ||
+                      /\b(brain|cerebr|cerebell|encephal|neuron|cortex|medulla)\b/i.test(structLower) ||
+                      structLower.includes("não") ||
+                      structLower.includes("tủy") ||
+                      structLower.includes("tiểu não")
+                    ) {
                       linked = { id: "brain", name: "Não", image: "/images/organs/brain.webp" };
-                    } else if (structLower.includes("eye") || structLower.includes("mắt") || structLower.includes("nhãn cầu")) {
+                    } else if (
+                      /\b(liver|hepat|bile|gallbladder)\b/i.test(structLower) ||
+                      structLower.includes("gan") ||
+                      structLower.includes("mật")
+                    ) {
+                      linked = { id: "liver", name: "Gan", image: "/images/organs/liver.webp" };
+                    } else if (
+                      /\b(stomach|gaster|gastric)\b/i.test(structLower) ||
+                      structLower.includes("dạ dày") ||
+                      structLower.includes("bao tử")
+                    ) {
+                      linked = { id: "stomach", name: "Dạ dày", image: "/images/organs/stomach.webp" };
+                    } else if (
+                      /\b(pancreas|pancreatic)\b/i.test(structLower) ||
+                      structLower.includes("tụy")
+                    ) {
+                      linked = { id: "pancreas", name: "Tụy", image: "/images/organs/pancreas.webp" };
+                    } else if (
+                      /\b(eye|eyeball|ocular|retina|cornea)\b/i.test(structLower) ||
+                      structLower.includes("mắt") ||
+                      structLower.includes("nhãn cầu")
+                    ) {
                       linked = { id: "eyeball", name: "Nhãn cầu (Mắt)", image: "/images/organs/eyeball.webp" };
-                    } else if (structLower.includes("intestine") || structLower.includes("ruột") || structLower.includes("tràng") || structLower.includes("colon")) {
+                    } else if (
+                      /\b(intestine|colon|duodenum|jejunum|ileum|rectum|cecum)\b/i.test(structLower) ||
+                      structLower.includes("ruột") ||
+                      structLower.includes("tràng")
+                    ) {
                       linked = { id: "intestine", name: "Ruột & Tiêu hóa", image: "/images/organs/intestine.webp" };
                     } else {
                       const organMap: Record<string, { id: string; name: string; image: string }> = {

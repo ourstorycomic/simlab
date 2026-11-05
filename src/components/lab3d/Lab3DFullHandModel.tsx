@@ -202,10 +202,10 @@ function SingleHandMesh({
         const rawHandSpan = Math.max(0.04, Math.hypot(middleMcpLm.x - wristLm.x, middleMcpLm.y - wristLm.y));
         const rawNormScale = 0.095 / rawHandSpan;
 
-        // Tọa độ gốc cổ tay trong thế giới 3D: Căn chỉnh công thái học tự nhiên
-        // Hạ cao độ chuẩn xác để bàn tay xuất hiện tự nhiên vừa tầm mắt, không bao giờ bị dính trên mép đỉnh màn hình
-        const rawWristX = -(wristLm.x - 0.5) * 1.8;
-        const rawWristY = (1.0 - wristLm.y) * 1.05 - 0.42;
+        // Tọa độ gốc cổ tay trong thế giới 3D: Căn chỉnh công thái học mở rộng
+        // Tăng tầm với công thái học để bàn tay vươn tới 100% các thanh điều khiển ở cả đỉnh và đáy màn hình
+        const rawWristX = -((wristLm.x - 0.5) / 0.38) * 1.5;
+        const rawWristY = ((0.52 - wristLm.y) / 0.36) * 1.25;
         const rawWristZ = 0.35 + (wristLm.z || 0) * 0.95;
 
         // Lọc thông thấp (EMA Low-Pass Filter) khử rung giật webcam cực mượt
@@ -253,20 +253,25 @@ function SingleHandMesh({
         // Cập nhật vị trí đầu ngón trỏ chính xác tuyệt đối trên màn hình
         if (onIndexTipUpdate && (!isLeft || !hasRightHand)) {
             const tipMesh = jointMeshesRef.current[8];
+            const tipLm = data.landmarks[8] || wristLm;
             if (tipMesh && groupRef.current) {
                 tipMesh.updateWorldMatrix(true, false);
                 const worldPos = new THREE.Vector3();
                 tipMesh.getWorldPosition(worldPos);
 
-                const ndc = worldPos.clone().project(state.camera);
-                const rect = state.gl.domElement.getBoundingClientRect();
-                const screenX = rect.left + ((ndc.x + 1) * state.size.width) / 2;
-                const screenY = rect.top + ((-ndc.y + 1) * state.size.height) / 2;
+                // Bản đồ công thái học màn hình: Vươn nhẹ tay là chạm 100% cạnh trên và đáy màn hình
+                const normX = THREE.MathUtils.clamp(((1 - tipLm.x) - 0.10) / 0.80, 0, 1);
+                const normY = THREE.MathUtils.clamp((tipLm.y - 0.08) / 0.78, 0, 1);
+                const screenX = normX * window.innerWidth;
+                const screenY = normY * window.innerHeight;
+                const ndcX = normX * 2 - 1;
+                const ndcY = -(normY * 2 - 1);
+
                 onIndexTipUpdate({
                     screenX,
                     screenY,
-                    ndcX: ndc.x,
-                    ndcY: ndc.y,
+                    ndcX,
+                    ndcY,
                     worldPos,
                     isPointing: !!data.isIndexExtended,
                 });

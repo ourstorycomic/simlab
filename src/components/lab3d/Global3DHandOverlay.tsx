@@ -27,8 +27,8 @@ export default function Global3DHandOverlay({ handStateRef, subject, onIndexTipU
             return { position: [0, 0.55, 1.75] as [number, number, number], fov: 48 };
         }
         if (subject === "biology") {
-            // Camera Sinh Học: Đồng bộ phối cảnh camera với PlantCellViewer (Y = 1.35, Z = 2.75) để bàn tay ôm trọn mô hình
-            return { position: [0.08, 1.35, 2.75] as [number, number, number], fov: 38 };
+            // Camera Sinh Học: Góc nhìn trực diện bao quát toàn màn hình để bàn tay vươn tới cả thanh tab và thanh phân tách đáy
+            return { position: [0, 0.25, 2.35] as [number, number, number], fov: 46 };
         }
         // Chemistry default: Đồng bộ với Lab3DScene camera (Y = 0.65, Z = 2.65)
         return { position: [0, 0.65, 2.65] as [number, number, number], fov: 48 };
@@ -40,8 +40,8 @@ export default function Global3DHandOverlay({ handStateRef, subject, onIndexTipU
             return [0, -0.22, 0.0] as [number, number, number];
         }
         if (subject === "biology") {
-            // Hạ bàn tay xuất hiện tự nhiên ngay giữa mô hình tế bào/nội tạng (không bao giờ dính mép đỉnh menu)
-            return [0, -0.42, 0.10] as [number, number, number];
+            // Căn chỉnh công thái học chuẩn: Bàn tay thoải mái vươn lên tới menu và với xuống tới thanh phân tách
+            return [0, -0.08, 0.05] as [number, number, number];
         }
         // Chemistry: Hạ thấp vừa tầm mặt bàn và bình hóa chất
         return [0, -0.06, 0.18] as [number, number, number];

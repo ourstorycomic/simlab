@@ -308,11 +308,11 @@ export default function BiologyBench({
           />
         )}
 
-        {/* Unified 3D Hand Overlay for Cell and Human Atlas (Chỉ kích hoạt khi Hand Tracking được bật hoặc trong Lab 3D) */}
+        {/* Unified 3D Hand Overlay & Gesture Dispatcher cho Tế bào, Toàn thân & Nội tạng (Tim, Thận...) */}
         {(hideHandTracker ? externalHandStateRef : isHandTrackingEnabled) && (
           <BioLive3DHandCanvas
             handStateRef={activeHandStateRef}
-            active={tabMode !== "organs"}
+            active={true}
             tabMode={tabMode}
           />
         )}
