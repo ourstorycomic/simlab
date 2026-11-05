@@ -19,6 +19,8 @@ import {
     seedIfNeeded,
     setSession,
     deleteClass,
+    initStore,
+    onDataChange,
 } from "@/lib/storage";
 import { experiments, Experiment } from "@/lib/experiments";
 import { curriculum } from "@/lib/curriculum";
@@ -84,6 +86,11 @@ export default function TeacherDashboard() {
     const [classDesc, setClassDesc] = useState("");
     const [classError, setClassError] = useState("");
     const [classes, setClasses] = useState<ClassRoom[]>([]);
+
+    const teacherClasses = useMemo(
+        () => classes.filter((c) => c.teacherId === user?.id),
+        [classes, user]
+    );
 
     // Assignment form
     const [selectedClassId, setSelectedClassId] = useState("");
@@ -178,13 +185,55 @@ export default function TeacherDashboard() {
     }, []);
 
     const load = useCallback(() => {
-        seedIfNeeded();
         setUser(getCurrentUser());
         setClasses(getClasses());
     }, []);
 
     useEffect(() => {
         load();
+    }, [load]);
+
+    // Tự động chọn lớp đầu tiên của giảng viên nếu chưa chọn
+    useEffect(() => {
+        if (!selectedClassId && teacherClasses.length > 0) {
+            setSelectedClassId(teacherClasses[0].id);
+        }
+    }, [selectedClassId, teacherClasses]);
+
+    // Tự động cập nhật danh sách bài tập mỗi khi chọn lớp hoặc dữ liệu lớp/bài tập thay đổi
+    useEffect(() => {
+        const targetId = selectedClassId || teacherClasses[0]?.id;
+        if (targetId) {
+            setAssignments(getAssignmentsForClass(targetId));
+        } else {
+            setAssignments([]);
+        }
+    }, [selectedClassId, classes, teacherClasses]);
+
+    // Lắng nghe dữ liệu thay đổi tức thì từ BroadcastChannel / CustomEvent (khi tạo lớp, giao bài...)
+    useEffect(() => {
+        return onDataChange(() => {
+            load();
+            const targetId = selectedClassId || teacherClasses[0]?.id;
+            if (targetId) {
+                setAssignments(getAssignmentsForClass(targetId));
+            }
+        });
+    }, [load, selectedClassId, teacherClasses]);
+
+    // Tự động đồng bộ với Supabase khi mở lại tab hoặc định kỳ 5s
+    useEffect(() => {
+        const handleFocus = () => {
+            initStore(true).then(() => load());
+        };
+        window.addEventListener("focus", handleFocus);
+        const interval = setInterval(() => {
+            initStore(true).then(() => load());
+        }, 5000);
+        return () => {
+            window.removeEventListener("focus", handleFocus);
+            clearInterval(interval);
+        };
     }, [load]);
 
     // ─── Auth guard ───
@@ -221,6 +270,7 @@ export default function TeacherDashboard() {
             setClassName("");
             setClassDesc("");
             setSelectedClassId(created.id);
+            setAssignments(getAssignmentsForClass(created.id));
             setTab("assignments");
             showToast(`Đã tạo lớp "${created.name}" — mã mời: ${created.code}`);
         },
@@ -275,7 +325,7 @@ export default function TeacherDashboard() {
             setCustomQuiz([]);
             showToast(`Đã giao bài "${created.title}" cho lớp`);
         },
-        [selectedClassId, selectedExpId, assignmentTitle, dueDate, targetCondition, safetyRubric, enableCustomQuiz, customQuiz, user, showToast]
+        [selectedClassId, selectedExpId, assignmentTitle, dueDate, targetCondition, safetyRubric, enableCustomQuiz, customQuiz, showToast]
     );
 
     const handleSelectClassForAssignments = useCallback((classId: string) => {
@@ -284,11 +334,6 @@ export default function TeacherDashboard() {
     }, []);
 
     // ─── Derived data ───
-    const teacherClasses = useMemo(
-        () => classes.filter((c) => c.teacherId === user?.id),
-        [classes, user]
-    );
-
     const selectedClassForResults = useMemo(
         () => (selectedClassName ? getClassById(selectedClassName) : null),
         [selectedClassName]

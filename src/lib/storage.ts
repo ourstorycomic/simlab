@@ -86,22 +86,16 @@ export interface BadgeDef {
   icon: string;
 }
 
-// ─── In-memory cache (populated on app load via initStore()) ─────────────────
-const store = {
-  users: [] as User[],
-  classes: [] as ClassRoom[],
-  assignments: [] as Assignment[],
-  submissions: [] as Submission[],
-  joined: {} as Record<string, string[]>, // studentId → class codes[]
-  progress: {} as Record<string, UserProgress>,
-  activity: [] as ActivityEntry[],
-  session: null as string | null, // userId
-  walkthrough: {} as Record<string, boolean>,
-};
-
-// ─── LocalStorage helpers (session + walkthrough only) ──────────────────────
+// ─── LocalStorage Cache Keys ──────────────────────────────────────────────────
 const K_SESSION = "simlab_session";
 const K_WALKTHROUGH = "simlab_walkthrough_done";
+const K_USERS = "simlab_users";
+const K_CLASSES = "simlab_classes";
+const K_ASSIGNMENTS = "simlab_assignments";
+const K_SUBMISSIONS = "simlab_submissions";
+const K_JOINED = "simlab_joined";
+const K_PROGRESS = "simlab_progress";
+const K_ACTIVITY = "simlab_activity";
 
 function lsRead<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -112,6 +106,7 @@ function lsRead<T>(key: string, fallback: T): T {
       try { return JSON.parse(r); } catch { return r as unknown as T; }
   } catch { return fallback; }
 }
+
 function lsWrite<T>(key: string, val: T, persistent: boolean = true): void {
   if (typeof window === "undefined") return;
   try { 
@@ -129,6 +124,83 @@ function lsWrite<T>(key: string, val: T, persistent: boolean = true): void {
           window.localStorage.removeItem(key);
       }
   } catch { /* ignore */ }
+}
+
+// ─── In-memory & LocalStorage Cache (Populated immediately on app load) ───────
+const store = {
+  users: lsRead<User[]>(K_USERS, []),
+  classes: lsRead<ClassRoom[]>(K_CLASSES, []),
+  assignments: lsRead<Assignment[]>(K_ASSIGNMENTS, []),
+  submissions: lsRead<Submission[]>(K_SUBMISSIONS, []),
+  joined: lsRead<Record<string, string[]>>(K_JOINED, {}),
+  progress: lsRead<Record<string, UserProgress>>(K_PROGRESS, {}),
+  activity: lsRead<ActivityEntry[]>(K_ACTIVITY, []),
+  session: lsRead<string | null>(K_SESSION, null),
+  walkthrough: lsRead<Record<string, boolean>>(K_WALKTHROUGH, {}),
+};
+
+// ─── Realtime Event & Cross-Tab Broadcast Channel ────────────────────────────
+export function notifyDataChange(reason: string = "update") {
+  if (typeof window === "undefined") return;
+  try {
+    // 1. In-tab custom event
+    window.dispatchEvent(new CustomEvent("simlab_data_change", { detail: { reason, at: Date.now() } }));
+
+    // 2. Cross-tab BroadcastChannel
+    if (typeof BroadcastChannel !== "undefined") {
+      const channel = new BroadcastChannel("simlab_sync_channel");
+      channel.postMessage({ type: "simlab_data_change", reason, at: Date.now() });
+      channel.close();
+    }
+  } catch {}
+}
+
+export function onDataChange(callback: (reason?: string) => void): () => void {
+  if (typeof window === "undefined") return () => {};
+
+  const handleCustomEvent = (e: any) => {
+    callback(e?.detail?.reason);
+  };
+  const handleStorageEvent = (e: StorageEvent) => {
+    if (e.key && e.key.startsWith("simlab_")) {
+      syncStoreFromLocalStorage();
+      callback("storage");
+    }
+  };
+
+  window.addEventListener("simlab_data_change", handleCustomEvent);
+  window.addEventListener("storage", handleStorageEvent);
+
+  let channel: BroadcastChannel | null = null;
+  if (typeof BroadcastChannel !== "undefined") {
+    try {
+      channel = new BroadcastChannel("simlab_sync_channel");
+      channel.onmessage = (event) => {
+        if (event.data?.type === "simlab_data_change") {
+          syncStoreFromLocalStorage();
+          callback(event.data?.reason);
+        }
+      };
+    } catch {}
+  }
+
+  return () => {
+    window.removeEventListener("simlab_data_change", handleCustomEvent);
+    window.removeEventListener("storage", handleStorageEvent);
+    if (channel) {
+      try { channel.close(); } catch {}
+    }
+  };
+}
+
+export function syncStoreFromLocalStorage() {
+  store.users = lsRead<User[]>(K_USERS, store.users);
+  store.classes = lsRead<ClassRoom[]>(K_CLASSES, store.classes);
+  store.assignments = lsRead<Assignment[]>(K_ASSIGNMENTS, store.assignments);
+  store.submissions = lsRead<Submission[]>(K_SUBMISSIONS, store.submissions);
+  store.joined = lsRead<Record<string, string[]>>(K_JOINED, store.joined);
+  store.progress = lsRead<Record<string, UserProgress>>(K_PROGRESS, store.progress);
+  store.activity = lsRead<ActivityEntry[]>(K_ACTIVITY, store.activity);
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -183,12 +255,12 @@ function mapProgress(r: any): UserProgress {
 let _initialized = false;
 let _initPromise: Promise<void> | null = null;
 
-export async function initStore(): Promise<void> {
-  if (_initialized) return;
-  if (_initPromise) return _initPromise;
+export async function initStore(force: boolean = false): Promise<void> {
+  if (_initialized && !force) return;
+  if (_initPromise && !force) return _initPromise;
   _initPromise = (async () => {
     try {
-      const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 2000));
+      const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 3500));
       const fetchPromise = Promise.all([
         supabase.from("users").select("*"),
         supabase.from("classes").select("*"),
@@ -206,21 +278,44 @@ export async function initStore(): Promise<void> {
           { data: submissions }, { data: members }, { data: progress }, { data: activity }
         ] = result;
 
-        store.users = (users ?? []).map(mapUser);
-        store.classes = (classes ?? []).map(mapClass);
-        store.assignments = (assignments ?? []).map(mapAssignment);
-        store.submissions = (submissions ?? []).map(mapSubmission);
-        store.joined = {};
-        for (const m of members ?? []) {
-          if (!store.joined[m.student_id]) store.joined[m.student_id] = [];
-          store.joined[m.student_id].push(m.class_code);
+        if (users) {
+          store.users = users.map(mapUser);
+          lsWrite(K_USERS, store.users);
         }
-        store.progress = {};
-        for (const p of progress ?? []) store.progress[p.user_id] = mapProgress(p);
-        store.activity = (activity ?? []).map((r: any) => ({
-          id: r.id, userId: r.user_id, type: r.type as ActivityType,
-          label: r.label, detail: r.detail ?? undefined, xp: r.xp, at: r.at,
-        }));
+        if (classes) {
+          store.classes = classes.map(mapClass);
+          lsWrite(K_CLASSES, store.classes);
+        }
+        if (assignments) {
+          store.assignments = assignments.map(mapAssignment);
+          lsWrite(K_ASSIGNMENTS, store.assignments);
+        }
+        if (submissions) {
+          store.submissions = submissions.map(mapSubmission);
+          lsWrite(K_SUBMISSIONS, store.submissions);
+        }
+        if (members) {
+          store.joined = {};
+          for (const m of members) {
+            if (!store.joined[m.student_id]) store.joined[m.student_id] = [];
+            store.joined[m.student_id].push(m.class_code);
+          }
+          lsWrite(K_JOINED, store.joined);
+        }
+        if (progress) {
+          store.progress = {};
+          for (const p of progress) store.progress[p.user_id] = mapProgress(p);
+          lsWrite(K_PROGRESS, store.progress);
+        }
+        if (activity) {
+          store.activity = activity.map((r: any) => ({
+            id: r.id, userId: r.user_id, type: r.type as ActivityType,
+            label: r.label, detail: r.detail ?? undefined, xp: r.xp, at: r.at,
+          }));
+          lsWrite(K_ACTIVITY, store.activity);
+        }
+
+        notifyDataChange("supabase_synced");
       }
     } catch (e) {
       console.warn("initStore timeout or error, proceeding with cache/defaults", e);
@@ -333,6 +428,8 @@ export function createClass(data: { name: string; teacherId: string; grade: numb
     grade: data.grade, subject: data.subject, description: data.description, createdAt: Date.now(),
   };
   store.classes.push(cls);
+  lsWrite(K_CLASSES, store.classes);
+  notifyDataChange("createClass");
   supabase.from("classes").insert({
     id: cls.id, name: cls.name, code: cls.code, teacher_id: cls.teacherId,
     grade: cls.grade, subject: cls.subject, description: cls.description ?? null, created_at: cls.createdAt,
@@ -358,12 +455,19 @@ export function deleteClass(id: string): void {
   for (const uid in store.joined) {
     store.joined[uid] = store.joined[uid].filter((code) => code !== target.code);
   }
+  lsWrite(K_CLASSES, store.classes);
+  lsWrite(K_ASSIGNMENTS, store.assignments);
+  lsWrite(K_SUBMISSIONS, store.submissions);
+  lsWrite(K_JOINED, store.joined);
+  notifyDataChange("deleteClass");
   supabase.from("classes").delete().eq("id", id).then(); // cascade handles the rest
 }
 
 export function leaveClass(studentId: string, classCode: string): void {
   if (store.joined[studentId]) {
     store.joined[studentId] = store.joined[studentId].filter((c) => c.toUpperCase() !== classCode.toUpperCase());
+    lsWrite(K_JOINED, store.joined);
+    notifyDataChange("leaveClass");
   }
   supabase.from("class_members").delete().eq("student_id", studentId).ilike("class_code", classCode).then();
 }
@@ -380,6 +484,8 @@ export function joinClass(studentId: string, code: string): ClassRoom {
   if (!store.joined[studentId]) store.joined[studentId] = [];
   if (!store.joined[studentId].includes(cls.code)) {
     store.joined[studentId].push(cls.code);
+    lsWrite(K_JOINED, store.joined);
+    notifyDataChange("joinClass");
     supabase.from("class_members").upsert({ student_id: studentId, class_code: cls.code }, { onConflict: "student_id,class_code" }).then();
   }
   return cls;
@@ -407,6 +513,8 @@ export function createAssignment(data: {
     createdAt: Date.now(),
   };
   store.assignments.push(a);
+  lsWrite(K_ASSIGNMENTS, store.assignments);
+  notifyDataChange("createAssignment");
   supabase.from("assignments").insert({
     id: a.id, class_id: a.classId, teacher_id: a.teacherId, experiment_id: a.experimentId,
     title: a.title, due_date: a.dueDate ?? null, target_condition: a.targetCondition ?? null,
@@ -452,6 +560,8 @@ export function submitAssignment(data: {
   };
   if (existingIdx >= 0) store.submissions[existingIdx] = sub;
   else store.submissions.push(sub);
+  lsWrite(K_SUBMISSIONS, store.submissions);
+  notifyDataChange("submitAssignment");
   supabase.from("submissions").upsert({
     id: sub.id, assignment_id: sub.assignmentId, student_id: sub.studentId,
     correct_count: sub.correctCount, total_questions: sub.totalQuestions,
@@ -610,6 +720,8 @@ export function updateUser(userId: string, data: Partial<Pick<User, "name" | "sc
   const idx = store.users.findIndex((u) => u.id === userId);
   if (idx < 0) throw new Error("Không tìm thấy người dùng");
   store.users[idx] = { ...store.users[idx], ...data };
+  lsWrite(K_USERS, store.users);
+  notifyDataChange("updateUser");
   supabase.from("users").update({
     name: data.name, school: data.school, avatar_color: data.avatarColor, avatar_icon: data.avatarIcon,
   }).eq("id", userId).then();

@@ -20,6 +20,8 @@ import {
     leaveClass,
     logout,
     seedIfNeeded,
+    initStore,
+    onDataChange,
 } from "@/lib/storage";
 import { experiments, Experiment } from "@/lib/experiments";
 import { curriculum, GradeCurriculum } from "@/lib/curriculum";
@@ -157,6 +159,28 @@ export default function StudentDashboard() {
 
     useEffect(() => {
         load();
+    }, [load]);
+
+    // Lắng nghe dữ liệu thay đổi tức thì (khi giáo viên giao bài, tạo lớp, v.v.)
+    useEffect(() => {
+        return onDataChange(() => {
+            load();
+        });
+    }, [load]);
+
+    // Tự động kiểm tra bài mới khi tab được focus hoặc định kỳ 5s
+    useEffect(() => {
+        const handleFocus = () => {
+            initStore(true).then(() => load());
+        };
+        window.addEventListener("focus", handleFocus);
+        const interval = setInterval(() => {
+            initStore(true).then(() => load());
+        }, 5000);
+        return () => {
+            window.removeEventListener("focus", handleFocus);
+            clearInterval(interval);
+        };
     }, [load]);
 
     // ─── Auth guard ───
