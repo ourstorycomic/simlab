@@ -161,6 +161,14 @@ export function dist2D(a: HandLandmark, b: HandLandmark): number {
     return Math.sqrt(dx * dx + dy * dy);
 }
 
+/** Khoảng cách Euclidean 3D (bảo toàn chiều dài ngón tay khi trỏ thẳng về phía camera) */
+export function dist3D(a: HandLandmark, b: HandLandmark): number {
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
+    const dz = (a.z !== undefined && b.z !== undefined) ? (a.z - b.z) : 0;
+    return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+
 /**
  * Tính góc nghiêng cổ tay dựa trên vector từ Wrist(0) → Middle MCP(9).
  * Trả về góc có dấu (signed angle):
@@ -189,17 +197,17 @@ export function isPinching(landmarks: HandLandmark[]): boolean {
 }
 
 /**
- * Kiểm tra xem ngón tay có bị cong / gập quanh thân đồ vật / điện thoại hay không
+ * Kiểm tra xem ngón tay có bị cong / gập quanh thân đồ vật / điện thoại hay không (tính theo 3D)
  */
 export function isFingerBentOrCurled(
     mcp: HandLandmark,
     pip: HandLandmark,
     tip: HandLandmark
 ): boolean {
-    const directDist = dist2D(mcp, tip);
-    const jointDist = dist2D(mcp, pip) + dist2D(pip, tip);
+    const directDist = dist3D(mcp, tip);
+    const jointDist = dist3D(mcp, pip) + dist3D(pip, tip);
     if (jointDist === 0) return false;
-    return (directDist / jointDist) < 0.88;
+    return (directDist / jointDist) < 0.85;
 }
 
 /**
@@ -210,11 +218,20 @@ export function isFingerBentOrCurled(
  */
 export function isPhoneOrObjectGrip(landmarks: HandLandmark[]): boolean {
     if (landmarks.length < 21) return false;
+    const wrist = landmarks[WRIST];
     const thumbTip = landmarks[THUMB_TIP];
     const indexTip = landmarks[INDEX_TIP];
+    const indexPip = landmarks[INDEX_PIP];
+    const indexMcp = landmarks[INDEX_MCP];
     const middleTip = landmarks[MIDDLE_TIP];
     const ringTip = landmarks[RING_TIP];
     const pinkyTip = landmarks[PINKY_TIP];
+
+    // Nếu ngón trỏ đang vươn dài (chỉ trỏ ngắm thẻ chất 👆): TUYỆT ĐỐI không phải đang cầm điện thoại
+    const isIndexExtended3D = dist3D(indexTip, wrist) > dist3D(indexPip, wrist) * 1.05 && dist3D(indexTip, indexMcp) > 0.09;
+    if (isIndexExtended3D) {
+        return false;
+    }
 
     let bentFingers = 0;
     if (isFingerBentOrCurled(landmarks[INDEX_MCP], landmarks[INDEX_PIP], indexTip)) bentFingers++;
@@ -233,11 +250,20 @@ export function isPhoneOrObjectGrip(landmarks: HandLandmark[]): boolean {
 }
 
 /**
- * Kiểm tra nắm tay / gập các ngón tay để cầm đồ (chính xác 100%, không bị nhận nhầm khi xòe tay)
+ * Kiểm tra nắm tay / gập các ngón tay để cầm đồ (chính xác 100%, không bị nhận nhầm khi trỏ ngón tay)
  */
 export function isFistClosed(landmarks: HandLandmark[]): boolean {
     if (landmarks.length < 21) return false;
     const wrist = landmarks[WRIST];
+    const indexTip = landmarks[INDEX_TIP];
+    const indexPip = landmarks[INDEX_PIP];
+    const indexMcp = landmarks[INDEX_MCP];
+
+    // Nếu ngón trỏ đang duỗi thẳng dài (chỉ trỏ ngắm 👆): TUYỆT ĐỐI KHÔNG PHẢI NẮM TAY (Fist ✊)
+    const isIndexExtended3D = dist3D(indexTip, wrist) > dist3D(indexPip, wrist) * 1.05 && dist3D(indexTip, indexMcp) > 0.09;
+    if (isIndexExtended3D) {
+        return false;
+    }
 
     let closedFingers = 0;
     const fingerPairs: [number, number][] = [
@@ -248,13 +274,13 @@ export function isFistClosed(landmarks: HandLandmark[]): boolean {
     ];
 
     for (const [tip, pip] of fingerPairs) {
-        // Đầu ngón tay phải thực sự gập sâu về gần cổ tay hơn so với khớp giữa PIP
-        if (dist2D(landmarks[tip], wrist) < dist2D(landmarks[pip], wrist) - 0.015) {
+        // Đầu ngón tay phải thực sự gập sâu về gần cổ tay hơn so với khớp giữa PIP theo không gian 3D
+        if (dist3D(landmarks[tip], wrist) < dist3D(landmarks[pip], wrist) * 0.96) {
             closedFingers++;
         }
     }
 
-    if (dist2D(landmarks[THUMB_TIP], landmarks[INDEX_MCP]) < 0.10) {
+    if (dist3D(landmarks[THUMB_TIP], landmarks[INDEX_MCP]) < 0.10) {
         closedFingers++;
     }
 
@@ -389,21 +415,21 @@ export function updateSingleHand(
     const dPitchZ = (middleMcp.z || 0) - (wrist.z || 0);
     state.pitchAngle = lerp(state.pitchAngle, Math.atan2(dPitchZ, -dPitchY), LERP_FACTOR);
 
-    // ─── 3.5. Nhận diện duỗi từng ngón tay theo chuẩn giải phẫu (Finger Extensions) ───
+    // ─── 3.5. Nhận diện duỗi từng ngón tay theo chuẩn giải phẫu (Finger Extensions - 3D Invariant) ───
     const isFingerExtended = (tip: HandLandmark, pip: HandLandmark, mcp: HandLandmark) => {
         // Ngón bị gập hoặc cong quanh đồ vật / điện thoại thì TUYỆT ĐỐI không tính là duỗi thẳng
         if (isFingerBentOrCurled(mcp, pip, tip)) {
             return false;
         }
 
-        const dWristTip = dist2D(tip, wrist);
-        const dWristPip = dist2D(pip, wrist);
-        const dMcpTip = dist2D(tip, mcp);
-        const dMcpPip = dist2D(pip, mcp);
+        const dWristTip = dist3D(tip, wrist);
+        const dWristPip = dist3D(pip, wrist);
+        const dMcpTip = dist3D(tip, mcp);
+        const dMcpPip = dist3D(pip, mcp);
         // Ngón duỗi khi:
-        // 1. Tip xa cổ tay hơn Pip VÀ Tip xa khớp gốc MCP hơn Pip
+        // 1. Tip xa cổ tay hơn Pip VÀ Tip xa khớp gốc MCP hơn Pip (không gian 3D bất biến góc nghiêng camera)
         // 2. Hoặc khi bàn tay dựng đứng, đầu ngón tay nhô cao hơn rõ rệt
-        const isFarther = dWristTip > dWristPip * 1.04 && dMcpTip > dMcpPip * 1.12;
+        const isFarther = dWristTip > dWristPip * 1.04 && dMcpTip > dMcpPip * 1.10;
         const isPointingUp = middleMcp.y < wrist.y && tip.y < pip.y - 0.02 && dWristTip > dWristPip;
         return isFarther || isPointingUp;
     };

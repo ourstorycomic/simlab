@@ -421,12 +421,14 @@ function InteractiveVessel({
     isSelected,
     isTarget,
     isHovered,
+    isCabinetModalOpen = false,
     onSelect,
 }: {
     item: InteractiveWorkbenchItem;
     isSelected: boolean;
     isTarget: boolean;
     isHovered: boolean;
+    isCabinetModalOpen?: boolean;
     onSelect: () => void;
 }) {
     const groupRef = useRef<THREE.Group>(null);
@@ -542,8 +544,8 @@ function InteractiveVessel({
                         </mesh>
                     )}
 
-                    {/* 6. Thẻ Pin tương tác thông minh (Chỉ hiện khi hover hoặc chọn, ở chân đế, KHÔNG vướng tầm nhìn) */}
-                    {(isSelected || isHovered) && (
+                    {/* 6. Thẻ Pin tương tác thông minh (Chỉ hiện khi hover hoặc chọn, ở chân đế, KHÔNG vướng tầm nhìn và không đè lên modal tủ) */}
+                    {(isSelected || isHovered) && !isCabinetModalOpen && (
                         <Html
                             position={[0, -0.015, 0.13]}
                             center
@@ -1008,6 +1010,7 @@ function SceneContent({
                     isSelected={selectedItemId === it.id}
                     isTarget={pourState?.targetId === it.id}
                     isHovered={hoveredItemId === it.id}
+                    isCabinetModalOpen={isCabinetModalOpen}
                     onSelect={() => setSelectedItemId(it.id)}
                 />
             ))}

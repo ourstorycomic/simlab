@@ -203,29 +203,33 @@ export default function Lab3DChemicalCabinetModal({
                         }
                     }
 
-                    // ─── PHÂN LOẠI CỬ CHỈ BÀN TAY (THEO CHUẨN INSCROLL & VIRTUAL-MOUSE) ───
-                    // Sử dụng phân tích góc uốn đốt ngón (Curled vs Extended) kết hợp khoảng cách 2D tới cổ tay:
-                    const isIndexCurled = isFingerBentOrCurled(lm[5], lm[6], indexTip) || Math.hypot(indexTip.x - wrist.x, indexTip.y - wrist.y) < Math.hypot(indexPip.x - wrist.x, indexPip.y - wrist.y) * 0.98;
-                    const isMiddleCurled = isFingerBentOrCurled(lm[9], lm[10], middleTip) || Math.hypot(middleTip.x - wrist.x, middleTip.y - wrist.y) < Math.hypot(middlePip.x - wrist.x, middlePip.y - wrist.y) * 0.98;
-                    const isRingCurled = isFingerBentOrCurled(lm[13], lm[14], ringTip) || Math.hypot(ringTip.x - wrist.x, ringTip.y - wrist.y) < Math.hypot(ringPip.x - wrist.x, ringPip.y - wrist.y) * 0.98;
-                    const isPinkyCurled = isFingerBentOrCurled(lm[17], lm[18], pinkyTip) || Math.hypot(pinkyTip.x - wrist.x, pinkyTip.y - wrist.y) < Math.hypot(pinkyPip.x - wrist.x, pinkyPip.y - wrist.y) * 0.98;
+                    // ─── PHÂN LOẠI CỬ CHỈ BÀN TAY (3D-INVARIANT INSCROLL & VIRTUAL-MOUSE) ───
+                    // Sử dụng khoảng cách Euclidean 3D (X, Y, Z) để triệt tiêu 100% hiện tượng foreshortening khi ngón trỏ chĩa thẳng vào webcam:
+                    const dist3D = (a: { x: number; y: number; z?: number }, b: { x: number; y: number; z?: number }) => {
+                        return Math.hypot(a.x - b.x, a.y - b.y, (a.z || 0) - (b.z || 0));
+                    };
 
-                    const isIndexExt = !isIndexCurled;
-                    const isMiddleExt = !isMiddleCurled;
-                    const isRingExt = !isRingCurled;
-                    const isPinkyExt = !isPinkyCurled;
+                    const dIndex = dist3D(indexTip, wrist);
+                    const dMiddle = dist3D(middleTip, wrist);
+                    const dRing = dist3D(ringTip, wrist);
+                    const dPinky = dist3D(pinkyTip, wrist);
+
+                    // Ngón trỏ duỗi khi:
+                    // 1. Khoảng cách 3D từ cổ tay tới chóp ngón trỏ > 0.17
+                    // 2. Hoặc hand.isIndexExtended / proj.isPointing từ Three.js
+                    // 3. Hoặc ngón trỏ vươn dài hơn ngón giữa gập (dIndex > dMiddle * 1.05)
+                    const isIndexExt = dIndex > 0.17 || !!hand.isIndexExtended || !!proj?.isPointing || dIndex > dMiddle * 1.08;
+
+                    // Ngón giữa, áp út, út duỗi dài (trong tư thế xòe tay):
+                    const isMiddleExt = dMiddle > 0.19 && dMiddle > dist3D(middlePip, wrist) * 1.05;
+                    const isRingExt = dRing > 0.18 && dRing > dist3D(ringPip, wrist) * 1.05;
+                    const isPinkyExt = dPinky > 0.16 && dPinky > dist3D(pinkyPip, wrist) * 1.05;
 
                     let extendedCount = 0;
                     if (isIndexExt) extendedCount++;
                     if (isMiddleExt) extendedCount++;
                     if (isRingExt) extendedCount++;
                     if (isPinkyExt) extendedCount++;
-
-                    // Đếm số ngón gập trong 3 ngón còn lại (ngón giữa, áp út, út):
-                    let nonIndexCurledCount = 0;
-                    if (isMiddleCurled) nonIndexCurledCount++;
-                    if (isRingCurled) nonIndexCurledCount++;
-                    if (isPinkyCurled) nonIndexCurledCount++;
 
                     // 0. DƠ NGÓN ÚT: ĐÓNG TỦ HÓA CHẤT (Chỉ khi đã hạ ngón út sau khi mở, và sau ít nhất 1.2s)
                     const isPinkyOnly = isPinkyExt && !isIndexExt && !isMiddleExt;
@@ -241,13 +245,13 @@ export default function Lab3DChemicalCabinetModal({
                     }
 
                     // ─── PHÂN BIỆT 3 CỬ CHỈ RÕ RÀNG: ───
-                    // 1. NẮM TAY (FIST ✊ / GRAB): Cả 4 ngón đều gập hoặc gripStrength cao
-                    const isFistGrab = (hand.gesture === "GRAB" || (hand.gripStrength !== undefined && hand.gripStrength > 0.50)) && extendedCount <= 1;
-                    const isClosedFist = isFistGrab || extendedCount === 0 || (nonIndexCurledCount >= 2 && isIndexCurled);
+                    // 1. XÒE CẢ BÀN TAY (OPEN HAND 🖐️) - DÙNG ĐỂ CUỘN LÊN / XUỐNG:
+                    // Cả ngón giữa và ngón áp út đều duỗi dài ra (dMiddle > 0.19 && dRing > 0.18)
+                    const isHandOpenForScroll = isMiddleExt && isRingExt && dMiddle >= dIndex * 0.88;
 
-                    // 2. CỬ CHỈ XÒE CẢ BÀN TAY (OPEN HAND 🖐️) - DÙNG ĐỂ CUỘN LÊN / XUỐNG:
-                    // Có ít nhất 3 ngón duỗi trong 4 ngón chính, và không phải chỉ ngón trỏ
-                    const isHandOpenForScroll = extendedCount >= 3 && nonIndexCurledCount <= 1;
+                    // 2. NẮM TAY (FIST ✊ / GRAB):
+                    // Cả 3 ngón chính đều co cụm lại sát cổ tay (dIndex < 0.16 && dMiddle < 0.16)
+                    const isClosedFist = (dIndex < 0.16 && dMiddle < 0.16 && dRing < 0.15) || ((hand.gesture === "GRAB" || (hand.gripStrength || 0) > 0.65) && !isIndexExt);
 
                     // 3. CỬ CHỈ CHỤM NGÓN (PINCH 👌):
                     const rawPinchIndex = Math.hypot(thumbTip.x - indexTip.x, thumbTip.y - indexTip.y);
@@ -255,15 +259,14 @@ export default function Lab3DChemicalCabinetModal({
                     const minPinch2D = Math.min(rawPinchIndex, rawPinchMiddle);
                     const isPinch = (minPinch2D < 0.058 || (hand.pinchDistance !== undefined && hand.pinchDistance < 0.058)) && !isHandOpenForScroll;
 
-                    const isTriggerActive = isFistGrab || isPinch;
+                    const isTriggerActive = (isClosedFist && hand.gesture === "GRAB") || isPinch;
                     if (isHandOpenForScroll) {
                         wasPinchingRef.current = false;
                     }
 
                     // 🎯 ĐIỀU KIỆN BẮT BUỘC ĐỂ CHỌN CHẤT:
-                    // CHỈ KHI DƠ ĐÚNG 1 NGÓN TRỎ (Chỉ trỏ 👆) - Ngón trỏ duỗi thẳng, các ngón kia gập lại (nonIndexCurledCount >= 2)!
-                    // Nếu dơ cả bàn tay (🖐️) hoặc nắm tay (✊) -> TUYỆT ĐỐI KHÔNG CHỌN!
-                    const isPointingWithIndex = (isIndexExt || !!hand.isIndexExtended || !!proj?.isPointing) && !isHandOpenForScroll && !isClosedFist && nonIndexCurledCount >= 2;
+                    // CHỈ KHI DƠ NGÓN TRỎ (Chỉ trỏ 👆) - Ngón trỏ duỗi, và KHÔNG phải xòe cả bàn tay cuộn, KHÔNG phải nắm tay!
+                    const isPointingWithIndex = isIndexExt && !isHandOpenForScroll && !isClosedFist;
 
                     // ─── 1. XÁC ĐỊNH ĐÍCH ĐANG TRỎ VÀO TRƯỚC TIÊN (POINT TARGET FIRST) ───
                     const elementAtPoint = document.elementFromPoint(cur.x, cur.y);
