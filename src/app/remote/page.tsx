@@ -130,10 +130,11 @@ function RemoteControllerContent() {
   // Roll dương = nghiêng sang phải, Roll âm = nghiêng sang trái
   const tiltDeg = Math.max(-85, Math.min(85, roll * 1.15));
 
-  // CHỈ COI LÀ RÓT KHI NGHIÊNG THỰC TẾ TRÊN ĐỜI THẬT (> 20° nghiêng)
+  // CHỈ COI LÀ RÓT KHI NGHIÊNG THỰC TẾ TRÊN ĐỜI THẬT (> 16° nghiêng hoặc dốc chúc xuống)
   // Tuyệt đối không tự động rót chỉ vì ấn màn hình!
-  const isActualPouring = Math.abs(tiltDeg) > 20 && fillPercent > 2;
-  const pourDirection = tiltDeg < 0 ? "left" : "right";
+  const isPitchPour = pitch < -18 || pitch > 25;
+  const isActualPouring = (Math.abs(tiltDeg) > 16 || isPitchPour) && fillPercent > 2;
+  const pourDirection = tiltDeg < -10 ? "left" : "right";
 
   // Khi đang dốc bình: Nước chảy ra ngoài, mức nước giảm dần và rung haptic
   useEffect(() => {
@@ -177,7 +178,9 @@ function RemoteControllerContent() {
       pitch,
       roll: tiltDeg,
       isPourTilted: isActualPouring,
-      pourIntensity: isActualPouring ? Math.min(1.0, (Math.abs(tiltDeg) - 20) / 25) : 0,
+      pourIntensity: isActualPouring
+        ? Math.min(1.0, Math.max((Math.abs(tiltDeg) - 16) / 24, (Math.abs(pitch) - 18) / 24))
+        : 0,
       isShaking,
       chemicalName,
       chemicalFormula,
@@ -360,7 +363,7 @@ function RemoteControllerContent() {
                 ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
                 : "bg-slate-800 text-slate-400"
             }`}>
-              {isActualPouring ? "ĐANG RÓT VÀO CỐC" : "THẲNG ĐỨNG TRÊN BÀN"}
+              {isActualPouring ? (pourDirection === "left" ? "ĐANG RÓT SANG TRÁI" : "ĐANG RÓT VÀO CỐC") : "THẲNG ĐỨNG TRÊN TAY"}
             </span>
           </div>
 

@@ -55,7 +55,10 @@ export default function DeviceMotionControlBar({
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    const handleOpenPairing = () => setShowPairingModal(true);
+    window.addEventListener("open-remote-pairing", handleOpenPairing);
     return () => {
+      window.removeEventListener("open-remote-pairing", handleOpenPairing);
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     };
   }, []);
