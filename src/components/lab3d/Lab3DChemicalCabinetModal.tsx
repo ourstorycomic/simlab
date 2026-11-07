@@ -227,14 +227,17 @@ export default function Lab3DChemicalCabinetModal({
                         return;
                     }
 
-                    // Phân biệt Bàn tay mở (Open hand) vs Nắm tay (Fist / Grab ✊) vs Chụm ngón (Pinch 👌)
+                    // Phân biệt Bàn tay mở (Open hand 🖐️) vs Nắm tay (Fist / Grab ✊) vs Chỉ 1 ngón trỏ (Pointing 👆)
                     const isOpenHand = hand.gesture === "OPEN" || extendedCount >= 3;
 
                     // 1. CỬ CHỈ NẮM TAY (FIST ✊ / GRAB):
                     const isFistGrab = (hand.gesture === "GRAB" || (hand.gripStrength !== undefined && hand.gripStrength > 0.45)) && !isOpenHand;
                     const isClosedFist = isFistGrab || extendedCount === 0;
 
-                    // 2. CỬ CHỈ CHỤM NGÓN (PINCH 👌):
+                    // 2. CỬ CHỈ XÒE CẢ BÀN TAY (OPEN HAND 🖐️) - DÙNG ĐỂ CUỘN LÊN / XUỐNG:
+                    const isHandOpenForScroll = isOpenHand || extendedCount >= 3;
+
+                    // 3. CỬ CHỈ CHỤM NGÓN (PINCH 👌):
                     const rawPinchIndex = Math.hypot(thumbTip.x - indexTip.x, thumbTip.y - indexTip.y);
                     const rawPinchMiddle = Math.hypot(thumbTip.x - middleTip.x, thumbTip.y - middleTip.y);
                     const minPinch2D = Math.min(rawPinchIndex, rawPinchMiddle);
@@ -247,9 +250,10 @@ export default function Lab3DChemicalCabinetModal({
                         wasPinchingRef.current = false;
                     }
 
-                    // 🎯 ĐIỀU KIỆN TIÊN QUYẾT: CHỈ KHI DƠ NGÓN TRỎ (CHỈ TRỎ) MỚI TÍNH LÀ ĐANG CHỈ MỤC TIÊU!
-                    // Nếu người dùng nắm tay (✊), buông tay, hoặc không dơ ngón trỏ -> TUYỆT ĐỐI KHÔNG CHỌN!
-                    const isPointingWithIndex = (isIndexExt || !!hand.isIndexExtended || !!proj?.isPointing) && !isClosedFist;
+                    // 🎯 ĐIỀU KIỆN BẮT BUỘC ĐỂ CHỌN CHẤT:
+                    // CHỈ KHI DƠ ĐÚNG 1 NGÓN TRỎ (Chỉ trỏ 👆) - CÁC NGÓN KHÁC PHẢI GẬP LẠI!
+                    // Nếu dơ cả bàn tay (🖐️) hoặc nắm tay (✊) -> TUYỆT ĐỐI KHÔNG CHỌN!
+                    const isPointingWithIndex = (isIndexExt || !!hand.isIndexExtended || !!proj?.isPointing) && !isHandOpenForScroll && !isClosedFist && extendedCount <= 2;
 
                     // ─── 1. XÁC ĐỊNH ĐÍCH ĐANG TRỎ VÀO TRƯỚC TIÊN (POINT TARGET FIRST) ───
                     const elementAtPoint = document.elementFromPoint(cur.x, cur.y);
@@ -261,24 +265,39 @@ export default function Lab3DChemicalCabinetModal({
                     const isScrollDownBtn = directTargetId === "scroll-down-btn";
 
                     // ─── 2. CUỘN TRANG THỰC TẾ ẢO (VIRTUAL SCROLLING):
-                    // NGUYÊN TẮC TUYỆT ĐỐI:
-                    // 1. Toàn bộ vùng lưới hóa chất (Grid) và vùng giữa màn hình: ĐỨNG YÊN 100%!
-                    //    Tuyệt đối không tự ý cuộn khi tay ở giữa hoặc khi rê tay giữa các thẻ hóa chất!
-                    // 2. Chỉ cuộn khi:
-                    //    - Ngón trỏ chỉ vào nút "Lên" (scroll-up-btn) hoặc nút "Xuống" (scroll-down-btn) bên phải.
-                    //    - Hoặc tay đưa sát hẳn kịch mép trên cùng (cur.y < 45) hoặc kịch đáy dưới cùng (cur.y > window.innerHeight - 45).
-                    // 3. Khi tay ở giữa: DỪNG NGAY LẬP TỨC (targetVel = 0, scrollVelocity = 0), triệt tiêu hoàn toàn trôi trượt!
+                    // NGUYÊN TẮC:
+                    // 1. XÒE CẢ BÀN TAY (🖐️):
+                    //    - Đưa tay lên vùng trên (cur.y < H * 0.32) -> Cuộn LÊN!
+                    //    - Đưa tay xuống vùng dưới (cur.y > H * 0.68) -> Cuộn XUỐNG!
+                    //    - Để tay ở giữa (H * 0.32 <= cur.y <= H * 0.68) -> ĐỨNG YÊN HOÀN TOÀN!
+                    // 2. CHỈ NGÓN TRỎ (👆) HOẶC NẮM TAY (✊):
+                    //    - TUYỆT ĐỐI ĐỨNG YÊN 100% (trừ khi cố ý trỏ vào nút Lên/Xuống ở bên phải)!
                     let scrollZone: "top" | "bottom" | "neutral" = "neutral";
                     let targetVel = 0;
 
-                    if (isScrollUpBtn || cur.y < 45) {
+                    const screenH = typeof window !== "undefined" ? window.innerHeight : 900;
+                    const topThreshold = screenH * 0.32;
+                    const bottomThreshold = screenH * 0.68;
+
+                    if (isScrollUpBtn) {
                         scrollZone = "top";
                         targetVel = -14;
-                    } else if (isScrollDownBtn || cur.y > window.innerHeight - 45) {
+                    } else if (isScrollDownBtn) {
                         scrollZone = "bottom";
                         targetVel = 14;
+                    } else if (isHandOpenForScroll) {
+                        if (cur.y < topThreshold) {
+                            scrollZone = "top";
+                            targetVel = -14;
+                        } else if (cur.y > bottomThreshold) {
+                            scrollZone = "bottom";
+                            targetVel = 14;
+                        } else {
+                            scrollZone = "neutral";
+                            targetVel = 0;
+                        }
                     } else {
-                        // VÙNG GIỮA & VÙNG LƯỚI HÓA CHẤT: ĐỨNG YÊN 100% TUYỆT ĐỐI!
+                        // Khi đang chỉ ngón trỏ hoặc nắm tay: ĐỨNG YÊN HOÀN TOÀN!
                         scrollZone = "neutral";
                         targetVel = 0;
                     }
@@ -306,7 +325,8 @@ export default function Lab3DChemicalCabinetModal({
                     const isShieldActive = now < modalOpenedTimeRef.current + 1000;
                     const isClickAllowed = !isShieldActive && (scrollZone === "neutral" || isChemicalCard || isCategoryBtn);
 
-                    // 🎯 CHỈ KHI DƠ NGÓN TRỎ THÌ MỚI CÓ MỤC TIÊU ACTIVE!
+                    // 🎯 CHỈ KHI DƠ ĐÚNG 1 NGÓN TRỎ THÌ MỚI CÓ MỤC TIÊU ACTIVE!
+                    // Xòe cả bàn tay (🖐️) hoặc nắm tay (✊) -> activeTarget = null!
                     let activeTarget: HTMLElement | null = null;
                     if (isClickAllowed && isPointingWithIndex) {
                         if (isChemicalCard || isCategoryBtn || directTargetId.includes("reset-") || directTargetId === "close-modal") {
@@ -315,14 +335,20 @@ export default function Lab3DChemicalCabinetModal({
                     }
 
                     let progress = 0;
-                    let gestureHintText = "👉 Dơ ngón trỏ vào chất để chọn";
+                    let gestureHintText = "👉 Dơ 1 ngón trỏ vào chất để chọn • Xòe tay để cuộn";
 
-                    if (!isPointingWithIndex) {
-                        gestureHintText = isClosedFist ? "✊ Đang nắm tay • Dơ ngón trỏ để chọn" : "👉 Dơ ngón trỏ vào chất để chọn";
-                    } else if (scrollZone === "top") {
-                        gestureHintText = "⬆️ Đang cuộn lên • Đưa tay vào giữa để dừng";
-                    } else if (scrollZone === "bottom") {
-                        gestureHintText = "⬇️ Đang cuộn xuống • Đưa tay vào giữa để dừng";
+                    if (isHandOpenForScroll) {
+                        if (scrollZone === "top") {
+                            gestureHintText = "⬆️ Đang cuộn lên • Đưa tay vào giữa để dừng";
+                        } else if (scrollZone === "bottom") {
+                            gestureHintText = "⬇️ Đang cuộn xuống • Đưa tay vào giữa để dừng";
+                        } else {
+                            gestureHintText = "🖐️ Xòe tay đưa lên/xuống để cuộn • Dơ 1 ngón trỏ để chọn";
+                        }
+                    } else if (isClosedFist) {
+                        gestureHintText = "✊ Đang nắm tay • Dơ 1 ngón trỏ để chọn";
+                    } else if (isPointingWithIndex) {
+                        gestureHintText = progress > 0 ? `🎯 Đang chọn... ${Math.round(progress * 100)}%` : "Giữ yên ngón trỏ để chọn";
                     }
 
                     // Nếu đổi thẻ hover hoặc không còn trỏ vào thẻ -> Reset thanh tiến trình thẻ cũ về 0%
@@ -414,12 +440,15 @@ export default function Lab3DChemicalCabinetModal({
                         if (isClosedFist) {
                             laserBadgeRef.current.innerText = "✊";
                             laserBadgeRef.current.className = "absolute w-7 h-7 rounded-full flex items-center justify-center text-sm shadow-2xl transition-colors bg-slate-800 text-amber-300 ring-2 ring-slate-600 shadow-slate-900/60";
+                        } else if (isHandOpenForScroll) {
+                            laserBadgeRef.current.innerText = "🖐️";
+                            laserBadgeRef.current.className = "absolute w-7 h-7 rounded-full flex items-center justify-center text-sm shadow-2xl transition-colors bg-sky-900/80 text-sky-200 ring-2 ring-sky-400 shadow-sky-500/40";
                         } else if (isPinch) {
                             laserBadgeRef.current.innerText = "👌";
                             laserBadgeRef.current.className = "absolute w-7 h-7 rounded-full flex items-center justify-center text-sm shadow-2xl transition-colors bg-teal-500 text-white ring-2 ring-teal-300 shadow-teal-500/50";
                         } else if (isPointingWithIndex) {
                             laserBadgeRef.current.innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-cyan-300 ring-2 ring-white shadow-[0_0_8px_#38bdf8]"></span>';
-                            laserBadgeRef.current.className = "absolute w-7 h-7 rounded-full flex items-center justify-center shadow-2xl transition-colors bg-sky-500/40 backdrop-blur-sm ring-1.5 ring-sky-300/80 shadow-sky-500/40";
+                            laserBadgeRef.current.className = "absolute w-7 h-7 rounded-full flex items-center justify-center shadow-2xl transition-colors bg-emerald-500/40 backdrop-blur-sm ring-1.5 ring-emerald-300/80 shadow-emerald-500/40";
                         } else {
                             laserBadgeRef.current.innerHTML = '<span class="w-2 h-2 rounded-full bg-slate-400"></span>';
                             laserBadgeRef.current.className = "absolute w-7 h-7 rounded-full flex items-center justify-center shadow transition-colors bg-slate-800/80 ring-1 ring-slate-600";
