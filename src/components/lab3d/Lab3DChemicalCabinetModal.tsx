@@ -227,32 +227,32 @@ export default function Lab3DChemicalCabinetModal({
                         return;
                     }
 
-                    // Phân biệt Bàn tay mở (Open hand 🖐️) vs Nắm tay (Fist / Grab ✊) vs Chỉ 1 ngón trỏ (Pointing 👆)
-                    const isOpenHand = hand.gesture === "OPEN" || extendedCount >= 3;
-
+                    // ─── PHÂN LOẠI CỬ CHỈ CHUẨN XÁC THEO SỐ LƯỢNG NGÓN TAY DUỖI ───
+                    // - Nắm tay (Fist ✊): 0 ngón duỗi (extendedCount === 0)
+                    // - Chỉ 1 ngón trỏ (Pointing 👆): Ngón trỏ duỗi, các ngón khác gập (extendedCount <= 2) -> DÙNG ĐỂ CHỌN HÓA CHẤT
+                    // - Xòe cả bàn tay (Open hand 🖐️): 3 hoặc 4 ngón duỗi (extendedCount >= 3) -> DÙNG ĐỂ CUỘN TRANG LÊN / XUỐNG
+                    
                     // 1. CỬ CHỈ NẮM TAY (FIST ✊ / GRAB):
-                    const isFistGrab = (hand.gesture === "GRAB" || (hand.gripStrength !== undefined && hand.gripStrength > 0.45)) && !isOpenHand;
+                    const isFistGrab = (hand.gesture === "GRAB" || (hand.gripStrength !== undefined && hand.gripStrength > 0.50)) && extendedCount <= 1;
                     const isClosedFist = isFistGrab || extendedCount === 0;
 
                     // 2. CỬ CHỈ XÒE CẢ BÀN TAY (OPEN HAND 🖐️) - DÙNG ĐỂ CUỘN LÊN / XUỐNG:
-                    const isHandOpenForScroll = isOpenHand || extendedCount >= 3;
+                    const isHandOpenForScroll = extendedCount >= 3;
 
                     // 3. CỬ CHỈ CHỤM NGÓN (PINCH 👌):
                     const rawPinchIndex = Math.hypot(thumbTip.x - indexTip.x, thumbTip.y - indexTip.y);
                     const rawPinchMiddle = Math.hypot(thumbTip.x - middleTip.x, thumbTip.y - middleTip.y);
                     const minPinch2D = Math.min(rawPinchIndex, rawPinchMiddle);
-                    const isPinch = (minPinch2D < 0.058 || (hand.pinchDistance !== undefined && hand.pinchDistance < 0.058)) && !isOpenHand;
+                    const isPinch = (minPinch2D < 0.058 || (hand.pinchDistance !== undefined && hand.pinchDistance < 0.058)) && !isHandOpenForScroll;
 
                     const isTriggerActive = isFistGrab || isPinch;
-                    const isHandOpen = isOpenHand || (!isTriggerActive && minPinch2D > 0.078);
-
-                    if (isHandOpen) {
+                    if (isHandOpenForScroll) {
                         wasPinchingRef.current = false;
                     }
 
                     // 🎯 ĐIỀU KIỆN BẮT BUỘC ĐỂ CHỌN CHẤT:
-                    // CHỈ KHI DƠ ĐÚNG 1 NGÓN TRỎ (Chỉ trỏ 👆) - CÁC NGÓN KHÁC PHẢI GẬP LẠI!
-                    // Nếu dơ cả bàn tay (🖐️) hoặc nắm tay (✊) -> TUYỆT ĐỐI KHÔNG CHỌN!
+                    // CHỈ KHI DƠ ĐÚNG 1 NGÓN TRỎ (Chỉ trỏ 👆) - CÁC NGÓN KHÁC PHẢI GẬP LẠI (extendedCount <= 2)!
+                    // Nếu dơ cả bàn tay (🖐️ extendedCount >= 3) hoặc nắm tay (✊) -> TUYỆT ĐỐI KHÔNG CHỌN!
                     const isPointingWithIndex = (isIndexExt || !!hand.isIndexExtended || !!proj?.isPointing) && !isHandOpenForScroll && !isClosedFist && extendedCount <= 2;
 
                     // ─── 1. XÁC ĐỊNH ĐÍCH ĐANG TRỎ VÀO TRƯỚC TIÊN (POINT TARGET FIRST) ───
