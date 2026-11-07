@@ -59,6 +59,42 @@ function RemoteControllerContent() {
   const phoneSenderRef = useRef<any>(null);
   const lastSentRef = useRef<number>(0);
   const pourIntervalRef = useRef<any>(null);
+  const connectTimeRef = useRef<number>(Date.now());
+
+  // Tọa độ điều khiển tự do kéo thả (Touchpad / Drag controller)
+  const [touchOffset, setTouchOffset] = useState({ x: 0, y: 0 });
+  const touchStartRef = useRef<{ clientX: number; clientY: number; initX: number; initY: number } | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
+    const cX = "touches" in e ? e.touches[0].clientX : e.clientX;
+    const cY = "touches" in e ? e.touches[0].clientY : e.clientY;
+    touchStartRef.current = {
+      clientX: cX,
+      clientY: cY,
+      initX: touchOffset.x,
+      initY: touchOffset.y,
+    };
+  };
+
+  const handleTouchMove = (e: React.TouchEvent | React.MouseEvent) => {
+    if (!touchStartRef.current) return;
+    const cX = "touches" in e ? e.touches[0].clientX : e.clientX;
+    const cY = "touches" in e ? e.touches[0].clientY : e.clientY;
+    const deltaX = (cX - touchStartRef.current.clientX) / 120;
+    const deltaY = (touchStartRef.current.clientY - cY) / 120; // Vuốt lên là nhấc chai lên (+Y)
+    const nextX = Math.max(-1.0, Math.min(1.0, touchStartRef.current.initX + deltaX));
+    const nextY = Math.max(-1.0, Math.min(1.0, touchStartRef.current.initY + deltaY));
+    setTouchOffset({ x: nextX, y: nextY });
+  };
+
+  const handleTouchEnd = () => {
+    touchStartRef.current = null;
+  };
+
+  const handleResetPosition = () => {
+    setTouchOffset({ x: 0, y: 0 });
+    triggerHaptic(40);
+  };
 
   // Tự động kết nối phòng nếu có mã phòng trong URL
   useEffect(() => {
@@ -120,6 +156,7 @@ function RemoteControllerContent() {
 
   // Kích hoạt cảm biến và Cân bằng góc 0° bằng cử chỉ chạm trực tiếp của người dùng
   const handleActivateAndCalibrate = async () => {
+    connectTimeRef.current = Date.now();
     await requestPermission();
     calibrateZero();
     setSensorActivated(true);
@@ -130,10 +167,14 @@ function RemoteControllerContent() {
   // Roll dương = nghiêng sang phải, Roll âm = nghiêng sang trái
   const tiltDeg = Math.max(-85, Math.min(85, roll * 1.15));
 
-  // CHỈ COI LÀ RÓT KHI NGHIÊNG THỰC TẾ TRÊN ĐỜI THẬT (> 16° nghiêng hoặc dốc chúc xuống)
-  // Tuyệt đối không tự động rót chỉ vì ấn màn hình!
-  const isPitchPour = pitch < -18 || pitch > 25;
-  const isActualPouring = (Math.abs(tiltDeg) > 16 || isPitchPour) && fillPercent > 2;
+  // CHỈ COI LÀ RÓT KHI NGHIÊNG THỰC TẾ TRÊN ĐỜI THẬT:
+  // 1. Phải sau ít nhất 1.0s kết nối/kích hoạt để tránh vừa kết nối đã tự động rớt chất
+  // 2. Nghiêng dốc rõ rệt (> 20° nghiêng) hoặc dốc chúc mũi điện thoại xuống (pitch < -20°)
+  // 3. Tuyệt đối không rót khi pitch > 20° (đang giơ điện thoại nhìn vào màn hình)
+  const isGracePeriodOver = Date.now() - connectTimeRef.current > 1000;
+  const isPitchPour = pitch < -20;
+  const isRollPour = Math.abs(tiltDeg) > 20;
+  const isActualPouring = isGracePeriodOver && (isRollPour || isPitchPour) && fillPercent > 2;
   const pourDirection = tiltDeg < -10 ? "left" : "right";
 
   // Khi đang dốc bình: Nước chảy ra ngoài, mức nước giảm dần và rung haptic
@@ -179,9 +220,11 @@ function RemoteControllerContent() {
       roll: tiltDeg,
       isPourTilted: isActualPouring,
       pourIntensity: isActualPouring
-        ? Math.min(1.0, Math.max((Math.abs(tiltDeg) - 16) / 24, (Math.abs(pitch) - 18) / 24))
+        ? Math.min(1.0, Math.max((Math.abs(tiltDeg) - 20) / 25, (Math.abs(pitch) - 20) / 25))
         : 0,
       isShaking,
+      touchX: touchOffset.x,
+      touchY: touchOffset.y,
       chemicalName,
       chemicalFormula,
       liquidColor,
@@ -199,7 +242,7 @@ function RemoteControllerContent() {
         sensorData: motionPayload,
       }),
     }).catch(() => {});
-  }, [connected, activeRoomId, sensorActivated, pitch, tiltDeg, isActualPouring, isShaking, chemicalName, chemicalFormula, liquidColor]);
+  }, [connected, activeRoomId, sensorActivated, pitch, tiltDeg, isActualPouring, isShaking, touchOffset, chemicalName, chemicalFormula, liquidColor]);
 
   // Làm đầy lại bình hóa chất
   const handleRefillBottle = () => {
@@ -250,7 +293,15 @@ function RemoteControllerContent() {
         </div>
 
         {connected ? (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={handleResetPosition}
+              className="text-[10px] px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-teal-300 border border-slate-700 flex items-center gap-1 font-semibold"
+              title="Đưa bình về vị trí ban đầu"
+            >
+              <RotateCcw className="w-3 h-3 text-teal-400" />
+              <span>Về giữa</span>
+            </button>
             <button
               onClick={() => {
                 calibrateZero();
@@ -367,8 +418,16 @@ function RemoteControllerContent() {
             </span>
           </div>
 
-          {/* ── KHU VỰC BÌNH HÓA CHẤT & CỐC HỨNG CHUYÊN DỤNG ── */}
-          <div className="relative w-full h-72 flex items-center justify-center my-auto overflow-hidden">
+          {/* ── KHU VỰC BÌNH HÓA CHẤT & TOUCHPAD TỰ DO ── */}
+          <div
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onMouseDown={handleTouchStart}
+            onMouseMove={handleTouchMove}
+            onMouseUp={handleTouchEnd}
+            className="relative w-full h-72 flex items-center justify-center my-auto overflow-hidden cursor-grab active:cursor-grabbing touch-none select-none"
+          >
             {/* Vòng hào quang định vị góc nghiêng */}
             <div
               className={`absolute w-60 h-60 rounded-full border transition-all duration-200 pointer-events-none ${
@@ -382,9 +441,9 @@ function RemoteControllerContent() {
 
             {/* BÌNH HÓA CHẤT THỦY TINH VECTOR CAO CẤP */}
             <div
-              className="relative transition-transform duration-75 ease-out select-none"
+              className="relative transition-transform duration-75 ease-out select-none pointer-events-none"
               style={{
-                transform: `rotate(${tiltDeg}deg) scale(${isShaking ? 1.05 : 1.0})`,
+                transform: `translate(${touchOffset.x * 40}px, ${-touchOffset.y * 30}px) rotate(${tiltDeg}deg) scale(${isShaking ? 1.05 : 1.0})`,
                 transformOrigin: "50% 80%",
               }}
             >
@@ -569,6 +628,16 @@ function RemoteControllerContent() {
                 />
               </svg>
             </div>
+          </div>
+
+          {/* HƯỚNG DẪN ĐIỀU KHIỂN ĐA NĂNG */}
+          <div className="py-1 px-3 bg-slate-900/60 rounded-xl border border-slate-800 text-[10.5px] text-slate-400 flex items-center justify-between mb-1">
+            <span className="flex items-center gap-1 text-cyan-300 font-medium">
+              🖐️ Vuốt bình: <strong>Di chuyển tự do</strong>
+            </span>
+            <span className="flex items-center gap-1 text-amber-300 font-medium">
+              📐 Nghiêng máy: <strong>Dốc rót vào cốc</strong>
+            </span>
           </div>
 
           {/* CHỌN NHANH HÓA CHẤT TRÊN ĐIỆN THOẠI & NÚT ĐỔ ĐẦY LẠI */}

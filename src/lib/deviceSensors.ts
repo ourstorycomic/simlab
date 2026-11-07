@@ -36,6 +36,9 @@ export interface SensorData {
   isShaking: boolean;
   /** Cường độ gia tốc hiện tại */
   motionMagnitude: number;
+  /** Độ lệch điều khiển tự do trên màn hình điện thoại (-1.0 đến 1.0) */
+  touchX: number;
+  touchY: number;
   /** Thời điểm nhận dữ liệu cuối cùng */
   lastUpdated: number;
 }
@@ -55,6 +58,8 @@ class DeviceSensorManager {
     pourIntensity: 0,
     isShaking: false,
     motionMagnitude: 0,
+    touchX: 0,
+    touchY: 0,
     lastUpdated: 0,
   };
 
@@ -66,6 +71,7 @@ class DeviceSensorManager {
   private baselinePitch: number = 0;
   private lastRawGamma: number = 0;
   private lastRawBeta: number = 0;
+  private autoZeroFramesLeft: number = 8; // Tự động cân bằng 0° mượt mà trong 8 frame đầu khi kết nối
 
   // Shake detection state
   private lastX: number | null = null;
@@ -155,6 +161,7 @@ class DeviceSensorManager {
   public calibrateZero() {
     this.baselineRoll = this.lastRawGamma;
     this.baselinePitch = this.lastRawBeta;
+    this.autoZeroFramesLeft = (this.lastRawGamma === 0 && this.lastRawBeta === 0) ? 8 : 0;
     this.data.roll = 0;
     this.data.pitch = 0;
     this.data.isPourTilted = false;
@@ -171,17 +178,24 @@ class DeviceSensorManager {
     this.lastRawGamma = rawGamma;
     this.lastRawBeta = rawBeta;
 
+    // Tự động hiệu chỉnh cân bằng 0° trong các frame đầu tiên khi mới kết nối
+    if (this.autoZeroFramesLeft > 0) {
+      this.baselineRoll = rawGamma;
+      this.baselinePitch = rawBeta;
+      this.autoZeroFramesLeft--;
+    }
+
     // Góc nghiêng tương đối so với vị trí cầm điện thoại tự nhiên lúc hiệu chỉnh
     const effRoll = rawGamma - this.baselineRoll;
     const effPitch = rawBeta - this.baselinePitch;
 
-    // Chỉ coi là nghiêng rót khi người dùng chủ động nghiêng điện thoại > 20°
+    // Chỉ coi là nghiêng rót khi người dùng chủ động nghiêng điện thoại > 20° hoặc dốc chúc đầu điện thoại xuống
     const isRollTilted = Math.abs(effRoll) > 20;
-    const isPitchTilted = effPitch < -22;
-    const isPourTilted = isRollTilted || isPitchTilted;
+    const isPitchTilted = effPitch < -20; // Chúc đầu điện thoại xuống phía trước
+    const isPourTilted = (isRollTilted || isPitchTilted) && this.autoZeroFramesLeft === 0;
 
     const rollIntensity = isRollTilted ? Math.min(1.0, (Math.abs(effRoll) - 20) / 25) : 0;
-    const pitchIntensity = isPitchTilted ? Math.min(1.0, Math.abs(effPitch - (-22)) / 30) : 0;
+    const pitchIntensity = isPitchTilted ? Math.min(1.0, Math.abs(effPitch - (-20)) / 25) : 0;
     const pourIntensity = isPourTilted ? Math.max(rollIntensity, pitchIntensity) : 0;
 
     this.data.pitch = Math.round(effPitch * 10) / 10;
@@ -282,12 +296,16 @@ class DeviceSensorManager {
     isPourTilted?: boolean;
     pourIntensity?: number;
     isShaking?: boolean;
+    touchX?: number;
+    touchY?: number;
   }) {
     if (remote.pitch !== undefined) this.data.pitch = remote.pitch;
     if (remote.roll !== undefined) this.data.roll = remote.roll;
     if (remote.yaw !== undefined) this.data.yaw = remote.yaw;
     if (remote.isPourTilted !== undefined) this.data.isPourTilted = remote.isPourTilted;
     if (remote.pourIntensity !== undefined) this.data.pourIntensity = remote.pourIntensity;
+    if (remote.touchX !== undefined) this.data.touchX = remote.touchX;
+    if (remote.touchY !== undefined) this.data.touchY = remote.touchY;
     if (remote.isShaking !== undefined && remote.isShaking) {
       this.data.isShaking = true;
       if (this.shakeTimeout) clearTimeout(this.shakeTimeout);

@@ -34,6 +34,7 @@ import Lab3DAITutorVoice from "./Lab3DAITutorVoice";
 import Lab3DChemicalCabinet from "./Lab3DChemicalCabinet";
 import Lab3DReactionEffects from "./Lab3DReactionEffects";
 import RealisticWaterStream from "./RealisticWaterStream";
+import Lab3DHoldingHand from "./Lab3DHoldingHand";
 import WebGLErrorBoundary from "./WebGLErrorBoundary";
 import Lab3DChemicalCabinetModal from "./Lab3DChemicalCabinetModal";
 import { 
@@ -422,6 +423,7 @@ function InteractiveVessel({
     isTarget,
     isHovered,
     isCabinetModalOpen = false,
+    isPhoneActive = false,
     onSelect,
 }: {
     item: InteractiveWorkbenchItem;
@@ -429,6 +431,7 @@ function InteractiveVessel({
     isTarget: boolean;
     isHovered: boolean;
     isCabinetModalOpen?: boolean;
+    isPhoneActive?: boolean;
     onSelect: () => void;
 }) {
     const groupRef = useRef<THREE.Group>(null);
@@ -542,6 +545,13 @@ function InteractiveVessel({
                                 opacity={0.96}
                             />
                         </mesh>
+                    )}
+
+                    {/* Bàn tay 3D áo Blouse đang cầm bình khi kết nối điện thoại hoặc nhấc bình */}
+                    {Boolean(item.heldBy === "phone" || (isReagent && isPhoneActive)) && (
+                        <group position={[0, gripY, 0]}>
+                            <Lab3DHoldingHand visible={true} scale={1.05} />
+                        </group>
                     )}
 
                     {/* 6. Thẻ Pin tương tác thông minh (Chỉ hiện khi hover hoặc chọn, ở chân đế, KHÔNG vướng tầm nhìn và không đè lên modal tủ) */}
@@ -677,6 +687,7 @@ function SceneContent({
     const pinkyWasActiveRef = useRef<boolean>(false);
     const isUserOrbitingRef = useRef(false);
     const lastShakeTimeRef = useRef<number>(0);
+    const phoneConnectTimeRef = useRef<number | null>(null);
 
     // Tính toán góc nhìn tối ưu cho từng Preset (Mặc định ở xa xa bao quát đủ xem mọi thứ)
     const getPresetTarget = useCallback((preset: "closeup" | "pour" | "overview") => {
@@ -748,6 +759,11 @@ function SceneContent({
 
             if (isPhoneActive) {
                 bottle.heldBy = "phone";
+                if (!phoneConnectTimeRef.current) {
+                    phoneConnectTimeRef.current = Date.now();
+                }
+                const timeSincePhoneConnect = Date.now() - phoneConnectTimeRef.current;
+
                 const roll = sensorData.roll || 0; // Đã được hiệu chuẩn qua calibrateZero() (-90° đến +90°)
                 const pitch = sensorData.pitch || 0; // Độ chúc trước/sau
                 const isPourTilted = sensorData.isPourTilted;
@@ -755,57 +771,72 @@ function SceneContent({
                 const absRoll = Math.abs(roll);
                 const absPitch = Math.abs(pitch);
 
-                // 1. NHẤC LÊN: Cầm điện thoại nhấc lên thì cái chai nhấc theo lên khỏi mặt bàn
-                // Khi người dùng cầm điện thoại trên tay (có độ nghiêng nhẹ hoặc đang dốc hoặc chuyển động)
-                const isHeldInHand = absRoll > 4 || absPitch > 8 || isPourTilted || pourIntensity > 0;
-                const liftFactor = isHeldInHand
-                    ? THREE.MathUtils.clamp(Math.max((absRoll - 4) / 14, (absPitch - 8) / 18, pourIntensity), 0.35, 1)
-                    : 0;
+                // ── 1. ĐIỀU KHIỂN TỰ DO 6-DoF (LÊN, XUỐNG, TRÁI, PHẢI, TỚI, LÙI) ──
+                // Kết hợp cả cảm biến con quay hồi chuyển trên tay VÀ thao tác vuốt Touchpad trên màn hình điện thoại
+                const touchX = sensorData.touchX || 0; // -1.0 đến +1.0
+                const touchY = sensorData.touchY || 0; // -1.0 đến +1.0
 
-                // 2. DỐC HƯỚNG NÀO THÌ ĐỔ HƯỚNG ĐÓ:
-                // - Nghiêng sang PHẢI (roll > 10°): Chai dốc sang phải, di chuyển tới miệng cốc hứng ở bên phải
-                // - Nghiêng sang TRÁI (roll < -10°): Chai dốc sang trái, di chuyển dốc sang bên trái
-                // - Dốc chúc xuống (pitch < -14° hoặc pitch > 24°): Dốc về phía trước vào cốc
-                const isTiltingRight = roll > 10;
-                const isTiltingLeft = roll < -10;
-                const isTiltingForward = pitch < -14 || pitch > 24 || (isPourTilted && absRoll <= 10);
-                const isIntentionalTilt = isTiltingRight || isTiltingLeft || isTiltingForward || isPourTilted;
+                // Độ dịch chuyển không gian mượt mà theo góc cầm tự nhiên:
+                const gyroMoveX = THREE.MathUtils.clamp(roll / 22, -1, 1) * 0.32;
+                const gyroMoveY = THREE.MathUtils.clamp(-pitch / 25, -1, 1) * 0.18;
+                const gyroMoveZ = THREE.MathUtils.clamp(-pitch / 25, -1, 1) * 0.12;
+
+                const freeTargetX = THREE.MathUtils.clamp(restX + touchX * 0.45 + gyroMoveX, -0.68, beaker.position[0] + 0.18);
+                const freeTargetY = THREE.MathUtils.clamp(restY + 0.10 + touchY * 0.25 + gyroMoveY, restY + 0.02, restY + 0.45);
+                const freeTargetZ = THREE.MathUtils.clamp(restZ + touchY * 0.15 + gyroMoveZ, restZ - 0.20, restZ + 0.20);
+
+                // ── 2. CỬ CHỈ DỐC RÓT CÓ CHỦ ĐÍCH (INTENTIONAL POURING) ──
+                // Bắt buộc sau ít nhất 1.0s kết nối để triệt tiêu hoàn toàn lỗi vừa kết nối đã tự động rớt chất!
+                const isPouringRight = (roll > 18 || (isPourTilted && roll >= -10));
+                const isPouringLeft = roll < -18;
+                const isPouringForward = pitch < -20;
+                const isIntentionalTilt = timeSincePhoneConnect > 1000 && (isPouringRight || isPouringLeft || isPouringForward || isPourTilted);
 
                 if (isIntentionalTilt) {
-                    // Cường độ dốc thực tế từ cảm biến điện thoại (tỷ lệ chuẩn từ 10° tới 45°)
+                    // Cường độ dốc chuẩn hóa từ 16° đến 40°
                     const tiltAmount = THREE.MathUtils.clamp(
-                        Math.max((absRoll - 10) / 25, (Math.abs(pitch) - 14) / 25, pourIntensity),
-                        0.15,
-                        1
+                        Math.max((absRoll - 16) / 24, (Math.abs(pitch) - 18) / 24, pourIntensity),
+                        0.20,
+                        1.0
                     );
 
-                    let targetX = restX;
-                    let targetY = restY + 0.12 + liftFactor * 0.08;
-                    let targetZ = restZ;
+                    const mouthHSource = getVesselMouthHeight(bottle.type); // 0.28m
+                    const mouthRelY = mouthHSource - 0.10; // 0.18m (khoảng cách từ tâm eo bình tới miệng)
+
+                    let targetX = freeTargetX;
+                    let targetY = freeTargetY;
+                    let targetZ = freeTargetZ;
                     let targetTilt = 0;
                     let targetPitch = 0;
 
-                    if (isTiltingRight || (isPourTilted && roll >= -10)) {
-                        // 👉 DỐC SANG PHẢI (Hướng về phía cốc hứng)
-                        // Trong Three.js, quay quanh trục Z góc âm (-) làm miệng bình dốc sang phải (CW)
-                        targetTilt = -tiltAmount * 0.95;
-                        targetX = THREE.MathUtils.lerp(restX, beaker.position[0] - 0.11, tiltAmount);
-                        targetY = THREE.MathUtils.lerp(restY + 0.14, beaker.position[1] + mouthHTarget + 0.12, tiltAmount);
-                        targetZ = THREE.MathUtils.lerp(restZ, beaker.position[2], tiltAmount);
-                    } else if (isTiltingLeft) {
-                        // 👈 DỐC SANG TRÁI (Hướng ra phía ngoài bên trái)
-                        // Quay quanh trục Z góc dương (+) làm miệng bình dốc sang trái (CCW)
-                        targetTilt = tiltAmount * 0.95;
-                        targetX = THREE.MathUtils.lerp(restX, restX - 0.10, tiltAmount);
-                        targetY = restY + 0.14 + tiltAmount * 0.06;
-                        targetZ = restZ;
-                    } else if (isTiltingForward) {
-                        // 👆 DỐC CHÚC PHÍA TRƯỚC (Pitch forward)
-                        targetPitch = -tiltAmount * 0.75;
+                    if (isPouringRight || (isPourTilted && roll >= -10)) {
+                        // 👉 DỐC SANG PHẢI VÀO CỐC HỨNG:
+                        targetTilt = -tiltAmount * 0.82; // Nghiêng -45°
+                        // Tính toán chính xác hình học để miệng chai nằm ngay ngắn mép trên cốc nhận (Beaker)
+                        const mouthOffsetX = -Math.sin(targetTilt) * mouthRelY; // Dương (+) khi targetTilt âm
+                        const pourX = (beaker.position[0] - 0.025) - mouthOffsetX;
+                        const pourY = (beaker.position[1] + mouthHTarget + 0.06) - Math.cos(targetTilt) * mouthRelY - 0.10;
+                        const pourZ = beaker.position[2];
+
+                        targetX = THREE.MathUtils.lerp(freeTargetX, pourX, tiltAmount);
+                        targetY = THREE.MathUtils.lerp(freeTargetY, pourY, tiltAmount);
+                        targetZ = THREE.MathUtils.lerp(freeTargetZ, pourZ, tiltAmount);
+                    } else if (isPouringLeft) {
+                        // 👈 DỐC SANG TRÁI (Ra ngoài khay):
+                        targetTilt = tiltAmount * 0.82;
+                        targetX = freeTargetX - 0.10 * tiltAmount;
+                        targetY = freeTargetY + 0.05 * tiltAmount;
+                        targetZ = freeTargetZ;
+                    } else if (isPouringForward) {
+                        // 👆 DỐC CHÚC PHÍA TRƯỚC:
+                        targetPitch = -tiltAmount * 0.65;
                         targetTilt = -tiltAmount * 0.40;
-                        targetX = THREE.MathUtils.lerp(restX, beaker.position[0] - 0.08, tiltAmount);
-                        targetY = THREE.MathUtils.lerp(restY + 0.14, beaker.position[1] + mouthHTarget + 0.10, tiltAmount);
-                        targetZ = THREE.MathUtils.lerp(restZ, beaker.position[2] + 0.04, tiltAmount);
+                        const mouthOffsetX = -Math.sin(targetTilt) * mouthRelY;
+                        const pourX = (beaker.position[0] - 0.02) - mouthOffsetX;
+                        const pourY = (beaker.position[1] + mouthHTarget + 0.06) - Math.cos(targetTilt) * mouthRelY - 0.10;
+                        targetX = THREE.MathUtils.lerp(freeTargetX, pourX, tiltAmount);
+                        targetY = THREE.MathUtils.lerp(freeTargetY, pourY, tiltAmount);
+                        targetZ = THREE.MathUtils.lerp(freeTargetZ, beaker.position[2], tiltAmount);
                     }
 
                     // Lerp vị trí và góc nghiêng mượt mà theo thời gian thực (60fps)
@@ -816,25 +847,30 @@ function SceneContent({
                     bottle.pitchAngle = THREE.MathUtils.lerp(bottle.pitchAngle || 0, targetPitch, Math.min(1, delta * 14));
                     stateChanged = true;
 
-                    // 3. TIẾN HÀNH RÓT CHẤT LỎNG KHI ĐỘ DỐC ĐỦ LỚN (tiltAmount >= 0.35)
+                    // ── 3. TIẾN HÀNH RÓT CHẤT LỎNG CHUẨN XÁC VẬT LÝ VÀO CỐC ──
                     const hasChemical = Boolean(bottle.chemical && bottle.fillLevel > 0.005);
-                    if (tiltAmount >= 0.35 && hasChemical) {
-                        const spoutOffsetSign = isTiltingLeft ? -0.08 : 0.08;
+                    if (tiltAmount >= 0.38 && hasChemical) {
+                        // Tính tọa độ 3D thực tế của miệng bình rót:
+                        const mouthWorldX = bottle.position[0] - Math.sin(bottle.tiltAngle || 0) * Math.cos(bottle.pitchAngle || 0) * mouthRelY;
+                        const mouthWorldY = (bottle.position[1] + 0.10) + Math.cos(bottle.tiltAngle || 0) * Math.cos(bottle.pitchAngle || 0) * mouthRelY;
+                        const mouthWorldZ = bottle.position[2] + Math.sin(bottle.pitchAngle || 0) * mouthRelY;
+
                         const streamFrom: [number, number, number] = [
-                            bottle.position[0] + spoutOffsetSign,
-                            bottle.position[1] + 0.08,
-                            bottle.position[2],
+                            mouthWorldX,
+                            mouthWorldY,
+                            mouthWorldZ,
                         ];
-                        const streamTo: [number, number, number] = isTiltingLeft
-                            ? [bottle.position[0] - 0.18, -0.06, bottle.position[2]]
-                            : [beaker.position[0], beaker.position[1] + mouthHTarget, beaker.position[2]];
+                        // Đích rơi: Đúng tâm cốc hứng bên trong lòng cốc
+                        const streamTo: [number, number, number] = isPouringLeft
+                            ? [bottle.position[0] - 0.20, -0.06, bottle.position[2]]
+                            : [beaker.position[0], beaker.position[1] + 0.03, beaker.position[2]];
                         const streamColor = bottle.liquidColor || bottle.chemical?.color || "#38bdf8";
 
                         if (!pourState || !pourState.active) {
                             setPourState({
                                 active: true,
                                 sourceId: bottle.id,
-                                targetId: isTiltingLeft ? "" : beaker.id,
+                                targetId: isPouringLeft ? "" : beaker.id,
                                 from: streamFrom,
                                 to: streamTo,
                                 color: streamColor,
@@ -849,7 +885,7 @@ function SceneContent({
                         bottle.fillLevel = Math.max(0, bottle.fillLevel - flow);
 
                         // Nếu dốc sang phải (vào cốc hứng): cốc hứng nhận dung dịch
-                        if (!isTiltingLeft) {
+                        if (!isPouringLeft) {
                             beaker.fillLevel = Math.min(0.85, (beaker.fillLevel || 0) + flow);
                             if (bottle.chemical) {
                                 if (!beaker.chemical) {
@@ -875,13 +911,13 @@ function SceneContent({
                         setPourState(null);
                     }
                 } else {
-                    // KHI CẦM ĐIỆN THOẠI THẲNG ĐỨNG HOẶC ĐỂ NẰM YÊN:
-                    const targetY = isHeldInHand ? restY + 0.08 : restY;
-                    bottle.position[0] = THREE.MathUtils.lerp(bottle.position[0], restX, Math.min(1, delta * 12));
-                    bottle.position[1] = THREE.MathUtils.lerp(bottle.position[1], targetY, Math.min(1, delta * 12));
-                    bottle.position[2] = THREE.MathUtils.lerp(bottle.position[2], restZ, Math.min(1, delta * 12));
-                    bottle.tiltAngle = THREE.MathUtils.lerp(bottle.tiltAngle, 0, Math.min(1, delta * 12));
-                    bottle.pitchAngle = THREE.MathUtils.lerp(bottle.pitchAngle || 0, 0, Math.min(1, delta * 12));
+                    // KHI CẦM ĐIỆN THOẠI BÌNH THƯỜNG (KHÔNG DỐC ĐỔ):
+                    // Chai di chuyển tự do theo tay cầm và touch drag, đứng thẳng tự nhiên
+                    bottle.position[0] = THREE.MathUtils.lerp(bottle.position[0], freeTargetX, Math.min(1, delta * 12));
+                    bottle.position[1] = THREE.MathUtils.lerp(bottle.position[1], freeTargetY, Math.min(1, delta * 12));
+                    bottle.position[2] = THREE.MathUtils.lerp(bottle.position[2], freeTargetZ, Math.min(1, delta * 12));
+                    bottle.tiltAngle = THREE.MathUtils.lerp(bottle.tiltAngle, THREE.MathUtils.clamp(roll * 0.015, -0.2, 0.2), Math.min(1, delta * 12));
+                    bottle.pitchAngle = THREE.MathUtils.lerp(bottle.pitchAngle || 0, THREE.MathUtils.clamp(pitch * 0.015, -0.15, 0.15), Math.min(1, delta * 12));
                     stateChanged = true;
                     if (pourState) setPourState(null);
                 }
@@ -1011,6 +1047,7 @@ function SceneContent({
                     isTarget={pourState?.targetId === it.id}
                     isHovered={hoveredItemId === it.id}
                     isCabinetModalOpen={isCabinetModalOpen}
+                    isPhoneActive={it.heldBy === "phone"}
                     onSelect={() => setSelectedItemId(it.id)}
                 />
             ))}
