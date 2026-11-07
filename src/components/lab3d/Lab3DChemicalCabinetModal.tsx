@@ -13,7 +13,7 @@ import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Chemical, chemicals as allChemicals, getStateLabel, isLiquidState } from "@/lib/chemicals";
 import { normalizeVietnamese, normalizeChemicalFormula } from "@/components/ChemicalSelector";
 import { playLabSound } from "./ChemistryRealisticModels";
-import { HandState } from "@/lib/handTracking";
+import { HandState, isFingerBentOrCurled } from "@/lib/handTracking";
 import { getReaction } from "@/lib/reactions";
 import { 
     FlaskConical, 
@@ -203,16 +203,28 @@ export default function Lab3DChemicalCabinetModal({
                     }
 
                     // ─── PHÂN LOẠI CỬ CHỈ BÀN TAY (THEO CHUẨN INSCROLL & VIRTUAL-MOUSE) ───
-                    const isIndexExt = Math.hypot(indexTip.x - wrist.x, indexTip.y - wrist.y) > Math.hypot(indexPip.x - wrist.x, indexPip.y - wrist.y) * 1.12;
-                    const isMiddleExt = Math.hypot(middleTip.x - wrist.x, middleTip.y - wrist.y) > Math.hypot(middlePip.x - wrist.x, middlePip.y - wrist.y) * 1.12;
-                    const isRingExt = Math.hypot(ringTip.x - wrist.x, ringTip.y - wrist.y) > Math.hypot(ringPip.x - wrist.x, ringPip.y - wrist.y) * 1.12;
-                    const isPinkyExt = Math.hypot(pinkyTip.x - wrist.x, pinkyTip.y - wrist.y) > Math.hypot(pinkyPip.x - wrist.x, pinkyPip.y - wrist.y) * 1.12;
+                    // Sử dụng phân tích góc uốn đốt ngón (Curled vs Extended) kết hợp khoảng cách 2D tới cổ tay:
+                    const isIndexCurled = isFingerBentOrCurled(lm[5], lm[6], indexTip) || Math.hypot(indexTip.x - wrist.x, indexTip.y - wrist.y) < Math.hypot(indexPip.x - wrist.x, indexPip.y - wrist.y) * 0.98;
+                    const isMiddleCurled = isFingerBentOrCurled(lm[9], lm[10], middleTip) || Math.hypot(middleTip.x - wrist.x, middleTip.y - wrist.y) < Math.hypot(middlePip.x - wrist.x, middlePip.y - wrist.y) * 0.98;
+                    const isRingCurled = isFingerBentOrCurled(lm[13], lm[14], ringTip) || Math.hypot(ringTip.x - wrist.x, ringTip.y - wrist.y) < Math.hypot(ringPip.x - wrist.x, ringPip.y - wrist.y) * 0.98;
+                    const isPinkyCurled = isFingerBentOrCurled(lm[17], lm[18], pinkyTip) || Math.hypot(pinkyTip.x - wrist.x, pinkyTip.y - wrist.y) < Math.hypot(pinkyPip.x - wrist.x, pinkyPip.y - wrist.y) * 0.98;
+
+                    const isIndexExt = !isIndexCurled;
+                    const isMiddleExt = !isMiddleCurled;
+                    const isRingExt = !isRingCurled;
+                    const isPinkyExt = !isPinkyCurled;
 
                     let extendedCount = 0;
                     if (isIndexExt) extendedCount++;
                     if (isMiddleExt) extendedCount++;
                     if (isRingExt) extendedCount++;
                     if (isPinkyExt) extendedCount++;
+
+                    // Đếm số ngón gập trong 3 ngón còn lại (ngón giữa, áp út, út):
+                    let nonIndexCurledCount = 0;
+                    if (isMiddleCurled) nonIndexCurledCount++;
+                    if (isRingCurled) nonIndexCurledCount++;
+                    if (isPinkyCurled) nonIndexCurledCount++;
 
                     // 0. DƠ NGÓN ÚT: ĐÓNG TỦ HÓA CHẤT (Chỉ khi đã hạ ngón út sau khi mở, và sau ít nhất 1.2s)
                     const isPinkyOnly = isPinkyExt && !isIndexExt && !isMiddleExt;
@@ -227,17 +239,14 @@ export default function Lab3DChemicalCabinetModal({
                         return;
                     }
 
-                    // ─── PHÂN LOẠI CỬ CHỈ CHUẨN XÁC THEO SỐ LƯỢNG NGÓN TAY DUỖI ───
-                    // - Nắm tay (Fist ✊): 0 ngón duỗi (extendedCount === 0)
-                    // - Chỉ 1 ngón trỏ (Pointing 👆): Ngón trỏ duỗi, các ngón khác gập (extendedCount <= 2) -> DÙNG ĐỂ CHỌN HÓA CHẤT
-                    // - Xòe cả bàn tay (Open hand 🖐️): 3 hoặc 4 ngón duỗi (extendedCount >= 3) -> DÙNG ĐỂ CUỘN TRANG LÊN / XUỐNG
-                    
-                    // 1. CỬ CHỈ NẮM TAY (FIST ✊ / GRAB):
+                    // ─── PHÂN BIỆT 3 CỬ CHỈ RÕ RÀNG: ───
+                    // 1. NẮM TAY (FIST ✊ / GRAB): Cả 4 ngón đều gập hoặc gripStrength cao
                     const isFistGrab = (hand.gesture === "GRAB" || (hand.gripStrength !== undefined && hand.gripStrength > 0.50)) && extendedCount <= 1;
-                    const isClosedFist = isFistGrab || extendedCount === 0;
+                    const isClosedFist = isFistGrab || extendedCount === 0 || (nonIndexCurledCount >= 2 && isIndexCurled);
 
                     // 2. CỬ CHỈ XÒE CẢ BÀN TAY (OPEN HAND 🖐️) - DÙNG ĐỂ CUỘN LÊN / XUỐNG:
-                    const isHandOpenForScroll = extendedCount >= 3;
+                    // Có ít nhất 3 ngón duỗi trong 4 ngón chính, và không phải chỉ ngón trỏ
+                    const isHandOpenForScroll = extendedCount >= 3 && nonIndexCurledCount <= 1;
 
                     // 3. CỬ CHỈ CHỤM NGÓN (PINCH 👌):
                     const rawPinchIndex = Math.hypot(thumbTip.x - indexTip.x, thumbTip.y - indexTip.y);
@@ -251,9 +260,9 @@ export default function Lab3DChemicalCabinetModal({
                     }
 
                     // 🎯 ĐIỀU KIỆN BẮT BUỘC ĐỂ CHỌN CHẤT:
-                    // CHỈ KHI DƠ ĐÚNG 1 NGÓN TRỎ (Chỉ trỏ 👆) - CÁC NGÓN KHÁC PHẢI GẬP LẠI (extendedCount <= 2)!
-                    // Nếu dơ cả bàn tay (🖐️ extendedCount >= 3) hoặc nắm tay (✊) -> TUYỆT ĐỐI KHÔNG CHỌN!
-                    const isPointingWithIndex = (isIndexExt || !!hand.isIndexExtended || !!proj?.isPointing) && !isHandOpenForScroll && !isClosedFist && extendedCount <= 2;
+                    // CHỈ KHI DƠ ĐÚNG 1 NGÓN TRỎ (Chỉ trỏ 👆) - Ngón trỏ duỗi thẳng, các ngón kia gập lại (nonIndexCurledCount >= 2)!
+                    // Nếu dơ cả bàn tay (🖐️) hoặc nắm tay (✊) -> TUYỆT ĐỐI KHÔNG CHỌN!
+                    const isPointingWithIndex = (isIndexExt || !!hand.isIndexExtended || !!proj?.isPointing) && !isHandOpenForScroll && !isClosedFist && nonIndexCurledCount >= 2;
 
                     // ─── 1. XÁC ĐỊNH ĐÍCH ĐANG TRỎ VÀO TRƯỚC TIÊN (POINT TARGET FIRST) ───
                     const elementAtPoint = document.elementFromPoint(cur.x, cur.y);
@@ -377,18 +386,11 @@ export default function Lab3DChemicalCabinetModal({
                             dwellStartTimeRef.current = now;
                         }
 
-                        // CỬ CHỈ NẮM TAY (✊) HOẶC CHỤM NGÓN (👌): Chọn ngay lập tức nếu muốn thao tác nhanh
-                        if (isTriggerActive && !wasPinchingRef.current) {
-                            wasPinchingRef.current = true;
-                            clickCooldownUntilRef.current = now + 700;
-                            activeTarget.click();
-                            playLabSound("pick");
-                            dwellStartTimeRef.current = null;
-                            progress = 0;
-                        } else if (isCard) {
+                        if (isCard) {
                             // ─── THANH TIẾN TRÌNH TỪ TỪ (DWELL PROGRESS CONFIRMATION) ───
-                            // Thời lượng giữ ngắm: 1300ms (1.3s) - từ từ, đủ để học sinh chắc chắn muốn chọn
-                            const dwellDuration = 1300;
+                            // Thời lượng giữ ngắm: 1200ms (1.2s) - từ từ, đủ để học sinh chắc chắn muốn chọn
+                            // TUYỆT ĐỐI KHÔNG CLICK TỨC THÌ - BẮT BUỘC PHẢI CHẠY ĐỦ 100% TIẾN TRÌNH!
+                            const dwellDuration = 1200;
                             const elapsed = now - (dwellStartTimeRef.current || now);
                             progress = Math.min(1.0, elapsed / dwellDuration);
 
@@ -406,23 +408,52 @@ export default function Lab3DChemicalCabinetModal({
                             if (progress >= 1.0) {
                                 activeTarget.click();
                                 playLabSound("pick");
-                                clickCooldownUntilRef.current = now + 800;
+                                clickCooldownUntilRef.current = now + 1000;
                                 dwellStartTimeRef.current = null;
                                 progress = 0;
                             }
                         } else if (isCat) {
-                            // Đổi kiểu danh mục: 700ms
-                            const dwellDuration = 700;
-                            const elapsed = now - (dwellStartTimeRef.current || now);
-                            progress = Math.min(1.0, elapsed / dwellDuration);
-                            gestureHintText = `✨ Đang đổi danh mục... ${Math.round(progress * 100)}%`;
-
-                            if (progress >= 1.0) {
+                            // Đổi kiểu danh mục: 600ms hoặc pinch nhanh
+                            if (isTriggerActive && !wasPinchingRef.current) {
+                                wasPinchingRef.current = true;
+                                clickCooldownUntilRef.current = now + 400;
                                 activeTarget.click();
                                 playLabSound("pick");
-                                clickCooldownUntilRef.current = now + 500;
                                 dwellStartTimeRef.current = null;
                                 progress = 0;
+                            } else {
+                                const dwellDuration = 600;
+                                const elapsed = now - (dwellStartTimeRef.current || now);
+                                progress = Math.min(1.0, elapsed / dwellDuration);
+                                gestureHintText = `✨ Đang đổi danh mục... ${Math.round(progress * 100)}%`;
+
+                                if (progress >= 1.0) {
+                                    activeTarget.click();
+                                    playLabSound("pick");
+                                    clickCooldownUntilRef.current = now + 400;
+                                    dwellStartTimeRef.current = null;
+                                    progress = 0;
+                                }
+                            }
+                        } else if (directTargetId === "close-modal" || directTargetId.includes("reset-")) {
+                            if (isTriggerActive && !wasPinchingRef.current) {
+                                wasPinchingRef.current = true;
+                                clickCooldownUntilRef.current = now + 600;
+                                activeTarget.click();
+                                playLabSound("pick");
+                                dwellStartTimeRef.current = null;
+                                progress = 0;
+                            } else {
+                                const dwellDuration = 700;
+                                const elapsed = now - (dwellStartTimeRef.current || now);
+                                progress = Math.min(1.0, elapsed / dwellDuration);
+                                if (progress >= 1.0) {
+                                    activeTarget.click();
+                                    playLabSound("pick");
+                                    clickCooldownUntilRef.current = now + 600;
+                                    dwellStartTimeRef.current = null;
+                                    progress = 0;
+                                }
                             }
                         }
                     } else {

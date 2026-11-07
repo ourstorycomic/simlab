@@ -16,7 +16,7 @@
 
 import React, { useRef, useState, useCallback, useMemo, MutableRefObject, useEffect } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, PerspectiveCamera, Text } from "@react-three/drei";
+import { OrbitControls, PerspectiveCamera, Text, Billboard } from "@react-three/drei";
 import * as THREE from "three";
 
 import { HandState, DEFAULT_HAND_STATE, SingleHandData } from "@/lib/handTracking";
@@ -82,25 +82,44 @@ export interface InteractiveWorkbenchItem {
     solidChemical?: Chemical | null; // Chất rắn dạng cục / thỏi kim loại / tinh thể nếu có
 }
 
-// ─── Lấy màu hiển thị thực tế cho chất lỏng trong suốt ───
-export function getDisplayLiquidColor(chem: Chemical | null | undefined, fallback: string = "#38bdf8"): string {
+// ─── Lấy màu hiển thị thực tế chuẩn xác ngoài đời thực trong phòng thí nghiệm ───
+export function getDisplayLiquidColor(chem: Chemical | null | undefined, fallback: string = "#e0f2fe"): string {
     if (!chem) return fallback;
 
     const id = chem.id.toLowerCase();
-    // Các chất có màu sắc đặc trưng trong phòng thí nghiệm
-    if (id === "cuso4" || id.includes("dong") || id.includes("copper")) return "#2563eb"; // Xanh lam rực rỡ đặc trưng của Đồng Sunfat
-    if (id.includes("kmno4")) return "#9333ea"; // Tím đậm thuốc tím
-    if (id.includes("fecl3")) return "#b45309"; // Vàng nâu hổ phách sắt (III)
-    if (id.includes("feso4") || id === "fecl2") return "#10b981"; // Xanh lục nhạt sắt (II)
-    if (id.includes("k2cr2o7")) return "#ea580c"; // Cam rực đicromat
-    if (id.includes("k2cro4")) return "#eab308"; // Vàng tươi cromat
-    if (id.includes("phenol")) return "#ec4899"; // Hồng cánh sen Phenolphthalein
-    if (id.includes("c2h5oh")) return "#38bdf8"; // Xanh ngọc nhạt cồn
-    if (id === "br2") return "#b91c1c"; // Đỏ nâu Brom
-    if (id === "i2") return "#7e22ce"; // Tím Iot
-    if (id === "fe") return "#64748b"; // Màu xám kim loại sắt
 
-    // Kiểm tra màu khai báo có phải trắng/trong suốt không
+    // 1. Các hóa chất có MÀU ĐẶC TRƯNG NGOÀI ĐỜI THỰC:
+    // Dung dịch Đồng(II) Sunfat / ion Cu2+: Xanh lam đậm đặc trưng
+    if (id === "cuso4" || id.includes("cucl2") || id.includes("dong") || id.includes("copper")) return "#1d4ed8";
+    // Thuốc tím KMnO4: Tím thẫm rất đậm đặc trưng
+    if (id.includes("kmno4")) return "#581c87";
+    // Dung dịch muối Sắt(III) (FeCl3, Fe(NO3)3): Vàng nâu / hổ phách
+    if (id.includes("fecl3") || id.includes("fe2(so4)3") || id.includes("fe(no3)3")) return "#b45309";
+    // Dung dịch muối Sắt(II) (FeSO4, FeCl2): Xanh lục nhạt
+    if (id.includes("feso4") || id === "fecl2") return "#6ee7b7";
+    // Kali Đicromat (K2Cr2O7): Da cam rực rỡ
+    if (id.includes("k2cr2o7")) return "#ea580c";
+    // Kali Cromat (K2CrO4): Vàng tươi
+    if (id.includes("k2cro4")) return "#eab308";
+    // Nước Brom (Br2): Nâu đỏ đậm
+    if (id === "br2" || id.includes("bromine")) return "#991b1b";
+    // Dung dịch Iot (I2): Tím / nâu sẫm
+    if (id === "i2" || id.includes("iodine")) return "#7e22ce";
+    // Chỉ thị quỳ tím trong nước: Tím hoa cà
+    if (id.includes("quy_tim") || id.includes("litmus")) return "#7c3aed";
+    // Chỉ thị Metyl da cam: Cam rực
+    if (id.includes("metyl") || id.includes("methyl")) return "#ea580c";
+    // Chỉ thị Phenolphthalein: Trong môi trường thường là DUNG DỊCH KHÔNG MÀU TRONG SUỐT!
+    if (id.includes("phenol")) return "#e0f2fe";
+
+    // 2. Kim loại rắn nguyên chất: Giữ màu kim loại
+    if (id === "fe") return "#64748b"; // Xám ánh thép
+    if (id === "cu") return "#c2410c"; // Đỏ cam ánh đồng
+    if (id === "zn") return "#94a3b8"; // Xám bạc kẽm
+    if (id === "al") return "#cbd5e1"; // Trắng bạc nhôm
+    if (id === "mg") return "#e2e8f0"; // Trắng bạc magie
+
+    // 3. Nếu là hóa chất có màu đặc thù khác khai báo trong database (không phải trắng/trong suốt)
     const rawColor = chem.liquidColor || chem.color || "";
     const isWhiteOrClear =
         !rawColor ||
@@ -113,13 +132,10 @@ export function getDisplayLiquidColor(chem: Chemical | null | undefined, fallbac
         return rawColor;
     }
 
-    // Với dung dịch không màu trong suốt: Áp dụng ánh màu thí nghiệm sắc nét giúp học sinh quan sát rõ mực chất lỏng và phản ứng
-    if (chem.category === "acid") return "#38bdf8"; // Xanh dương trong vắt cho Axit (HCl, H2SO4, HNO3, CH3COOH)
-    if (chem.category === "base") return "#2dd4bf"; // Xanh ngọc biển thanh dịu cho Bazơ (NaOH, Ba(OH)2, Ca(OH)2, NH3)
-    if (chem.category === "indicator") return "#f43f5e"; // Đỏ hồng chỉ thị
-    if (chem.category === "salt") return "#60a5fa"; // Xanh da trời muối tan
-
-    return fallback;
+    // 4. TOÀN BỘ CÁC DUNG DỊCH KHÔNG MÀU NGOÀI ĐỜI THỰC:
+    // Axit (HCl, H2SO4, HNO3, CH3COOH...), Bazơ (NaOH, KOH, Ba(OH)2, Ca(OH)2...), Muối tan (NaCl, BaCl2, AgNO3...)
+    // Trong suốt như nước cất, phản chiếu ánh sáng pha lê phòng lab tự nhiên:
+    return "#e0f2fe";
 }
 
 // ─── Chiều cao miệng bình theo từng loại ───
@@ -242,67 +258,185 @@ function InteractiveVessel({
                         </mesh>
                     )}
 
-                    {/* 5. Tem nhãn dán hóa chất chuẩn thực tế dán trực tiếp trên thân lọ (Không bay lơ lửng che tầm nhìn) */}
+                    {/* 5. Tem nhãn dán hóa chất chuẩn thực tế dán trực tiếp trên thân lọ (Sắc nét, rõ ràng) */}
                     {isReagent && (
-                        <group position={[0, 0.08, 0.082]}>
-                            {/* Nền tem giấy dán trắng ngà */}
+                        <group position={[0, 0.082, 0.092]} rotation={[-0.08, 0, 0]}>
+                            {/* Nền tem giấy trắng ngà cao cấp */}
                             <mesh>
-                                <planeGeometry args={[0.076, 0.046]} />
-                                <meshStandardMaterial color="#f8fafc" roughness={0.6} />
+                                <planeGeometry args={[0.096, 0.062]} />
+                                <meshStandardMaterial color="#f8fafc" roughness={0.4} />
                             </mesh>
-                            {/* Viền chỉ thanh lịch */}
-                            <mesh position={[0, 0, 0.0005]}>
-                                <planeGeometry args={[0.072, 0.042]} />
-                                <meshBasicMaterial color="#94a3b8" wireframe />
+                            {/* Thanh màu danh mục trên đầu tem (Category Bar) */}
+                            <mesh position={[0, 0.026, 0.0006]}>
+                                <planeGeometry args={[0.092, 0.006]} />
+                                <meshBasicMaterial
+                                    color={
+                                        item.chemical?.category === "acid"
+                                            ? "#e11d48"
+                                            : item.chemical?.category === "base"
+                                            ? "#d97706"
+                                            : item.chemical?.category === "metal"
+                                            ? "#059669"
+                                            : item.chemical?.category === "indicator"
+                                            ? "#7c3aed"
+                                            : item.chemical?.category === "organic"
+                                            ? "#0d9488"
+                                            : "#2563eb"
+                                    }
+                                />
                             </mesh>
-                            {/* Công thức hóa học */}
+                            {/* Viền đôi tem nhãn phòng lab chuẩn */}
+                            <mesh position={[0, -0.002, 0.0005]}>
+                                <planeGeometry args={[0.090, 0.048]} />
+                                <meshBasicMaterial color="#cbd5e1" wireframe />
+                            </mesh>
+                            {/* Công thức hóa học in ĐẬM NỔI BẬT */}
                             <Text
-                                position={[0, 0.007, 0.001]}
-                                fontSize={0.015}
+                                position={[0, 0.009, 0.001]}
+                                fontSize={0.020}
                                 color="#0f172a"
                                 anchorX="center"
                                 anchorY="middle"
                             >
                                 {item.chemical
                                     ? normalizeChemicalFormula(item.chemical.formula)
-                                    : "LỌ TRỐNG"}
+                                    : "LỌ RỖNG"}
                             </Text>
-                            {/* Tên hóa học / trạng thái */}
+                            {/* Tên hóa học tiếng Việt sắc nét */}
                             <Text
-                                position={[0, -0.009, 0.001]}
-                                fontSize={0.007}
+                                position={[0, -0.008, 0.001]}
+                                fontSize={0.009}
+                                color="#1e293b"
+                                anchorX="center"
+                                anchorY="middle"
+                                maxWidth={0.088}
+                            >
+                                {item.chemical
+                                    ? item.chemical.name.length > 15
+                                        ? item.chemical.name.slice(0, 14) + "..."
+                                        : item.chemical.name
+                                    : "(Chọn chất từ tủ)"}
+                            </Text>
+                            {/* Nồng độ hoặc trạng thái */}
+                            <Text
+                                position={[0, -0.021, 0.001]}
+                                fontSize={0.0065}
                                 color="#64748b"
                                 anchorX="center"
                                 anchorY="middle"
                             >
                                 {item.chemical
-                                    ? item.chemical.name.length > 14
-                                        ? item.chemical.name.slice(0, 13) + "..."
-                                        : item.chemical.name
-                                    : "(Đã đổ hết)"}
+                                    ? `${item.chemical.concentration || "Dung dịch"} • ${Math.round(item.fillLevel * 100)}%`
+                                    : "0%"}
                             </Text>
                         </group>
                     )}
 
-                    {/* Nhãn ghi chú sắc nét in trên thân cốc trộn (Beaker) */}
-                    {item.type === "beaker" && (item.chemical || item.solidChemical) && (
-                        <group position={[0, 0.065, 0.065]}>
+                    {/* Nhãn ghi chú in trên thân cốc trộn (Beaker) */}
+                    {item.type === "beaker" && (
+                        <group position={[0, 0.075, 0.082]} rotation={[-0.08, 0, 0]}>
+                            <mesh>
+                                <planeGeometry args={[0.088, 0.048]} />
+                                <meshBasicMaterial color="#ffffff" transparent opacity={0.25} />
+                            </mesh>
                             <Text
-                                position={[0, 0, 0]}
-                                fontSize={0.013}
+                                position={[0, 0.008, 0.001]}
+                                fontSize={0.016}
                                 color="#ffffff"
                                 anchorX="center"
                                 anchorY="middle"
-                                fillOpacity={0.9}
                             >
                                 {item.chemical
                                     ? normalizeChemicalFormula(item.chemical.formula)
                                     : item.solidChemical
                                     ? normalizeChemicalFormula(item.solidChemical.formula)
-                                    : ""}
+                                    : "CỐC TRỘN"}
+                            </Text>
+                            <Text
+                                position={[0, -0.009, 0.001]}
+                                fontSize={0.008}
+                                color="#e2e8f0"
+                                anchorX="center"
+                                anchorY="middle"
+                                maxWidth={0.082}
+                            >
+                                {item.chemical || item.solidChemical
+                                    ? `${(item.chemical || item.solidChemical)!.name} (${Math.round(item.fillLevel * 100)}%)`
+                                    : "Phản ứng (Rỗng)"}
                             </Text>
                         </group>
                     )}
+
+                    {/* 6. Bảng tên Hologram / Billboard AR nổi phía trên miệng bình (luôn hướng về phía camera) */}
+                    <Billboard
+                        position={[0, mouthH + 0.085, 0]}
+                        follow={true}
+                    >
+                        {/* Nền HUD bán trong suốt */}
+                        <mesh position={[0, 0, 0]}>
+                            <planeGeometry args={[0.22, 0.082]} />
+                            <meshStandardMaterial
+                                color="#090d16"
+                                transparent
+                                opacity={0.88}
+                                roughness={0.2}
+                                metalness={0.5}
+                            />
+                        </mesh>
+                        {/* Khung viền phát sáng Hologram */}
+                        <mesh position={[0, 0, 0.001]}>
+                            <planeGeometry args={[0.216, 0.078]} />
+                            <meshBasicMaterial
+                                color={
+                                    item.chemical
+                                        ? item.type === "reagent-bottle"
+                                            ? "#38bdf8"
+                                            : "#10b981"
+                                        : "#64748b"
+                                }
+                                wireframe
+                            />
+                        </mesh>
+                        {/* Công thức hóa học lớn nổi bật */}
+                        <Text
+                            position={[0, 0.015, 0.003]}
+                            fontSize={0.024}
+                            color={
+                                item.chemical
+                                    ? "#38bdf8"
+                                    : item.solidChemical
+                                    ? "#34d399"
+                                    : "#94a3b8"
+                            }
+                            anchorX="center"
+                            anchorY="middle"
+                        >
+                            {item.chemical
+                                ? normalizeChemicalFormula(item.chemical.formula)
+                                : item.solidChemical
+                                ? normalizeChemicalFormula(item.solidChemical.formula)
+                                : item.type === "reagent-bottle"
+                                ? "LỌ RỖNG"
+                                : "CỐC TRỘN"}
+                        </Text>
+                        {/* Tên tiếng Việt và trạng thái */}
+                        <Text
+                            position={[0, -0.018, 0.003]}
+                            fontSize={0.011}
+                            color="#f8fafc"
+                            anchorX="center"
+                            anchorY="middle"
+                            maxWidth={0.20}
+                        >
+                            {item.chemical
+                                ? `${item.chemical.name} (${Math.round(item.fillLevel * 100)}%)`
+                                : item.solidChemical
+                                ? `${item.solidChemical.name} (${Math.round(item.fillLevel * 100)}%)`
+                                : item.type === "reagent-bottle"
+                                ? "Chưa nạp hóa chất"
+                                : "Cốc phản ứng (0%)"}
+                        </Text>
+                    </Billboard>
                 </group>
             </group>
 
@@ -807,13 +941,17 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
         };
     }, []);
 
+    const initialChem = useMemo(() => {
+        return getChemicalById("cuso4") || allChemicals[0];
+    }, []);
+
     const [activeChemical, setActiveChemical] = useState<Chemical>(() => {
         return getChemicalById("cuso4") || allChemicals[0];
     });
 
     const [teacherMode, setTeacherMode] = useState<"idle" | "speaking" | "warning" | "success" | "listening">("speaking");
     const [teacherMessage, setTeacherMessage] = useState(
-        "Xin chào! Cô là Cô Giáo Mai SimLab. Bàn thí nghiệm có 1 lọ hóa chất lấy từ tủ và 1 cốc phản ứng rỗng. Em hãy quét mã QR kết nối điện thoại để cầm nghiêng rót & lắc trộn (hoặc bấm nút Rót bên dưới) nhé!"
+        "Xin chào! Cô là Cô Giáo Mai SimLab. Bàn thí nghiệm có 1 lọ Đồng(II) Sunfat (CuSO₄) và 1 cốc phản ứng rỗng. Em hãy quét mã QR kết nối điện thoại để cầm nghiêng rót (hoặc bấm nút Rót bên dưới) vào cốc, hoặc mở Tủ Hóa Chất để chọn chất khác nhé!"
     );
     const [isTeacherGuideOpen, setIsTeacherGuideOpen] = useState(false);
     const [show3DTeacher, setShow3DTeacher] = useState(true);
@@ -843,10 +981,10 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
         {
             id: "bottle-reagent",
             type: "reagent-bottle",
-            label: "Lọ rỗng (Chọn chất từ tủ)",
-            chemical: null,
-            liquidColor: "transparent",
-            fillLevel: 0,
+            label: `${initialChem.name} (${initialChem.formula})`,
+            chemical: initialChem,
+            liquidColor: getDisplayLiquidColor(initialChem),
+            fillLevel: 0.65,
             position: [-0.32, -0.06, 0.36],
             defaultPosition: [-0.32, -0.06, 0.36],
             heldBy: null,
@@ -1187,7 +1325,7 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                         chemical: null,
                         solidChemical: null,
                         fillLevel: 0,
-                        liquidColor: "#38bdf8",
+                        liquidColor: "transparent",
                         heldBy: null,
                         tiltAngle: 0,
                         pitchAngle: 0,

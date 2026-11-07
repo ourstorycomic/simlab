@@ -344,38 +344,44 @@ export function RealisticGlasswareMesh({
     }, [scale, defaultScale]);
 
     // Material dung dịch bên trong: Tự động chuyển đổi màu mượt mà qua các frame (Smooth color transition)
+    const isInitialClear = !liquidColor || liquidColor === "transparent" || liquidColor.toLowerCase() === "#e0f2fe" || liquidColor === "#ffffff";
     const liquidMaterial = useMemo(() => {
         return new THREE.MeshStandardMaterial({
-            color: new THREE.Color(liquidColor && liquidColor !== "transparent" ? liquidColor : "#38bdf8"),
-            emissive: new THREE.Color(liquidColor && liquidColor !== "transparent" ? liquidColor : "#38bdf8"),
-            emissiveIntensity: 0.25,
-            roughness: 0.1,
-            metalness: 0.05,
+            color: new THREE.Color(liquidColor && liquidColor !== "transparent" ? liquidColor : "#e0f2fe"),
+            emissive: new THREE.Color(liquidColor && liquidColor !== "transparent" ? liquidColor : "#e0f2fe"),
+            emissiveIntensity: isInitialClear ? 0.03 : 0.20,
+            roughness: 0.08,
+            metalness: 0.04,
             transparent: true,
-            opacity: 0.92,
+            opacity: isInitialClear ? 0.58 : 0.88,
             depthWrite: true,
         });
     }, []);
 
     const surfaceMaterial = useMemo(() => {
         return new THREE.MeshStandardMaterial({
-            color: new THREE.Color(liquidColor && liquidColor !== "transparent" ? liquidColor : "#38bdf8"),
-            emissive: new THREE.Color(liquidColor && liquidColor !== "transparent" ? liquidColor : "#38bdf8"),
-            emissiveIntensity: 0.25,
+            color: new THREE.Color(liquidColor && liquidColor !== "transparent" ? liquidColor : "#e0f2fe"),
+            emissive: new THREE.Color(liquidColor && liquidColor !== "transparent" ? liquidColor : "#e0f2fe"),
+            emissiveIntensity: isInitialClear ? 0.03 : 0.20,
             roughness: 0.05,
             transparent: true,
-            opacity: 0.9,
+            opacity: isInitialClear ? 0.55 : 0.85,
         });
     }, []);
 
     useFrame((_, delta) => {
         if (!liquidColor || liquidColor === "transparent") return;
         try {
+            const isClear = liquidColor.toLowerCase() === "#e0f2fe" || liquidColor.toLowerCase() === "#f0f9ff" || liquidColor === "#ffffff";
             const target = new THREE.Color(liquidColor);
-            liquidMaterial.color.lerp(target, Math.min(1.0, delta * 2.8));
+            liquidMaterial.color.lerp(target, Math.min(1.0, delta * 3.5));
             liquidMaterial.emissive.copy(liquidMaterial.color);
-            surfaceMaterial.color.lerp(target, Math.min(1.0, delta * 2.8));
+            liquidMaterial.emissiveIntensity = THREE.MathUtils.lerp(liquidMaterial.emissiveIntensity, isClear ? 0.03 : 0.20, Math.min(1.0, delta * 3.5));
+            liquidMaterial.opacity = THREE.MathUtils.lerp(liquidMaterial.opacity, isClear ? 0.58 : 0.88, Math.min(1.0, delta * 3.5));
+            surfaceMaterial.color.lerp(target, Math.min(1.0, delta * 3.5));
             surfaceMaterial.emissive.copy(surfaceMaterial.color);
+            surfaceMaterial.emissiveIntensity = THREE.MathUtils.lerp(surfaceMaterial.emissiveIntensity, isClear ? 0.03 : 0.20, Math.min(1.0, delta * 3.5));
+            surfaceMaterial.opacity = THREE.MathUtils.lerp(surfaceMaterial.opacity, isClear ? 0.55 : 0.85, Math.min(1.0, delta * 3.5));
         } catch {}
     });
 
