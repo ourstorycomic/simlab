@@ -1702,7 +1702,7 @@ function Optics3D({
                     <meshBasicMaterial color="#38bdf8" />
                 </mesh>
                 <Text position={[0, -0.035, 0.03]} fontSize={0.028} color="#38bdf8" anchorX="center">
-                    F'
+                    {"F'"}
                 </Text>
             </group>
 
@@ -1737,7 +1737,7 @@ function Optics3D({
                             <meshBasicMaterial color="#f59e0b" />
                         </mesh>
                         <Text position={[0, imgHeight + (imgHeight < 0 ? -0.04 : 0.04), 0]} fontSize={0.025} color="#38bdf8">
-                            Ảnh A'B' (Ngược chiều)
+                            {"Ảnh A'B' (Ngược chiều)"}
                         </Text>
                     </group>
                 )}
@@ -2520,7 +2520,7 @@ export default function Lab3DPhysicsScene({ handStateRef }: { handStateRef?: Mut
                                 <div className="bg-slate-900/80 p-2.5 rounded-xl border border-rose-500/20 flex flex-col gap-1.5">
                                     <span className="font-bold text-rose-300 text-[11px] flex items-center gap-1">
                                         <Search className="w-3.5 h-3.5 text-rose-400" />
-                                        Công Thức Thấu Kính: 1/f = 1/d + 1/d'
+                                        {"Công Thức Thấu Kính: 1/f = 1/d + 1/d'"}
                                     </span>
                                     {(() => {
                                         const d_cm = Math.round((lensOffset + 0.65) * 100);
@@ -2535,13 +2535,13 @@ export default function Lab3DPhysicsScene({ handStateRef }: { handStateRef?: Mut
                                                     <span className="text-amber-300 font-bold">{d_cm} cm</span>
                                                 </div>
                                                 <div className="flex justify-between">
-                                                    <span className="text-slate-400">Khoảng cách ảnh d':</span>
+                                                    <span className="text-slate-400">{"Khoảng cách ảnh d':"}</span>
                                                     <span className="text-sky-300 font-bold">
                                                         {dPrime_cm === 999 ? "∞ (Vô cực)" : `${dPrime_cm.toFixed(1)} cm (${dPrime_cm > 0 ? "Ảnh thật" : "Ảnh ảo"})`}
                                                     </span>
                                                 </div>
                                                 <div className="flex justify-between">
-                                                    <span className="text-slate-400">Độ phóng đại k = -d'/d:</span>
+                                                    <span className="text-slate-400">{"Độ phóng đại k = -d'/d:"}</span>
                                                     <span className="text-rose-300 font-bold">
                                                         {k_mag.toFixed(2)} ({k_mag < 0 ? "Ngược chiều" : "Cùng chiều"})
                                                     </span>
