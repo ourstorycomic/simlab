@@ -180,24 +180,24 @@ export default function Lab3DChemicalCabinetModal({
 
                     // Tọa độ ngón trỏ: Ưu tiên tuyệt đối tọa độ 3D chóp ngón tay chiếu trực tiếp từ Three.js (khớp pixel 100%)
                     const proj = latestProjectedTipRef.current;
-                    const hasFreshProj = proj && now - proj.timestamp < 150;
-                    const targetX = hasFreshProj ? proj.screenX : (1.0 - indexTip.x) * window.innerWidth;
-                    const targetY = hasFreshProj ? proj.screenY : indexTip.y * window.innerHeight;
-
-                    // 🎯 BỘ LỌC LÀM MỊN ĐỨNG YÊN (DEADZONE + ADAPTIVE EMA) - TRIỆT TIÊU 100% RUNG GIẬT CON TRỎ:
+                    const hasFreshProj = proj && now - proj.timestamp < 1000;
                     const cur = smoothedPointerRef.current;
-                    if (cur.x < 0 || cur.y < 0) {
-                        cur.x = targetX;
-                        cur.y = targetY;
+
+                    if (hasFreshProj && proj) {
+                        // 🎯 Khóa chặt 1:1 con trỏ vào đầu ngón tay 3D không độ trễ, không lệch, không rung giật:
+                        // Three.js đã lọc rung lắc webcam bằng Adaptive EMA ở tần số 60fps
+                        cur.x = proj.screenX;
+                        cur.y = proj.screenY;
                     } else {
-                        const dist = Math.hypot(targetX - cur.x, targetY - cur.y);
-                        // Deadband: Bỏ qua hoàn toàn rung lắc vi mô (< 3.2px) của webcam sensor
-                        if (dist > 3.2) {
-                            // Lọc thích ứng: Khi ngắm/rê chậm -> alpha = 0.20 (đứng yên vững như chuột bàn phím)
-                            // Khi di chuyển nhanh -> alpha = 0.52 (bám ngón tay nhạy bén)
-                            const alpha = dist < 20 ? 0.20 : dist < 50 ? 0.35 : 0.52;
-                            cur.x += (targetX - cur.x) * alpha;
-                            cur.y += (targetY - cur.y) * alpha;
+                        // Fallback nội suy mượt chỉ khi mất kết nối chiếu 3D
+                        const fallbackX = (1.0 - indexTip.x) * window.innerWidth;
+                        const fallbackY = indexTip.y * window.innerHeight;
+                        if (cur.x < 0 || cur.y < 0) {
+                            cur.x = fallbackX;
+                            cur.y = fallbackY;
+                        } else {
+                            cur.x += (fallbackX - cur.x) * 0.35;
+                            cur.y += (fallbackY - cur.y) * 0.35;
                         }
                     }
 
@@ -407,13 +407,26 @@ export default function Lab3DChemicalCabinetModal({
                         laserReticleRef.current.style.display = "block";
                     }
                     if (laserBadgeRef.current) {
-                        laserBadgeRef.current.innerText = isTriggerActive ? "✊" : isPinch ? "👌" : "👆";
+                        if (isTriggerActive) {
+                            laserBadgeRef.current.innerText = "✊";
+                            laserBadgeRef.current.className = "absolute w-7 h-7 rounded-full flex items-center justify-center text-sm shadow-2xl transition-colors bg-emerald-500 text-white ring-2 ring-emerald-300 shadow-emerald-500/50";
+                        } else if (isPinch) {
+                            laserBadgeRef.current.innerText = "👌";
+                            laserBadgeRef.current.className = "absolute w-7 h-7 rounded-full flex items-center justify-center text-sm shadow-2xl transition-colors bg-teal-500 text-white ring-2 ring-teal-300 shadow-teal-500/50";
+                        } else {
+                            laserBadgeRef.current.innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-cyan-300 ring-2 ring-white shadow-[0_0_8px_#38bdf8]"></span>';
+                            laserBadgeRef.current.className = "absolute w-7 h-7 rounded-full flex items-center justify-center shadow-2xl transition-colors bg-sky-500/40 backdrop-blur-sm ring-1.5 ring-sky-300/80 shadow-sky-500/40";
+                        }
                     }
                     if (dwellCircleRef.current) {
                         dwellCircleRef.current.style.strokeDashoffset = `${150.8 * (1 - progress)}`;
                     }
                     if (laserHintRef.current) {
-                        laserHintRef.current.innerText = isShieldActive ? "⏳ Đang sẵn sàng... Rê tay vào chất" : gestureHintText;
+                        laserHintRef.current.innerText = isShieldActive
+                            ? "⏳ Đang sẵn sàng... Rê tay vào chất"
+                            : progress > 0
+                            ? `🎯 Đang chọn... ${Math.round(progress * 100)}%`
+                            : gestureHintText;
                     }
 
                     // Chỉ kích hoạt React state khi thực sự chuyển hover sang phần tử mới

@@ -22,37 +22,20 @@ interface Global3DHandOverlayProps {
 
 export default function Global3DHandOverlay({ handStateRef, subject, onIndexTipUpdate }: Global3DHandOverlayProps) {
     const cameraSettings = React.useMemo(() => {
-        if (subject === "physics") {
-            // Hạ thấp góc nhìn camera đồng bộ với PhysicsScene để bàn tay khớp chuẩn xác với mặt bàn và thiết bị mạch điện
-            return { position: [0, 0.55, 1.75] as [number, number, number], fov: 48 };
-        }
-        if (subject === "biology") {
-            // Camera Sinh Học: Góc nhìn trực diện bao quát toàn màn hình để bàn tay vươn tới cả thanh tab và thanh phân tách đáy
-            return { position: [0, 0.25, 2.35] as [number, number, number], fov: 46 };
-        }
-        // Chemistry default: Đồng bộ với Lab3DScene camera (Y = 0.65, Z = 2.65)
-        return { position: [0, 0.65, 2.65] as [number, number, number], fov: 48 };
-    }, [subject]);
+        // Góc nhìn Camera trực diện chuẩn xác bao quát toàn màn hình cho cả 3 môn (Chemistry / Physics / Biology):
+        // Camera đặt tại Z = 2.40, nhìn thẳng trực diện vào tâm (0, 0, 0)
+        return { position: [0, 0, 2.40] as [number, number, number], fov: 48 };
+    }, []);
 
     const positionOffset = React.useMemo(() => {
-        if (subject === "physics") {
-            // Bàn tay lơ lửng vừa vặn ngay trên mặt bàn mạch điện, chạm chuẩn xác công tắc
-            return [0, -0.22, 0.0] as [number, number, number];
-        }
-        if (subject === "biology") {
-            // Căn chỉnh công thái học chuẩn: Bàn tay thoải mái vươn lên tới menu và với xuống tới thanh phân tách
-            return [0, -0.08, 0.05] as [number, number, number];
-        }
-        // Chemistry: Hạ thấp vừa tầm mặt bàn và bình hóa chất
-        return [0, -0.06, 0.18] as [number, number, number];
-    }, [subject]);
+        // Tâm bàn tay tại (0, 0, 0) - Trùng khớp 100% với tâm Camera và tâm màn hình
+        return [0, 0, 0] as [number, number, number];
+    }, []);
 
     const scaleFactor = React.useMemo(() => {
-        // Tỷ lệ chuẩn giải phẫu thực tế: bàn tay vừa vặn cầm bình thủy tinh 150-250ml
-        if (subject === "biology") return 0.82;
-        if (subject === "physics") return 0.78;
-        return 0.75;
-    }, [subject]);
+        // Tỷ lệ chuẩn công thái học: bàn tay rõ ràng, vừa vặn tự nhiên trên màn hình
+        return 0.78;
+    }, []);
 
     return (
         <div className="fixed inset-0 pointer-events-none z-[60] overflow-hidden select-none">

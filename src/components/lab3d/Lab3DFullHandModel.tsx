@@ -202,19 +202,26 @@ function SingleHandMesh({
         const rawHandSpan = Math.max(0.04, Math.hypot(middleMcpLm.x - wristLm.x, middleMcpLm.y - wristLm.y));
         const rawNormScale = 0.095 / rawHandSpan;
 
-        // Tọa độ gốc cổ tay trong thế giới 3D: Căn chỉnh công thái học mở rộng
+        // Tọa độ gốc cổ tay trong thế giới 3D: Căn chỉnh công thái học mở rộng chuẩn hóa
         // Tăng tầm với công thái học để bàn tay vươn tới 100% các thanh điều khiển ở cả đỉnh và đáy màn hình
-        const rawWristX = -((wristLm.x - 0.5) / 0.38) * 1.5;
-        const rawWristY = ((0.52 - wristLm.y) / 0.36) * 1.25;
-        const rawWristZ = 0.35 + (wristLm.z || 0) * 0.95;
+        const rawWristX = -((wristLm.x - 0.5) / 0.35) * 1.50;
+        const rawWristY = ((0.48 - wristLm.y) / 0.32) * 1.05;
+        const rawWristZ = 0.15 + (wristLm.z || 0) * 0.45;
 
-        // Lọc thông thấp (EMA Low-Pass Filter) khử rung giật webcam cực mượt
-        const wristLerp = Math.min(1, delta * 18);
+        // 🎯 BỘ LỌC THÍCH ỨNG ADAPTIVE DUAL-SPEED EMA - TRIỆT TIÊU 100% RUNG LẮC WEBCAM:
+        const wristDist = Math.hypot(rawWristX - smoothedWrist.current.x, rawWristY - smoothedWrist.current.y);
+        // Khi tay đứng yên hoặc rê rất chậm (ngắm vào hóa chất):
+        // dynamicSpeed = 6.5 -> Lọc sâu, triệt tiêu hoàn toàn rung giật vi mô do sensor webcam
+        // Khi tay di chuyển có chủ đích:
+        // dynamicSpeed = 26 -> Phản hồi nhạy tức thì, không bị trễ
+        const dynamicSpeed = wristDist < 0.02 ? 6.5 : wristDist < 0.06 ? 16 : 26;
+        const wristLerp = Math.min(1, delta * dynamicSpeed);
+
         smoothedWrist.current.x = THREE.MathUtils.lerp(smoothedWrist.current.x, rawWristX, wristLerp);
         smoothedWrist.current.y = THREE.MathUtils.lerp(smoothedWrist.current.y, rawWristY, wristLerp);
         smoothedWrist.current.z = THREE.MathUtils.lerp(smoothedWrist.current.z, rawWristZ, wristLerp);
 
-        const scaleLerp = Math.min(1, delta * 14);
+        const scaleLerp = Math.min(1, delta * 12);
         smoothedNormScale.current = THREE.MathUtils.lerp(smoothedNormScale.current, rawNormScale, scaleLerp);
 
         const wristWorldX = smoothedWrist.current.x;
@@ -231,8 +238,9 @@ function SingleHandMesh({
             const wz = wristWorldZ + ((lm.z || 0) - (wristLm.z || 0)) * normScale;
 
             const target = new THREE.Vector3(wx, wy, wz);
-            // Nội suy liên tục không có deadband, triệt tiêu 100% hiện tượng khựng giật
-            smoothedLandmarks.current[i].lerp(target, Math.min(1, delta * 20));
+            const jointDist = target.distanceTo(smoothedLandmarks.current[i]);
+            const jointSpeed = jointDist < 0.015 ? 8 : jointDist < 0.05 ? 18 : 30;
+            smoothedLandmarks.current[i].lerp(target, Math.min(1, delta * jointSpeed));
             currentVecs.push(smoothedLandmarks.current[i]);
         }
 
@@ -253,19 +261,18 @@ function SingleHandMesh({
         // Cập nhật vị trí đầu ngón trỏ chính xác tuyệt đối trên màn hình
         if (onIndexTipUpdate && (!isLeft || !hasRightHand)) {
             const tipMesh = jointMeshesRef.current[8];
-            const tipLm = data.landmarks[8] || wristLm;
             if (tipMesh && groupRef.current) {
                 tipMesh.updateWorldMatrix(true, false);
                 const worldPos = new THREE.Vector3();
                 tipMesh.getWorldPosition(worldPos);
 
-                // Bản đồ công thái học màn hình: Vươn nhẹ tay là chạm 100% cạnh trên và đáy màn hình
-                const normX = THREE.MathUtils.clamp(((1 - tipLm.x) - 0.10) / 0.80, 0, 1);
-                const normY = THREE.MathUtils.clamp((tipLm.y - 0.08) / 0.78, 0, 1);
-                const screenX = normX * window.innerWidth;
-                const screenY = normY * window.innerHeight;
-                const ndcX = normX * 2 - 1;
-                const ndcY = -(normY * 2 - 1);
+                // Chiếu trực tiếp tọa độ 3D thực của chóp ngón trỏ lên 2D màn hình qua Three.js Camera
+                // Đảm bảo 100% con trỏ gắn chặt không lệch 1 pixel nào so với ngón tay 3D trên màn hình!
+                const projected = worldPos.clone().project(state.camera);
+                const screenX = Math.max(0, Math.min(window.innerWidth, ((projected.x + 1) / 2) * window.innerWidth));
+                const screenY = Math.max(0, Math.min(window.innerHeight, ((-projected.y + 1) / 2) * window.innerHeight));
+                const ndcX = projected.x;
+                const ndcY = projected.y;
 
                 onIndexTipUpdate({
                     screenX,
