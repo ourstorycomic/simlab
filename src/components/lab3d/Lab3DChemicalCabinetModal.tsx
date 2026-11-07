@@ -248,35 +248,43 @@ export default function Lab3DChemicalCabinetModal({
                         wasPinchingRef.current = false;
                     }
 
-                    // ─── 1. CUỘN THEO VÙNG TAY (ZONE-BASED CONTINUOUS SCROLLING):
-                    // - Phía DƯỚI GUI (relY > 0.78): Tự động cuộn XUỐNG
-                    // - Phía TRÊN GUI (relY < 0.22): Tự động cuộn LÊN
-                    // - Phía GIỮA GUI (0.22 <= relY <= 0.78): ĐỨNG YÊN HOÀN TOÀN 100%!
+                    // ─── 1. XÁC ĐỊNH ĐÍCH ĐANG TRỎ VÀO TRƯỚC TIÊN (POINT TARGET FIRST) ───
+                    const elementAtPoint = document.elementFromPoint(cur.x, cur.y);
+                    const directTarget = elementAtPoint?.closest<HTMLElement>("[data-hand-target]") || null;
+                    const directTargetId = directTarget?.getAttribute("data-hand-target") || "";
+                    const isChemicalCard = directTargetId.startsWith("chem-");
+                    const isCategoryBtn = directTargetId.startsWith("cat-");
+                    const isScrollUpBtn = directTargetId === "scroll-up-btn";
+                    const isScrollDownBtn = directTargetId === "scroll-down-btn";
+
+                    // ─── 2. CUỘN THEO VÙNG TAY:
+                    // QUY TẮC BẮT BUỘC: Khi đang trỏ vào bất kỳ thẻ hóa chất nào -> ĐỨNG YÊN 100%!
+                    // Bàn tay ở giữa là vùng ngắm chọn -> ĐỨNG YÊN HOÀN TOÀN!
+                    // Chỉ khi đưa tay sát hẳn mép trên cùng (Top 8%) hoặc sát hẳn mép dưới cùng (Bottom 8%) mới cuộn!
                     let scrollZone: "top" | "bottom" | "neutral" = "neutral";
                     let targetVel = 0;
 
-                    if (gridContainerRef.current) {
+                    if (isScrollUpBtn) {
+                        scrollZone = "top";
+                        targetVel = -12;
+                    } else if (isScrollDownBtn) {
+                        scrollZone = "bottom";
+                        targetVel = 12;
+                    } else if (!isChemicalCard && !isCategoryBtn && gridContainerRef.current) {
                         const rect = gridContainerRef.current.getBoundingClientRect();
-                        const relY = (cur.y - rect.top) / rect.height;
-                        const isInModalX = cur.x >= rect.left - 50 && cur.x <= rect.right + 50;
+                        const isInModalX = cur.x >= rect.left - 40 && cur.x <= rect.right + 40;
 
-                        if (isInModalX && relY >= -0.15 && relY <= 1.15) {
-                            if (relY < 0.22) {
-                                // VÙNG TRÊN (TOP ZONE): Cuộn LÊN
+                        if (isInModalX) {
+                            if (cur.y < rect.top + 35) {
+                                // VÙNG TRÊN CÙNG: Cuộn LÊN
                                 scrollZone = "top";
-                                const factor = Math.min(1, Math.max(0, (0.22 - relY) / 0.22));
-                                targetVel = -1 * (5 + factor * 15); // -5px đến -20px/frame
-                                clickCooldownUntilRef.current = now + 150;
-                                dwellStartTimeRef.current = null;
-                            } else if (relY > 0.78) {
-                                // VÙNG DƯỚI (BOTTOM ZONE): Cuộn XUỐNG
+                                targetVel = -10;
+                            } else if (cur.y > rect.bottom - 35) {
+                                // VÙNG DƯỚI CÙNG: Cuộn XUỐNG
                                 scrollZone = "bottom";
-                                const factor = Math.min(1, Math.max(0, (relY - 0.78) / 0.22));
-                                targetVel = 1 * (5 + factor * 15); // +5px đến +20px/frame
-                                clickCooldownUntilRef.current = now + 150;
-                                dwellStartTimeRef.current = null;
+                                targetVel = 10;
                             } else {
-                                // VÙNG GIỮA (MIDDLE ZONE): ĐỨNG YÊN HOÀN TOÀN!
+                                // VÙNG GIỮA: ĐỨNG YÊN 100% TUYỆT ĐỐI!
                                 scrollZone = "neutral";
                                 targetVel = 0;
                             }
@@ -284,7 +292,7 @@ export default function Lab3DChemicalCabinetModal({
                     }
 
                     // Làm mịn vận tốc cuộn (EMA Filter):
-                    scrollVelocityRef.current = scrollVelocityRef.current * 0.72 + targetVel * 0.28;
+                    scrollVelocityRef.current = scrollVelocityRef.current * 0.70 + targetVel * 0.30;
                     if (Math.abs(scrollVelocityRef.current) < 0.25) {
                         scrollVelocityRef.current = 0;
                     }
@@ -301,103 +309,94 @@ export default function Lab3DChemicalCabinetModal({
                         bottomScrollBannerRef.current.style.opacity = scrollZone === "bottom" ? "1" : "0";
                     }
 
-                    // Tấm chắn khóa click trong 1.5s đầu mở tủ hoặc khi đang cuộn dở:
-                    const isShieldActive = now < modalOpenedTimeRef.current + 1500 || now < clickCooldownUntilRef.current;
-                    const isClickAllowed = !isShieldActive && scrollZone === "neutral" && Math.abs(scrollVelocityRef.current) <= 0.5;
+                    // Tấm chắn khóa click (1.0s đầu sau khi mở)
+                    const isShieldActive = now < modalOpenedTimeRef.current + 1000;
+                    const isClickAllowed = !isShieldActive && (scrollZone === "neutral" || isChemicalCard || isCategoryBtn);
 
-                    let gestureHintText = "👉 Chỉ ngón để ngắm • 👌 Chụm ngón (Pinch) để lấy";
+                    let activeTarget: HTMLElement | null = null;
+                    if (isClickAllowed && (isChemicalCard || isCategoryBtn || directTargetId.includes("reset-") || directTargetId === "close-modal")) {
+                        activeTarget = directTarget;
+                    }
+
+                    let progress = 0;
+                    let gestureHintText = "👉 Trỏ ngón vào chất để chọn • Đưa tay lên/xuống mép để cuộn";
+
                     if (scrollZone === "top") {
                         gestureHintText = "⬆️ Đang cuộn lên • Đưa tay vào giữa để dừng";
                     } else if (scrollZone === "bottom") {
                         gestureHintText = "⬇️ Đang cuộn xuống • Đưa tay vào giữa để dừng";
                     }
 
-                    // ─── 2. NGẮM VÀ CHỌN (POINT & SELECT - CHUẨN VIRTUAL-MOUSE) ───
-                    const elementAtPoint = document.elementFromPoint(cur.x, cur.y);
-                    const directTarget = isClickAllowed
-                        ? elementAtPoint?.closest<HTMLElement>("[data-hand-target]") || null
-                        : null;
-
-                    // Vùng đệm chống rung nhẹ 150ms
-                    let activeTarget: HTMLElement | null = null;
-                    if (directTarget) {
-                        activeTarget = directTarget;
-                        currentHoveredElemRef.current = directTarget;
-                        lastHoveredElemTimeRef.current = now;
-                    } else if (currentHoveredElemRef.current && (now - lastHoveredElemTimeRef.current < 150) && isClickAllowed) {
-                        activeTarget = currentHoveredElemRef.current;
-                    } else {
-                        currentHoveredElemRef.current = null;
+                    // Nếu đổi thẻ hover -> Reset thanh tiến trình thẻ cũ về 0%
+                    if (currentHoveredElemRef.current && currentHoveredElemRef.current !== activeTarget) {
+                        const prevBar = currentHoveredElemRef.current.querySelector<HTMLElement>(".chem-card-progress");
+                        if (prevBar) prevBar.style.width = "0%";
+                        const prevText = currentHoveredElemRef.current.querySelector<HTMLElement>(".chem-card-progress-text");
+                        if (prevText) prevText.innerText = "0%";
+                        const prevBottom = currentHoveredElemRef.current.querySelector<HTMLElement>(".chem-card-bottom-progress");
+                        if (prevBottom) prevBottom.style.width = "0%";
                     }
-
-                    let progress = 0;
 
                     if (activeTarget && isClickAllowed) {
                         const targetId = activeTarget.getAttribute("data-hand-target") || "";
-                        const isCategoryBtn = targetId.startsWith("cat-");
-                        const isChemicalCard = targetId.startsWith("chem-");
-                        const isScrollBtn = targetId.includes("scroll-");
+                        const isCard = targetId.startsWith("chem-");
+                        const isCat = targetId.startsWith("cat-");
 
-                        // ─── THAO TÁC 1: DƠ NGÓN GIỮA (🖕) HOẶC NẮM TAY (✊) / CHỤM NGÓN (👌) -> CHỌN CHẤT NGAY ───
-                        const isMiddleTrigger = isMiddleExt && !isPinkyExt;
-                        if ((isMiddleTrigger || isTriggerActive) && !wasPinchingRef.current) {
+                        if (currentHoveredElemRef.current !== activeTarget) {
+                            currentHoveredElemRef.current = activeTarget;
+                            dwellStartTimeRef.current = now;
+                        }
+
+                        // CỬ CHỈ NẮM TAY (✊) HOẶC CHỤM NGÓN (👌): Chọn ngay lập tức nếu muốn thao tác nhanh
+                        if (isTriggerActive && !wasPinchingRef.current) {
                             wasPinchingRef.current = true;
                             clickCooldownUntilRef.current = now + 700;
                             activeTarget.click();
                             playLabSound("pick");
                             dwellStartTimeRef.current = null;
                             progress = 0;
-                        }
+                        } else if (isCard) {
+                            // ─── THANH TIẾN TRÌNH TỪ TỪ (DWELL PROGRESS CONFIRMATION) ───
+                            // Thời lượng giữ ngắm: 1300ms (1.3s) - từ từ, đủ để học sinh chắc chắn muốn chọn
+                            const dwellDuration = 1300;
+                            const elapsed = now - (dwellStartTimeRef.current || now);
+                            progress = Math.min(1.0, elapsed / dwellDuration);
 
-                        // ─── THAO TÁC 2: NGẮM VÀ GIỮ HOẶC DƠ NGÓN GIỮA ───
-                        if (isChemicalCard) {
-                            gestureHintText = "🖕 Dơ ngón giữa để Chọn chất • Hoặc giữ 600ms";
-                            const dwellDuration = 600;
-                            if (!dwellStartTimeRef.current) {
-                                dwellStartTimeRef.current = now;
+                            // Cập nhật DOM thanh tiến trình thời gian thực (60fps) ngay trên thẻ
+                            const progressBar = activeTarget.querySelector<HTMLElement>(".chem-card-progress");
+                            if (progressBar) progressBar.style.width = `${Math.round(progress * 100)}%`;
+                            const progressText = activeTarget.querySelector<HTMLElement>(".chem-card-progress-text");
+                            if (progressText) progressText.innerText = `${Math.round(progress * 100)}%`;
+                            const bottomBar = activeTarget.querySelector<HTMLElement>(".chem-card-bottom-progress");
+                            if (bottomBar) bottomBar.style.width = `${Math.round(progress * 100)}%`;
+
+                            gestureHintText = `⏳ Đang chọn: ${Math.round(progress * 100)}% (Giữ yên ngón trỏ để lấy)`;
+
+                            // Khi đạt 100% -> TỰ ĐỘNG CHỌN CHẤT ĐƯA RA BÀN!
+                            if (progress >= 1.0) {
+                                activeTarget.click();
+                                playLabSound("pick");
+                                clickCooldownUntilRef.current = now + 800;
+                                dwellStartTimeRef.current = null;
                                 progress = 0;
-                            } else {
-                                const elapsed = now - dwellStartTimeRef.current;
-                                progress = Math.min(1.0, elapsed / dwellDuration);
-
-                                if (progress >= 1.0) {
-                                    activeTarget.click();
-                                    playLabSound("pick");
-                                    clickCooldownUntilRef.current = now + 600;
-                                    dwellStartTimeRef.current = null;
-                                    progress = 0;
-                                }
                             }
-                        } else if (isCategoryBtn) {
-                            const dwellDuration = 550;
-                            if (!dwellStartTimeRef.current) {
-                                dwellStartTimeRef.current = now;
+                        } else if (isCat) {
+                            // Đổi kiểu danh mục: 700ms
+                            const dwellDuration = 700;
+                            const elapsed = now - (dwellStartTimeRef.current || now);
+                            progress = Math.min(1.0, elapsed / dwellDuration);
+                            gestureHintText = `✨ Đang đổi danh mục... ${Math.round(progress * 100)}%`;
+
+                            if (progress >= 1.0) {
+                                activeTarget.click();
+                                playLabSound("pick");
+                                clickCooldownUntilRef.current = now + 500;
+                                dwellStartTimeRef.current = null;
                                 progress = 0;
-                            } else {
-                                const elapsed = now - dwellStartTimeRef.current;
-                                progress = Math.min(1.0, elapsed / dwellDuration);
-
-                                if (progress >= 1.0) {
-                                    activeTarget.click();
-                                    playLabSound("pick");
-                                    clickCooldownUntilRef.current = now + 500;
-                                    dwellStartTimeRef.current = null;
-                                    progress = 0;
-                                }
                             }
-                        } else {
-                            dwellStartTimeRef.current = null;
-                            progress = 0;
-                        }
-
-                        if (isChemicalCard) {
-                            gestureHintText = "☝️ Giữ ngón trỏ hoặc ✊/👌 để Lấy chất này";
-                        } else if (isCategoryBtn) {
-                            gestureHintText = progress > 0 ? "⏳ Đang đổi danh mục..." : "✨ Nắm tay hoặc giữ ngón để đổi";
-                        } else if (isScrollBtn) {
-                            gestureHintText = "📜 Nắm tay hoặc di chuyển tay để cuộn";
                         }
                     } else {
+                        currentHoveredElemRef.current = null;
                         dwellStartTimeRef.current = null;
                         progress = 0;
                     }
@@ -414,7 +413,7 @@ export default function Lab3DChemicalCabinetModal({
                         dwellCircleRef.current.style.strokeDashoffset = `${150.8 * (1 - progress)}`;
                     }
                     if (laserHintRef.current) {
-                        laserHintRef.current.innerText = isShieldActive ? "⏳ Đang sẵn sàng... Phẩy tay để cuộn" : gestureHintText;
+                        laserHintRef.current.innerText = isShieldActive ? "⏳ Đang sẵn sàng... Rê tay vào chất" : gestureHintText;
                     }
 
                     // Chỉ kích hoạt React state khi thực sự chuyển hover sang phần tử mới
@@ -772,7 +771,7 @@ export default function Lab3DChemicalCabinetModal({
                                                     : canReactWithRef
                                                     ? "bg-emerald-950/80 border-emerald-400 ring-2 ring-emerald-400/80 shadow-2xl shadow-emerald-500/30 scale-[1.02]"
                                                     : isHoveredByHand
-                                                    ? "bg-sky-950/80 border-sky-400 shadow-2xl shadow-sky-500/30 ring-2 ring-sky-400 scale-[1.04]"
+                                                    ? "bg-emerald-950/85 border-emerald-400 shadow-2xl shadow-emerald-500/40 ring-2 ring-emerald-400 scale-[1.03]"
                                                     : "bg-slate-800/70 hover:bg-slate-750 border-slate-700/60 hover:border-sky-400 hover:shadow-xl hover:shadow-sky-500/20 hover:scale-[1.03]"
                                             }`}
                                         >
@@ -784,11 +783,22 @@ export default function Lab3DChemicalCabinetModal({
                                                 </div>
                                             )}
 
-                                            {/* Nhãn gợi ý khi đang ngắm */}
+                                            {/* Thanh tiến trình từ từ khi ngón trỏ đang ngắm vào chất này */}
                                             {isHoveredByHand && !isActive && (
-                                                <div className="absolute top-2 left-2 right-2 bg-gradient-to-r from-sky-600 to-emerald-600 text-white text-[10px] font-bold py-1 px-1.5 rounded-lg text-center shadow-lg z-20 flex items-center justify-center gap-1.5 border border-sky-300 animate-pulse">
-                                                    <Hand className="w-3.5 h-3.5 text-white" />
-                                                    <span>Ấn ngón giữa để Lấy</span>
+                                                <div className="absolute top-1.5 left-1.5 right-1.5 bg-slate-950/95 border border-emerald-400/90 rounded-xl p-1.5 shadow-2xl z-20 flex flex-col gap-1 backdrop-blur-md pointer-events-none animate-in fade-in duration-100 ring-1 ring-emerald-400/50">
+                                                    <div className="flex items-center justify-between text-[10px] font-bold text-emerald-300">
+                                                        <span className="flex items-center gap-1">
+                                                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
+                                                            <span>Đang chọn...</span>
+                                                        </span>
+                                                        <span className="chem-card-progress-text font-mono text-white text-[10px]">0%</span>
+                                                    </div>
+                                                    <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700/80">
+                                                        <div
+                                                            className="chem-card-progress h-full bg-gradient-to-r from-sky-400 via-teal-400 to-emerald-400 rounded-full transition-all duration-75"
+                                                            style={{ width: "0%" }}
+                                                        />
+                                                    </div>
                                                 </div>
                                             )}
                                         {/* Badge đang trên bàn */}
@@ -827,10 +837,18 @@ export default function Lab3DChemicalCabinetModal({
                                             <span className="text-[10px] text-slate-400 capitalize">
                                                 {chem.category}
                                             </span>
-                                            <span className="text-[11px] font-semibold text-sky-400 group-hover:text-sky-200 transition-colors flex items-center gap-1">
+                                            <span className="text-[11px] font-semibold text-emerald-400 group-hover:text-emerald-200 transition-colors flex items-center gap-1">
                                                 <span>Đặt lên bàn</span>
                                                 <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                                             </span>
+                                        </div>
+
+                                        {/* Thanh tiến trình viền đáy card */}
+                                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-800/80 overflow-hidden">
+                                            <div
+                                                className="chem-card-bottom-progress h-full bg-gradient-to-r from-sky-400 via-teal-400 to-emerald-400 transition-all duration-75"
+                                                style={{ width: "0%" }}
+                                            />
                                         </div>
                                     </div>
                                 );
