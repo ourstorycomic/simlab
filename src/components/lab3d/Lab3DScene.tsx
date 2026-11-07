@@ -16,7 +16,7 @@
 
 import React, { useRef, useState, useCallback, useMemo, MutableRefObject, useEffect } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, PerspectiveCamera, Text, Billboard } from "@react-three/drei";
+import { OrbitControls, PerspectiveCamera, Text, Html } from "@react-three/drei";
 import * as THREE from "three";
 
 import { HandState, DEFAULT_HAND_STATE, SingleHandData } from "@/lib/handTracking";
@@ -162,7 +162,259 @@ export function getVesselIcon(type: GlasswareType): React.ReactNode {
     }
 }
 
-// ─── 1. Dụng Cụ Thí Nghiệm Đồ Họa 3D Thuần Túy Kèm Hiệu Ứng Định Vị Hover / Grip Của Bàn Tay ───
+// ─── Tạo Canvas Texture Độ Phân Giải Cao (1024x640) cho Tem Nhãn Lọ Hóa Chất ───
+function createReagentLabelTexture(
+    chemical: Chemical | null | undefined,
+    fillLevel: number = 0
+): THREE.CanvasTexture {
+    if (typeof window === "undefined" || typeof document === "undefined") {
+        return new THREE.Texture() as THREE.CanvasTexture;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = 1024;
+    canvas.height = 640;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return new THREE.CanvasTexture(canvas);
+
+    // 1. Nền tem giấy trắng ngà cao cấp
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, 1024, 640);
+
+    // 2. Khung viền kép sang trọng chuẩn phòng lab
+    ctx.strokeStyle = "#0f172a";
+    ctx.lineWidth = 16;
+    ctx.strokeRect(12, 12, 1000, 616);
+
+    ctx.strokeStyle = "#94a3b8";
+    ctx.lineWidth = 4;
+    ctx.strokeRect(26, 26, 972, 588);
+
+    if (chemical) {
+        // 3. Dải màu phân loại hóa chất quốc tế (GHS Category Banner)
+        const cat = chemical.category || "salt";
+        let catColor = "#2563eb";
+        let catTitle = "MUỐI TINH KHIẾT (PURIFIED SALT)";
+        if (cat === "acid") {
+            catColor = "#dc2626";
+            catTitle = "AXIT VÔ CƠ / HỮU CƠ (ACID)";
+        } else if (cat === "base") {
+            catColor = "#d97706";
+            catTitle = "DUNG DỊCH KIỀM / BAZƠ (BASE)";
+        } else if (cat === "metal") {
+            catColor = "#059669";
+            catTitle = "KIM LOẠI NGUYÊN CHẤT (METAL)";
+        } else if (cat === "indicator") {
+            catColor = "#7c3aed";
+            catTitle = "CHỈ THỊ MÀU HÓA HỌC (INDICATOR)";
+        } else if (cat === "organic") {
+            catColor = "#0d9488";
+            catTitle = "HỢP CHẤT HỮU CƠ (ORGANIC)";
+        }
+
+        ctx.fillStyle = catColor;
+        ctx.fillRect(30, 30, 964, 64);
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 30px 'Arial', sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(catTitle, 512, 62);
+
+        // 4. CÔNG THỨC HÓA HỌC IN SIÊU TO, ĐẬM, ĐEN TUYỀN (RÕ MỒN MỘT TỪ XA)
+        ctx.fillStyle = "#090d16";
+        ctx.font = "900 136px 'Arial', 'Segoe UI', sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        const formula = normalizeChemicalFormula(chemical.formula);
+        ctx.fillText(formula, 512, 220);
+
+        // Đường chỉ kẻ phân cách
+        ctx.strokeStyle = "#cbd5e1";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(100, 315);
+        ctx.lineTo(924, 315);
+        ctx.stroke();
+
+        // 5. TÊN HÓA HỌC TIẾNG VIỆT ĐẦY ĐỦ (ĐẬM, RÕ RÀNG)
+        ctx.fillStyle = "#0f172a";
+        const nameLen = chemical.name.length;
+        const nameFontSize = nameLen > 24 ? 44 : nameLen > 18 ? 50 : 58;
+        ctx.font = `bold ${nameFontSize}px 'Arial', 'Segoe UI', sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(chemical.name, 512, 385);
+
+        // 6. THÔNG SỐ: NỒNG ĐỘ & TRẠNG THÁI & MỨC DUNG DỊCH
+        ctx.fillStyle = "#334155";
+        ctx.font = "bold 34px 'Arial', sans-serif";
+        const conc = chemical.concentration || "0.1M";
+        const stateStr = chemical.state === "solid" ? "Chất rắn" : "Dung dịch";
+        ctx.fillText(`Nồng độ: ${conc}   •   ${stateStr} (${Math.round(fillLevel * 100)}%)`, 512, 470);
+
+        // 7. FOOTER CHUẨN PHÒNG THÍ NGHIỆM
+        ctx.fillStyle = "#0284c7";
+        ctx.font = "bold 26px 'Arial', sans-serif";
+        ctx.fillText("PHÒNG THÍ NGHIỆM SIMLAB 3D  •  BỘ GD&ĐT", 512, 565);
+    } else {
+        // Khi lọ rỗng
+        ctx.fillStyle = "#475569";
+        ctx.fillRect(30, 30, 964, 64);
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 30px 'Arial', sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("LỌ HÓA CHẤT PHÒNG THÍ NGHIỆM", 512, 62);
+
+        ctx.fillStyle = "#1e293b";
+        ctx.font = "900 120px 'Arial', sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("LỌ RỖNG", 512, 230);
+
+        ctx.strokeStyle = "#cbd5e1";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(100, 320);
+        ctx.lineTo(924, 320);
+        ctx.stroke();
+
+        ctx.fillStyle = "#64748b";
+        ctx.font = "bold 50px 'Arial', sans-serif";
+        ctx.fillText("Chọn chất từ Tủ để nạp vào lọ", 512, 400);
+
+        ctx.fillStyle = "#0284c7";
+        ctx.font = "bold 26px 'Arial', sans-serif";
+        ctx.fillText("SIMLAB 3D VIRTUAL CHEMISTRY LAB", 512, 560);
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.generateMipmaps = true;
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    texture.anisotropy = 16;
+    texture.needsUpdate = true;
+    return texture;
+}
+
+// ─── Tạo Canvas Texture Cho Cốc Trộn Phản Ứng (Vạch Chia Độ & Vùng Ghi Chú Trắng) ───
+function createBeakerLabelTexture(
+    chemical: Chemical | null | undefined,
+    fillLevel: number = 0
+): THREE.CanvasTexture {
+    if (typeof window === "undefined" || typeof document === "undefined") {
+        return new THREE.Texture() as THREE.CanvasTexture;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = 1024;
+    canvas.height = 640;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return new THREE.CanvasTexture(canvas);
+
+    ctx.clearRect(0, 0, 1024, 640);
+
+    // 1. Vạch chia độ thủy tinh màu trắng in lụa (bên trái)
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+    ctx.lineWidth = 8;
+    ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+    ctx.font = "bold 36px 'Arial', sans-serif";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+
+    const graduations = [
+        { ml: "100ml", y: 100 },
+        { ml: "80ml", y: 200 },
+        { ml: "60ml", y: 300 },
+        { ml: "40ml", y: 400 },
+        { ml: "20ml", y: 500 },
+    ];
+
+    graduations.forEach(({ ml, y }) => {
+        ctx.beginPath();
+        ctx.moveTo(30, y);
+        ctx.lineTo(150, y);
+        ctx.stroke();
+        ctx.fillText(ml, 165, y);
+    });
+
+    // 2. Miếng dán mờ ghi chú ở trung tâm / bên phải (White Frosted Label Area)
+    ctx.fillStyle = "rgba(255, 255, 255, 0.96)";
+    ctx.beginPath();
+    ctx.roundRect(310, 70, 680, 500, 24);
+    ctx.fill();
+
+    ctx.strokeStyle = "#334155";
+    ctx.lineWidth = 8;
+    ctx.stroke();
+
+    ctx.strokeStyle = "#94a3b8";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.roundRect(322, 82, 656, 476, 18);
+    ctx.stroke();
+
+    // Tiêu đề nhỏ
+    ctx.fillStyle = "#0284c7";
+    ctx.font = "bold 28px 'Arial', sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("CỐC TRỘN PHẢN ỨNG 100ML", 650, 130);
+
+    if (chemical) {
+        // Công thức hóa học in đậm
+        ctx.fillStyle = "#090d16";
+        ctx.font = "900 110px 'Arial', sans-serif";
+        const formula = normalizeChemicalFormula(chemical.formula);
+        ctx.fillText(formula, 650, 250);
+
+        // Đường kẻ
+        ctx.strokeStyle = "#cbd5e1";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(370, 325);
+        ctx.lineTo(930, 325);
+        ctx.stroke();
+
+        // Tên tiếng Việt
+        ctx.fillStyle = "#1e293b";
+        const nameLen = chemical.name.length;
+        const nameFontSize = nameLen > 20 ? 38 : 46;
+        ctx.font = `bold ${nameFontSize}px 'Arial', sans-serif`;
+        ctx.fillText(chemical.name, 650, 390);
+
+        // Thể tích chất lỏng
+        ctx.fillStyle = "#0284c7";
+        ctx.font = "bold 36px 'Arial', sans-serif";
+        const ml = Math.round(fillLevel * 100);
+        ctx.fillText(`Thể tích dung dịch: ~${ml} ml`, 650, 475);
+    } else {
+        // Cốc rỗng
+        ctx.fillStyle = "#334155";
+        ctx.font = "900 84px 'Arial', sans-serif";
+        ctx.fillText("CỐC RỖNG", 650, 260);
+
+        ctx.strokeStyle = "#cbd5e1";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(370, 335);
+        ctx.lineTo(930, 335);
+        ctx.stroke();
+
+        ctx.fillStyle = "#64748b";
+        ctx.font = "bold 42px 'Arial', sans-serif";
+        ctx.fillText("0 ml  •  Sẵn sàng hòa trộn", 650, 420);
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.generateMipmaps = true;
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    texture.anisotropy = 16;
+    texture.needsUpdate = true;
+    return texture;
+}
+
 // ─── 1. Dụng Cụ Thí Nghiệm Đồ Họa 3D Thuần Túy Kèm Hiệu Ứng Định Vị Hover / Grip Của Bàn Tay ───
 function InteractiveVessel({
     item,
@@ -182,6 +434,14 @@ function InteractiveVessel({
     const isReagent = item.type === "reagent-bottle";
     const mouthH = getVesselMouthHeight(item.type);
     const gripY = 0.10; // Tâm eo bình (nơi bàn tay cầm nắm chuẩn ngoài đời)
+
+    // Tem nhãn canvas độ phân giải cao (1024x640) dán trực tiếp trên thân vỏ bình (Không bay lơ lửng, không che chắn tầm nhìn)
+    const labelTexture = useMemo(() => {
+        if (isReagent) {
+            return createReagentLabelTexture(item.chemical, item.fillLevel);
+        }
+        return createBeakerLabelTexture(item.chemical || item.solidChemical, item.fillLevel);
+    }, [item.chemical?.id, item.chemical?.name, item.chemical?.formula, item.chemical?.category, item.solidChemical?.id, item.solidChemical?.name, item.fillLevel, isReagent]);
 
     // Cập nhật vị trí và góc quay trực tiếp lên Three.js Object3D mỗi frame (60fps mượt mà)
     useFrame(() => {
@@ -258,185 +518,61 @@ function InteractiveVessel({
                         </mesh>
                     )}
 
-                    {/* 5. Tem nhãn dán hóa chất chuẩn thực tế dán trực tiếp trên thân lọ (Sắc nét, rõ ràng) */}
+                    {/* 5. Tem nhãn dán hóa chất chuẩn thực tế dán trực tiếp trên thân lọ (Sắc nét 1024x640, Đậm đà, Rõ ràng) */}
                     {isReagent && (
-                        <group position={[0, 0.082, 0.092]} rotation={[-0.08, 0, 0]}>
-                            {/* Nền tem giấy trắng ngà cao cấp */}
-                            <mesh>
-                                <planeGeometry args={[0.096, 0.062]} />
-                                <meshStandardMaterial color="#f8fafc" roughness={0.4} />
-                            </mesh>
-                            {/* Thanh màu danh mục trên đầu tem (Category Bar) */}
-                            <mesh position={[0, 0.026, 0.0006]}>
-                                <planeGeometry args={[0.092, 0.006]} />
-                                <meshBasicMaterial
-                                    color={
-                                        item.chemical?.category === "acid"
-                                            ? "#e11d48"
-                                            : item.chemical?.category === "base"
-                                            ? "#d97706"
-                                            : item.chemical?.category === "metal"
-                                            ? "#059669"
-                                            : item.chemical?.category === "indicator"
-                                            ? "#7c3aed"
-                                            : item.chemical?.category === "organic"
-                                            ? "#0d9488"
-                                            : "#2563eb"
-                                    }
-                                />
-                            </mesh>
-                            {/* Viền đôi tem nhãn phòng lab chuẩn */}
-                            <mesh position={[0, -0.002, 0.0005]}>
-                                <planeGeometry args={[0.090, 0.048]} />
-                                <meshBasicMaterial color="#cbd5e1" wireframe />
-                            </mesh>
-                            {/* Công thức hóa học in ĐẬM NỔI BẬT */}
-                            <Text
-                                position={[0, 0.009, 0.001]}
-                                fontSize={0.020}
-                                color="#0f172a"
-                                anchorX="center"
-                                anchorY="middle"
-                            >
-                                {item.chemical
-                                    ? normalizeChemicalFormula(item.chemical.formula)
-                                    : "LỌ RỖNG"}
-                            </Text>
-                            {/* Tên hóa học tiếng Việt sắc nét */}
-                            <Text
-                                position={[0, -0.008, 0.001]}
-                                fontSize={0.009}
-                                color="#1e293b"
-                                anchorX="center"
-                                anchorY="middle"
-                                maxWidth={0.088}
-                            >
-                                {item.chemical
-                                    ? item.chemical.name.length > 15
-                                        ? item.chemical.name.slice(0, 14) + "..."
-                                        : item.chemical.name
-                                    : "(Chọn chất từ tủ)"}
-                            </Text>
-                            {/* Nồng độ hoặc trạng thái */}
-                            <Text
-                                position={[0, -0.021, 0.001]}
-                                fontSize={0.0065}
-                                color="#64748b"
-                                anchorX="center"
-                                anchorY="middle"
-                            >
-                                {item.chemical
-                                    ? `${item.chemical.concentration || "Dung dịch"} • ${Math.round(item.fillLevel * 100)}%`
-                                    : "0%"}
-                            </Text>
-                        </group>
-                    )}
-
-                    {/* Nhãn ghi chú in trên thân cốc trộn (Beaker) */}
-                    {item.type === "beaker" && (
-                        <group position={[0, 0.075, 0.082]} rotation={[-0.08, 0, 0]}>
-                            <mesh>
-                                <planeGeometry args={[0.088, 0.048]} />
-                                <meshBasicMaterial color="#ffffff" transparent opacity={0.25} />
-                            </mesh>
-                            <Text
-                                position={[0, 0.008, 0.001]}
-                                fontSize={0.016}
-                                color="#ffffff"
-                                anchorX="center"
-                                anchorY="middle"
-                            >
-                                {item.chemical
-                                    ? normalizeChemicalFormula(item.chemical.formula)
-                                    : item.solidChemical
-                                    ? normalizeChemicalFormula(item.solidChemical.formula)
-                                    : "CỐC TRỘN"}
-                            </Text>
-                            <Text
-                                position={[0, -0.009, 0.001]}
-                                fontSize={0.008}
-                                color="#e2e8f0"
-                                anchorX="center"
-                                anchorY="middle"
-                                maxWidth={0.082}
-                            >
-                                {item.chemical || item.solidChemical
-                                    ? `${(item.chemical || item.solidChemical)!.name} (${Math.round(item.fillLevel * 100)}%)`
-                                    : "Phản ứng (Rỗng)"}
-                            </Text>
-                        </group>
-                    )}
-
-                    {/* 6. Bảng tên Hologram / Billboard AR nổi phía trên miệng bình (luôn hướng về phía camera) */}
-                    <Billboard
-                        position={[0, mouthH + 0.085, 0]}
-                        follow={true}
-                    >
-                        {/* Nền HUD bán trong suốt */}
-                        <mesh position={[0, 0, 0]}>
-                            <planeGeometry args={[0.22, 0.082]} />
-                            <meshStandardMaterial
-                                color="#090d16"
-                                transparent
-                                opacity={0.88}
-                                roughness={0.2}
-                                metalness={0.5}
-                            />
-                        </mesh>
-                        {/* Khung viền phát sáng Hologram */}
-                        <mesh position={[0, 0, 0.001]}>
-                            <planeGeometry args={[0.216, 0.078]} />
+                        <mesh position={[0, 0.088, 0.095]} rotation={[-0.10, 0, 0]}>
+                            <planeGeometry args={[0.138, 0.086]} />
                             <meshBasicMaterial
-                                color={
-                                    item.chemical
-                                        ? item.type === "reagent-bottle"
-                                            ? "#38bdf8"
-                                            : "#10b981"
-                                        : "#64748b"
-                                }
-                                wireframe
+                                map={labelTexture}
+                                toneMapped={false}
                             />
                         </mesh>
-                        {/* Công thức hóa học lớn nổi bật */}
-                        <Text
-                            position={[0, 0.015, 0.003]}
-                            fontSize={0.024}
-                            color={
-                                item.chemical
-                                    ? "#38bdf8"
-                                    : item.solidChemical
-                                    ? "#34d399"
-                                    : "#94a3b8"
-                            }
-                            anchorX="center"
-                            anchorY="middle"
+                    )}
+
+                    {/* Nhãn in trên thân cốc trộn (Beaker Graduation & Frosted Spot) */}
+                    {item.type === "beaker" && (
+                        <mesh position={[0, 0.075, 0.084]} rotation={[-0.08, 0, 0]}>
+                            <planeGeometry args={[0.138, 0.086]} />
+                            <meshBasicMaterial
+                                map={labelTexture}
+                                toneMapped={false}
+                                transparent={true}
+                                opacity={0.96}
+                            />
+                        </mesh>
+                    )}
+
+                    {/* 6. Thẻ Pin tương tác thông minh (Chỉ hiện khi hover hoặc chọn, ở chân đế, KHÔNG vướng tầm nhìn) */}
+                    {(isSelected || isHovered) && (
+                        <Html
+                            position={[0, -0.015, 0.13]}
+                            center
+                            distanceFactor={2.8}
+                            className="pointer-events-none select-none"
                         >
-                            {item.chemical
-                                ? normalizeChemicalFormula(item.chemical.formula)
-                                : item.solidChemical
-                                ? normalizeChemicalFormula(item.solidChemical.formula)
-                                : item.type === "reagent-bottle"
-                                ? "LỌ RỖNG"
-                                : "CỐC TRỘN"}
-                        </Text>
-                        {/* Tên tiếng Việt và trạng thái */}
-                        <Text
-                            position={[0, -0.018, 0.003]}
-                            fontSize={0.011}
-                            color="#f8fafc"
-                            anchorX="center"
-                            anchorY="middle"
-                            maxWidth={0.20}
-                        >
-                            {item.chemical
-                                ? `${item.chemical.name} (${Math.round(item.fillLevel * 100)}%)`
-                                : item.solidChemical
-                                ? `${item.solidChemical.name} (${Math.round(item.fillLevel * 100)}%)`
-                                : item.type === "reagent-bottle"
-                                ? "Chưa nạp hóa chất"
-                                : "Cốc phản ứng (0%)"}
-                        </Text>
-                    </Billboard>
+                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-950/90 border border-sky-400/70 shadow-2xl backdrop-blur-md whitespace-nowrap text-white text-xs font-semibold animate-in fade-in zoom-in-95 duration-150">
+                                <span
+                                    className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm"
+                                    style={{
+                                        backgroundColor:
+                                            item.liquidColor && item.liquidColor !== "transparent"
+                                                ? item.liquidColor
+                                                : "#38bdf8",
+                                    }}
+                                />
+                                <span className="text-sky-300 font-mono font-bold">
+                                    {item.chemical
+                                        ? normalizeChemicalFormula(item.chemical.formula)
+                                        : isReagent
+                                        ? "Lọ Rỗng"
+                                        : "Cốc Rỗng"}
+                                </span>
+                                <span className="text-slate-200">
+                                    • {item.chemical ? item.chemical.name : isReagent ? "Chọn từ tủ" : "0%"}
+                                </span>
+                            </div>
+                        </Html>
+                    )}
                 </group>
             </group>
 
@@ -1739,7 +1875,7 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                                 <div className="flex items-center gap-2">
                                     <span className="text-xs font-bold text-white truncate">{selectedItem.label}</span>
                                     <span
-                                        className={`text-[9px] px-1.5 py-0.2 rounded-full font-semibold border ${
+                                        className={`text-[9px] px-2 py-0.5 rounded-full font-semibold border whitespace-nowrap shrink-0 ${
                                             selectedItem.heldBy
                                                 ? "bg-amber-950/60 text-amber-300 border-amber-500/40"
                                                 : "bg-emerald-950/60 text-emerald-300 border-emerald-500/40"
