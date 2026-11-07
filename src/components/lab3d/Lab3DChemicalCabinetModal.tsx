@@ -74,6 +74,7 @@ export default function Lab3DChemicalCabinetModal({
 }: Lab3DChemicalCabinetModalProps) {
     const [selectedCategory, setSelectedCategory] = useState<ChemCabinetCategory>("all");
     const [searchQuery, setSearchQuery] = useState("");
+    const [showReactionHints, setShowReactionHints] = useState(true);
     const gridContainerRef = useRef<HTMLDivElement>(null);
 
     // ─── Trạng thái Con Trỏ Laser VR Thực Tế Ảo ───
@@ -733,14 +734,27 @@ export default function Lab3DChemicalCabinetModal({
                         )}
                     </div>
 
-                    {/* Banner gợi ý phản ứng khi có chất tham chiếu trên bàn */}
-                    {refChemical && (
-                        <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-xs text-emerald-200">
-                            <div className="flex items-center gap-1.5 truncate">
-                                <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                                <span>Gợi ý phản ứng với <b>{refChemical.name} ({refChemical.formula})</b>: Các chất có huy hiệu <b>⚡ Có p/ứ</b> sẽ tạo phản ứng khi rót chung.</span>
+                    {/* Banner gợi ý phản ứng: CHỈ HIỆN KHI đã thực sự rót hóa chất vào cốc phản ứng */}
+                    {refChemical && showReactionHints && (
+                        <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-xs text-emerald-200 animate-in fade-in">
+                            <div className="flex items-center gap-2 truncate">
+                                <span className="flex items-center justify-center w-5 h-5 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-400/30 shrink-0">
+                                    <Zap className="w-3 h-3 text-amber-400" />
+                                </span>
+                                <span className="truncate">
+                                    Trong cốc phản ứng đang có <b>{refChemical.name} ({normalizeChemicalFormula(refChemical.formula)})</b>. Các chất có huy hiệu <b>⚡ Có p/ứ</b> sẽ tạo phản ứng khi rót vào cốc.
+                                </span>
                             </div>
-                            <span className="text-[10px] text-slate-400 shrink-0 ml-2">Bạn vẫn có thể tự do chọn bất kỳ chất nào</span>
+                            <div className="flex items-center gap-2 shrink-0 ml-2">
+                                <span className="text-[10px] text-slate-400 hidden sm:inline">Tự do chọn bất kỳ chất nào</span>
+                                <button
+                                    onClick={() => setShowReactionHints(false)}
+                                    className="px-2 py-0.5 rounded-lg text-[10px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-600 transition-colors cursor-pointer"
+                                    title="Ẩn gợi ý phản ứng để tự do thử nghiệm kiến thức"
+                                >
+                                    ✕ Ẩn gợi ý
+                                </button>
+                            </div>
                         </div>
                     )}
 
@@ -833,8 +847,8 @@ export default function Lab3DChemicalCabinetModal({
                                     const isLiquid = isLiquidState(chem.state);
                                     const previewColor = isLiquid ? chem.liquidColor : chem.solidColor || chem.color;
 
-                                    // Phản ứng với chất tham chiếu trên bàn (gợi ý)
-                                    const canReactWithRef = Boolean(refChemical && (getReaction(refChemical, chem) || getReaction(chem, refChemical)));
+                                    // Phản ứng với chất tham chiếu (CHỈ KHI đã rót vào cốc và chưa tắt gợi ý)
+                                    const canReactWithRef = Boolean(refChemical && showReactionHints && (getReaction(refChemical, chem) || getReaction(chem, refChemical)));
 
                                     return (
                                         <div

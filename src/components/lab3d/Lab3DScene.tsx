@@ -1144,14 +1144,14 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
     const itemsRef = useRef<InteractiveWorkbenchItem[]>(items);
     itemsRef.current = items;
 
-    // ─── Xác định hóa chất tham chiếu (chỉ khi có chất đang nằm trong cốc/bình trên bàn hoặc đang cầm trên tay) ───
+    // ─── Xác định hóa chất tham chiếu (CHỈ KHI ĐÃ ĐƯỢC RÓT VÀO CỐC TRỘN PHẢN ỨNG beaker-1) ───
     const refChemical = useMemo(() => {
-        // Chỉ lấy chất khi Cốc thủy tinh hoặc Bình tam giác đã có hóa chất (fillLevel > 0)
-        const tableItemWithChem = items.find((it) => it.type !== "reagent-bottle" && it.chemical && it.fillLevel > 0);
-        if (tableItemWithChem?.chemical) return tableItemWithChem.chemical;
-        // Hoặc đang cầm trên tay 1 bình có chứa hóa chất
-        const heldItem = items.find((it) => it.heldBy !== null && it.chemical && it.fillLevel > 0);
-        if (heldItem?.chemical) return heldItem.chemical;
+        // Chỉ kích hoạt gợi ý phản ứng khi Cốc phản ứng (beaker-1) thực sự ĐÃ ĐƯỢC RÓT HÓA CHẤT VÀO (fillLevel > 0.05)
+        // Khi người dùng chỉ mới lấy hóa chất ra lọ mà CHƯA ĐỔ VÀO CỐC, TUYỆT ĐỐI KHÔNG kích hoạt gợi ý phản ứng!
+        const beaker = items.find((it) => it.id === "beaker-1");
+        if (beaker && (beaker.chemical || beaker.solidChemical) && (beaker.fillLevel || 0) > 0.05) {
+            return beaker.chemical || beaker.solidChemical;
+        }
         return null;
     }, [items]);
 
