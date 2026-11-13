@@ -1901,11 +1901,11 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
             />
 
             {/* ─── 3. DOCK ĐIỀU KHIỂN DỤNG CỤ THÍ NGHIỆM GỌN GÀNG (CONTEXTUAL ACTION DOCK) ─── */}
-            <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 z-20 pointer-events-auto select-none max-w-xl w-[95%] sm:w-full">
-                <div className="bg-slate-950/90 backdrop-blur-2xl border border-slate-700/70 rounded-2xl shadow-2xl p-2.5 text-white transition-all">
+            <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 z-20 pointer-events-auto select-none max-w-2xl w-[96%]">
+                <div className="bg-slate-950/92 backdrop-blur-2xl border border-slate-700/80 rounded-2xl shadow-2xl p-2.5 text-white transition-all">
                     {/* Hàng 1: Tabs chọn dụng cụ trên bàn & Nút mở Tủ Hóa Chất */}
                     <div className="flex items-center justify-between gap-1 pb-1.5 mb-1.5 border-b border-slate-800/80 overflow-x-auto">
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 shrink-0">
                             {items.map((it) => {
                                 const isSel = it.id === selectedItemId;
                                 const isHeld = it.heldBy !== null;
@@ -1927,7 +1927,7 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                             })}
                         </div>
 
-                        <div className="flex items-center gap-1.5 shrink-0">
+                        <div className="flex items-center gap-1.5 shrink-0 ml-auto">
                             <button
                                 onClick={() => setIsCabinetModalOpen(true)}
                                 className="px-2.5 py-1 rounded-xl text-xs font-semibold bg-sky-600/90 hover:bg-sky-500 text-white border border-sky-400/50 shadow transition-all flex items-center gap-1.5 cursor-pointer"
@@ -1962,9 +1962,9 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                     </div>
 
                     {/* Hàng 2: Chi tiết dụng cụ đang chọn & Nút thao tác trực tiếp */}
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+                    <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5">
                         {/* Chi tiết dung dịch */}
-                        <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex items-center gap-2.5 min-w-0">
                             <div
                                 className="w-8 h-8 rounded-xl flex items-center justify-center text-base border border-white/10 shrink-0 shadow-inner"
                                 style={{
@@ -1977,7 +1977,7 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                             </div>
                             <div className="min-w-0">
                                 <div className="flex items-center gap-2">
-                                    <span className="text-xs font-bold text-white truncate">{selectedItem.label}</span>
+                                    <span className="text-xs font-bold text-white whitespace-nowrap">{selectedItem.label}</span>
                                     <span
                                         className={`text-[9px] px-2 py-0.5 rounded-full font-semibold border whitespace-nowrap shrink-0 ${
                                             selectedItem.heldBy
@@ -1985,10 +1985,10 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                                                 : "bg-emerald-950/60 text-emerald-300 border-emerald-500/40"
                                         }`}
                                     >
-                                        {selectedItem.heldBy === "phone" ? "📱 Cầm bằng điện thoại" : selectedItem.heldBy ? "Đang cầm" : "Trên bàn"}
+                                        {selectedItem.heldBy === "phone" ? "📱 Kết nối ĐT" : selectedItem.heldBy ? "Đang cầm" : "Trên bàn"}
                                     </span>
                                 </div>
-                                <p className="text-[11px] text-slate-300 truncate">
+                                <p className="text-[11px] text-slate-300 whitespace-nowrap overflow-hidden text-ellipsis">
                                     {selectedItem.chemical ? (
                                         <>
                                             Chứa: <span className="text-emerald-400 font-semibold">{selectedItem.chemical.name}</span>{" "}
@@ -2004,12 +2004,12 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                         </div>
 
                         {/* Nút hành động */}
-                        <div className="flex items-center gap-1.5 justify-end shrink-0">
+                        <div className="flex items-center gap-1.5 justify-end shrink-0 ml-auto">
                             {selectedItem.id === "bottle-reagent" ? (
                                 isPhoneConnected ? (
-                                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 text-xs font-semibold shadow">
+                                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 text-xs font-semibold shadow">
                                         <Smartphone className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-                                        <span>Cầm điện thoại nhấc & dốc để rót</span>
+                                        <span>Nghiêng ĐT để rót</span>
                                     </div>
                                 ) : (
                                     <button
@@ -2018,11 +2018,11 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                                                 window.dispatchEvent(new CustomEvent("open-remote-pairing"));
                                             }
                                         }}
-                                        className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-lg border border-emerald-400/40 flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+                                        className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl shadow-lg border border-emerald-400/40 flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
                                         title="Quét mã QR bằng điện thoại để cầm và dốc bình bằng cảm biến thật"
                                     >
                                         <Smartphone className="w-3.5 h-3.5" />
-                                        <span>Quét QR để cầm bình</span>
+                                        <span>Quét QR cầm bình</span>
                                     </button>
                                 )
                             ) : (
@@ -2046,7 +2046,7 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                                     title="Nạp đầy lại hóa chất vào bình để tiếp tục rót"
                                 >
                                     <RotateCcw className="w-3.5 h-3.5 text-teal-400" />
-                                    <span>Nạp lại bình</span>
+                                    <span>Nạp lại</span>
                                 </button>
                             ) : selectedItem.fillLevel > 0 ? (
                                 <button

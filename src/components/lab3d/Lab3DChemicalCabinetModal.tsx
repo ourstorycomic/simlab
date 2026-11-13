@@ -173,6 +173,7 @@ export default function Lab3DChemicalCabinetModal({
                     const thumbTip = lm[4];
                     const indexTip = lm[8];
                     const indexPip = lm[6];
+                    const indexMcp = lm[5];
                     const middleTip = lm[12];
                     const middlePip = lm[10];
                     const ringTip = lm[16];
@@ -209,21 +210,24 @@ export default function Lab3DChemicalCabinetModal({
                         return Math.hypot(a.x - b.x, a.y - b.y, (a.z || 0) - (b.z || 0));
                     };
 
+                    // Kích thước chuẩn hóa của lòng bàn tay (Wrist -> Index MCP) để chống lỗi cự ly xa gần webcam:
+                    const palmScale = Math.max(0.035, dist3D(indexMcp, wrist));
+
                     const dIndex = dist3D(indexTip, wrist);
                     const dMiddle = dist3D(middleTip, wrist);
                     const dRing = dist3D(ringTip, wrist);
                     const dPinky = dist3D(pinkyTip, wrist);
 
                     // Ngón trỏ duỗi khi:
-                    // 1. Khoảng cách 3D từ cổ tay tới chóp ngón trỏ > 0.17
-                    // 2. Hoặc hand.isIndexExtended / proj.isPointing từ Three.js
-                    // 3. Hoặc ngón trỏ vươn dài hơn ngón giữa gập (dIndex > dMiddle * 1.05)
-                    const isIndexExt = dIndex > 0.17 || !!hand.isIndexExtended || !!proj?.isPointing || dIndex > dMiddle * 1.08;
+                    // 1. Khoảng cách 3D từ cổ tay tới chóp ngón trỏ > 1.25 lần chiều dài lòng bàn tay
+                    // 2. Hoặc ngón trỏ vươn dài hơn ngón giữa gập (dIndex > dMiddle * 1.05)
+                    // 3. Hoặc hand.isIndexExtended / proj.isPointing từ Three.js
+                    const isIndexExt = dIndex > palmScale * 1.25 || dIndex > dMiddle * 1.05 || !!hand.isIndexExtended || !!proj?.isPointing;
 
                     // Ngón giữa, áp út, út duỗi dài (trong tư thế xòe tay):
-                    const isMiddleExt = dMiddle > 0.19 && dMiddle > dist3D(middlePip, wrist) * 1.05;
-                    const isRingExt = dRing > 0.18 && dRing > dist3D(ringPip, wrist) * 1.05;
-                    const isPinkyExt = dPinky > 0.16 && dPinky > dist3D(pinkyPip, wrist) * 1.05;
+                    const isMiddleExt = dMiddle > palmScale * 1.30 && dMiddle > dist3D(middlePip, wrist) * 1.05;
+                    const isRingExt = dRing > palmScale * 1.25 && dRing > dist3D(ringPip, wrist) * 1.05;
+                    const isPinkyExt = dPinky > palmScale * 1.15 && dPinky > dist3D(pinkyPip, wrist) * 1.05;
 
                     let extendedCount = 0;
                     if (isIndexExt) extendedCount++;
@@ -246,12 +250,13 @@ export default function Lab3DChemicalCabinetModal({
 
                     // ─── PHÂN BIỆT 3 CỬ CHỈ RÕ RÀNG: ───
                     // 1. XÒE CẢ BÀN TAY (OPEN HAND 🖐️) - DÙNG ĐỂ CUỘN LÊN / XUỐNG:
-                    // Cả ngón giữa và ngón áp út đều duỗi dài ra (dMiddle > 0.19 && dRing > 0.18)
+                    // Cả ngón giữa và ngón áp út đều duỗi dài ra
                     const isHandOpenForScroll = isMiddleExt && isRingExt && dMiddle >= dIndex * 0.88;
 
                     // 2. NẮM TAY (FIST ✊ / GRAB):
-                    // Cả 3 ngón chính đều co cụm lại sát cổ tay (dIndex < 0.16 && dMiddle < 0.16)
-                    const isClosedFist = (dIndex < 0.16 && dMiddle < 0.16 && dRing < 0.15) || ((hand.gesture === "GRAB" || (hand.gripStrength || 0) > 0.65) && !isIndexExt);
+                    // Chỉ xem là nắm tay khi cả 3 ngón đều co lại so với kích thước lòng bàn tay palmScale
+                    const isClosedFist = ((dIndex < palmScale * 1.12 && dMiddle < palmScale * 1.12 && dRing < palmScale * 1.12) || 
+                                          ((hand.gesture === "GRAB" || (hand.gripStrength || 0) > 0.75) && !isIndexExt)) && !isIndexExt;
 
                     // 3. CỬ CHỈ CHỤM NGÓN (PINCH 👌):
                     const rawPinchIndex = Math.hypot(thumbTip.x - indexTip.x, thumbTip.y - indexTip.y);

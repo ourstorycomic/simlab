@@ -223,9 +223,9 @@ export default function Lab3DHoldingHand({
                         <primitive object={materials.labCoatCuffTrim} attach="material" />
                     </mesh>
 
-                    {/* Đoạn ống tay áo blouse trắng vươn dài tự nhiên xuống phía dưới-phải màn hình */}
-                    <mesh position={[0, -0.18, 0]}>
-                        <cylinderGeometry args={[0.044, 0.068, 0.32, 28]} />
+                    {/* Đoạn ống tay áo blouse trắng vươn dài tự nhiên ra góc dưới màn hình */}
+                    <mesh position={[0, -0.38, 0]}>
+                        <cylinderGeometry args={[0.044, 0.098, 0.76, 28]} />
                         <primitive object={materials.labCoatSleeve} attach="material" />
                     </mesh>
 

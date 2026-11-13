@@ -62,6 +62,14 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ─── Chuẩn hóa Typography Tiếng Việt (Tránh dính dấu, kẹt chữ & ép khoảng cách) ─── */
+html,
+body,
+h1, h2, h3, h4, h5, h6,
+p, span, button, a, input, select, textarea {
+  letter-spacing: 0.012em;
+}
+
 body {
   background-color: var(--bg-deep);
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
