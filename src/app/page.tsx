@@ -6,7 +6,7 @@ import Link from "next/link";
 import { User, getCurrentUser, seedIfNeeded } from "@/lib/storage";
 import UnifiedNavbar from "@/components/UnifiedNavbar";
 import Footer, { LogoMark } from "@/components/Footer";
-import HeroLabAnimation from "@/components/HeroLabAnimation";
+import EnterpriseLabShowcase from "@/components/EnterpriseLabShowcase";
 import {
     FlaskConical,
     Atom,
@@ -137,21 +137,21 @@ export default function Home() {
                             {/* Badge công nhận chương trình chuẩn */}
                             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-100/90 dark:bg-sky-950/90 border border-sky-300/60 dark:border-sky-700/50 text-sky-800 dark:text-sky-300 text-xs font-semibold shadow-sm">
                                 <Sparkles className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
-                                <span>Chuẩn GDPT 2018 Bộ GD&ĐT • 120+ Trường THPT Áp Dụng</span>
+                                <span>Chương Trình GDPT 2018 Bộ GD&ĐT • Khối 10, 11 & 12</span>
                             </div>
 
                             {/* Headline Doanh Nghiệp */}
                             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-normal text-slate-900 dark:text-white leading-tight">
-                                Phòng Thí Nghiệm{" "}
+                                Nền Tảng Thực Hành{" "}
                                 <span className="bg-gradient-to-r from-sky-600 via-teal-600 to-indigo-600 dark:from-sky-400 dark:via-teal-300 dark:to-indigo-300 bg-clip-text text-transparent">
-                                    Khoa Học Ảo 3D
+                                    Thí Nghiệm Ảo 3D
                                 </span>{" "}
-                                Dành Cho Học Sinh THPT
+                                Dành Cho THPT
                             </h1>
 
                             {/* Subtitle */}
                             <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed max-w-xl">
-                                Nền tảng mô phỏng thực hành Hóa học, Vật lý và Sinh học trực quan, an toàn tuyệt đối 100%. Tích hợp điều khiển cảm biến con quay hồi chuyển di động (Gyroscope Wand), Trợ lý AI Cô giáo Mai GDPT 2018 và hệ thống LMS phân công bài tập toàn diện.
+                                Giải pháp số hóa phòng thực hành môn Hóa học, Vật lý và Sinh học trực quan, an toàn tuyệt đối 100%. Tích hợp điều khiển cảm biến con quay hồi chuyển di động (Gyroscope Wand) và hệ thống LMS hỗ trợ kiểm tra, đánh giá kiến thức.
                             </p>
 
                             {/* CTA Group */}
@@ -187,22 +187,22 @@ export default function Home() {
                             <div className="pt-4 border-t border-slate-200 dark:border-slate-800/80 grid grid-cols-3 gap-3 max-w-lg">
                                 <div>
                                     <div className="text-xl sm:text-2xl font-extrabold text-sky-600 dark:text-sky-400">107+</div>
-                                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Hóa chất & P/Ư</div>
+                                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Hóa chất chuẩn IUPAC</div>
                                 </div>
                                 <div>
                                     <div className="text-xl sm:text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">100%</div>
-                                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">An toàn cháy nổ</div>
+                                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">An toàn phòng thí nghiệm</div>
                                 </div>
                                 <div>
-                                    <div className="text-xl sm:text-2xl font-extrabold text-indigo-600 dark:text-indigo-400">120+</div>
-                                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Trường THPT</div>
+                                    <div className="text-xl sm:text-2xl font-extrabold text-indigo-600 dark:text-indigo-400">3 Môn</div>
+                                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Hóa • Lý • Sinh</div>
                                 </div>
                             </div>
                         </div>
 
                         {/* Cột phải: Live Interactive Simulation Stage Component */}
                         <div className="lg:col-span-6 w-full">
-                            <HeroLabAnimation />
+                            <EnterpriseLabShowcase />
                         </div>
                     </div>
                 </div>
@@ -360,10 +360,10 @@ export default function Home() {
                         Giải Pháp Toàn Diện Cho Nhà Trường
                     </h2>
                     <h3 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mt-2">
-                        Tại Sao Hơn 120+ Trường THPT Lựa Chọn Nền Tảng SimLab?
+                        Nền Tảng Thực Hành Toàn Diện Dành Cho Giáo Viên & Học Sinh THPT
                     </h3>
                     <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 mt-3">
-                        Giải quyết triệt để các rào cản về cơ sở vật chất phòng thí nghiệm truyền thống, đảm bảo 100% học sinh được thực hành đều đặn mỗi tuần.
+                        Giải quyết các rào cản về cơ sở vật chất phòng máy và thiết bị thí nghiệm, đảm bảo học sinh được quan sát, tương tác và hiểu sâu bản chất khoa học.
                     </p>
                 </div>
 
