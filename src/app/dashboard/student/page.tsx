@@ -29,6 +29,7 @@ import { useToast } from "@/components/toast";
 import { Avatar, BadgeChip, ProfileModal, XPBar } from "@/components/Avatar";
 import { Tour, TourStep } from "@/components/Tour";
 import Footer from "@/components/Footer";
+import UnifiedNavbar from "@/components/UnifiedNavbar";
 import { FlaskConical, FileCheck2, Award, Flame, GraduationCap, UserCheck, School, Sparkles, Zap, ArrowRight, Atom, Dna } from "lucide-react";
 function getExperiment(id: string): Experiment | undefined {
     return experiments.find((e) => e.id === id);
@@ -261,57 +262,20 @@ export default function StudentDashboard() {
         <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-900 transition-colors duration-300">
             <Tour steps={tourSteps} isOpen={tourOpen} onClose={() => setTourOpen(false)} />
 
-            {/* Header */}
-            <header className="relative bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-20">
-                {/* Accent strip */}
-                <div className="absolute inset-x-0 top-0 h-0.5 bg-blue-600" aria-hidden="true" />
-                <div className="max-w-6xl mx-auto px-5 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <Avatar user={user} size="md" />
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <h1 className="text-base font-bold text-gray-900 dark:text-white">
-                                    {user.name}
-                                </h1>
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30">
-                                    Học sinh
-                                </span>
-                            </div>
-                            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1.5">
-                                <span className="inline-flex items-center gap-1.5"><School className="w-3.5 h-3.5 text-blue-500" /> {user.school || "SimLab Edu"}</span>
-                                <span className="text-gray-300 dark:text-gray-600">•</span>
-                                <span className="font-mono text-gray-400 dark:text-gray-400">{user.email}</span>
-                            </p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => setProfileOpen(true)}
-                            className="lab-btn px-3 py-1.5 text-xs rounded-lg inline-flex items-center gap-1.5"
-                        >
-                            Hồ sơ
-                        </button>
-                        <button
-                            onClick={() => setTourOpen(true)}
-                            className="px-2.5 py-1.5 text-xs text-blue-600 dark:text-blue-400 font-medium hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
-                        >
-                            Hướng dẫn
-                        </button>
-                        <div id="tour-free-lab" className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
-                            <span className="text-[10px] font-semibold text-gray-500 px-2 hidden sm:inline">Lab tự do:</span>
-                            <button onClick={() => router.push("/lab")} className="px-2 py-1 text-xs rounded hover:bg-white dark:hover:bg-gray-600 shadow-sm text-emerald-600 dark:text-emerald-400 font-medium">Lab Hóa học</button>
-                            <button onClick={() => router.push("/physics")} className="px-2 py-1 text-xs rounded hover:bg-white dark:hover:bg-gray-600 shadow-sm text-indigo-600 dark:text-indigo-400 font-medium">Lab Vật lý</button>
-                            <button onClick={() => router.push("/biology")} className="px-2 py-1 text-xs rounded hover:bg-white dark:hover:bg-gray-600 shadow-sm text-green-600 dark:text-green-400 font-medium">Lab Sinh học</button>
-                        </div>
-                        <button
-                            onClick={handleLogout}
-                            className="lab-btn-danger px-3 py-1.5 text-xs rounded-lg"
-                        >
-                            Đăng xuất
-                        </button>
-                    </div>
-                </div>
-            </header>
+            {/* Header Thống nhất Chuẩn Doanh Nghiệp EdTech */}
+            <UnifiedNavbar
+                currentSubject="dashboard"
+                onTourOpen={() => setTourOpen(true)}
+                rightContent={
+                    <button
+                        onClick={() => setProfileOpen(true)}
+                        className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/80 transition-colors shadow-xs"
+                    >
+                        <UserCheck className="w-3.5 h-3.5 text-blue-400" />
+                        <span>Hồ sơ học sinh</span>
+                    </button>
+                }
+            />
 
             <main className="max-w-6xl mx-auto px-5 py-6 space-y-6">
                 {/* Lời chào & Định danh tài khoản cá nhân */}

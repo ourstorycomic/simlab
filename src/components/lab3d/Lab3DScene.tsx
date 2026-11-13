@@ -37,6 +37,7 @@ import RealisticWaterStream from "./RealisticWaterStream";
 import Lab3DHoldingHand from "./Lab3DHoldingHand";
 import WebGLErrorBoundary from "./WebGLErrorBoundary";
 import Lab3DChemicalCabinetModal from "./Lab3DChemicalCabinetModal";
+import { remoteSyncService } from "@/lib/remoteSyncService";
 import { 
     FlaskConical, 
     FlaskRound, 
@@ -550,7 +551,12 @@ function InteractiveVessel({
                     {/* Bàn tay 3D áo Blouse đang cầm bình khi kết nối điện thoại hoặc nhấc bình */}
                     {Boolean(item.heldBy === "phone" || (isReagent && isPhoneActive)) && (
                         <group position={[0, gripY, 0]}>
-                            <Lab3DHoldingHand visible={true} scale={1.05} />
+                            <Lab3DHoldingHand
+                                visible={true}
+                                scale={1.05}
+                                tiltAngle={item.tiltAngle || 0}
+                                pitchAngle={item.pitchAngle || 0}
+                            />
                         </group>
                     )}
 
@@ -1201,6 +1207,16 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
         playLabSound("pick");
         setActiveChemical(chem);
 
+        // Đồng bộ 2 chiều sang điện thoại di động
+        remoteSyncService.sendActionToPhone({
+            type: "select_chemical",
+            chemicalId: chem.id,
+            chemicalName: chem.name,
+            chemicalFormula: chem.formula,
+            liquidColor: getDisplayLiquidColor(chem, "#2563eb"),
+            timestamp: Date.now(),
+        });
+
         // Hóa chất lấy từ tủ LUÔN nạp vào bình bên trái (bottle-reagent), KHÔNG bao giờ nạp vào cốc trộn (beaker-1)
         const targetId = "bottle-reagent";
 
@@ -1471,21 +1487,48 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
         return () => unsubscribe();
     }, []);
 
-    // Rửa sạch 1 dụng cụ
+    // Rửa sạch hoặc Nạp đầy lại 1 dụng cụ
     const handleCleanItem = useCallback((id: string) => {
         playLabSound("place");
-        setItems((prev) =>
-            prev.map((it) => (it.id === id ? {
-                ...it,
-                fillLevel: 0,
-                chemical: null,
-                solidChemical: null,
-                liquidColor: "transparent",
-                label: it.id === "bottle-reagent" ? "Lọ rỗng (Chọn chất từ tủ)" : "Cốc Trộn Phản Ứng (Rỗng)",
-            } : it))
-        );
+        if (id === "bottle-reagent") {
+            remoteSyncService.sendActionToPhone({
+                type: "refill",
+                timestamp: Date.now(),
+            });
+            setItems((prev) =>
+                prev.map((it) => {
+                    if (it.id !== id) return it;
+                    const chem = it.chemical || activeChemical;
+                    return {
+                        ...it,
+                        fillLevel: chem ? (chem.state === "solid" ? 0.35 : 0.65) : 0.65,
+                        chemical: chem,
+                        label: chem ? chem.name : "Lọ hóa chất",
+                        tiltAngle: 0,
+                        pitchAngle: 0,
+                    };
+                })
+            );
+        } else {
+            remoteSyncService.sendActionToPhone({
+                type: "clean",
+                timestamp: Date.now(),
+            });
+            setItems((prev) =>
+                prev.map((it) => (it.id === id ? {
+                    ...it,
+                    fillLevel: 0,
+                    chemical: null,
+                    solidChemical: null,
+                    liquidColor: "transparent",
+                    label: "Cốc Trộn Phản Ứng (Rỗng)",
+                    tiltAngle: 0,
+                    pitchAngle: 0,
+                } : it))
+            );
+        }
         setActiveReaction(null);
-    }, []);
+    }, [activeChemical]);
 
     // Rửa sạch toàn bộ cốc phản ứng & làm mới trộn lại từ đầu
     const handleResetWorkbench = useCallback(() => {
@@ -1493,6 +1536,13 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
         setActiveReaction(null);
         setPourState(null);
         setSelectedItemId("bottle-reagent");
+
+        // Đồng bộ 2 chiều sang điện thoại di động
+        remoteSyncService.sendActionToPhone({
+            type: "clean",
+            timestamp: Date.now(),
+        });
+
         setItems((prev) =>
             prev.map((it) => {
                 if (it.id === "beaker-1") {
@@ -1502,6 +1552,20 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                         solidChemical: null,
                         fillLevel: 0,
                         liquidColor: "transparent",
+                        label: "Cốc Trộn Phản Ứng (Rỗng)",
+                        heldBy: null,
+                        tiltAngle: 0,
+                        pitchAngle: 0,
+                        position: [...it.defaultPosition] as [number, number, number],
+                    };
+                }
+                if (it.id === "bottle-reagent") {
+                    const chem = it.chemical || activeChemical;
+                    return {
+                        ...it,
+                        chemical: chem,
+                        label: chem ? chem.name : "Lọ hóa chất",
+                        fillLevel: chem ? (chem.state === "solid" ? 0.35 : 0.65) : 0.65,
                         heldBy: null,
                         tiltAngle: 0,
                         pitchAngle: 0,
@@ -1518,8 +1582,8 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
             })
         );
         setTeacherMode("speaking");
-        setTeacherMessage("Đã rửa sạch cốc phản ứng! Em có thể chọn chất mới từ tủ để bắt đầu thí nghiệm tiếp theo.");
-    }, [setTeacherMessage, setTeacherMode]);
+        setTeacherMessage("Đã rửa sạch cốc phản ứng và nạp đầy lại bình hóa chất! Em có thể tiếp tục thực hiện thí nghiệm.");
+    }, [activeChemical, setTeacherMessage, setTeacherMode]);
 
     // Lắng nghe sự kiện toàn cục reset bàn thí nghiệm
     useEffect(() => {
@@ -1974,17 +2038,26 @@ export default function Lab3DScene({ handStateRef, chemicals = [] }: Lab3DSceneP
                                 ) : null
                             )}
 
-                            {/* Nút Rửa sạch dụng cụ */}
-                            {selectedItem.fillLevel > 0 && (
+                            {/* Nút Rửa sạch dụng cụ hoặc Nạp lại bình */}
+                            {selectedItem.id === "bottle-reagent" ? (
+                                <button
+                                    onClick={() => handleCleanItem(selectedItem.id)}
+                                    className="bg-slate-800 hover:bg-slate-700 text-teal-300 hover:text-white text-xs px-2.5 py-1.5 rounded-xl border border-slate-700 shadow transition-colors flex items-center gap-1 cursor-pointer"
+                                    title="Nạp đầy lại hóa chất vào bình để tiếp tục rót"
+                                >
+                                    <RotateCcw className="w-3.5 h-3.5 text-teal-400" />
+                                    <span>Nạp lại bình</span>
+                                </button>
+                            ) : selectedItem.fillLevel > 0 ? (
                                 <button
                                     onClick={() => handleCleanItem(selectedItem.id)}
                                     className="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs px-2.5 py-1.5 rounded-xl border border-slate-700 shadow transition-colors flex items-center gap-1 cursor-pointer"
-                                    title="Rửa sạch dung dịch trong bình này"
+                                    title="Rửa sạch dung dịch trong cốc này"
                                 >
                                     <RotateCcw className="w-3.5 h-3.5" />
-                                    <span>Rửa bình</span>
+                                    <span>Rửa cốc</span>
                                 </button>
-                            )}
+                            ) : null}
 
                             {/* Nút Làm sạch toàn bộ bàn thí nghiệm */}
                             <button

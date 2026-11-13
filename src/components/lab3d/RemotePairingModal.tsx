@@ -35,6 +35,7 @@ export default function RemotePairingModal({
   const eventSourceRef = useRef<EventSource | null>(null);
   const phoneConnectedNotifiedRef = useRef<boolean>(false);
   const autoCloseTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastProcessedSseActionTimeRef = useRef<number>(Date.now());
 
   useEffect(() => {
     return () => {
@@ -156,6 +157,22 @@ export default function RemotePairingModal({
 
           if (room.sensorData) {
             deviceSensors.updateRemoteData(room.sensorData);
+          }
+
+          if (room.actions && room.actions.length > 0) {
+            const lastAction = room.actions[room.actions.length - 1];
+            if (lastAction && lastAction.timestamp > lastProcessedSseActionTimeRef.current) {
+              lastProcessedSseActionTimeRef.current = lastAction.timestamp;
+              if (lastAction.type === "pour") {
+                deviceSensors.simulatePour(0.9);
+              } else if (lastAction.type === "shake") {
+                deviceSensors.simulateShake();
+              } else if (lastAction.type === "clean") {
+                if (typeof window !== "undefined") {
+                  window.dispatchEvent(new CustomEvent("clean-workbench"));
+                }
+              }
+            }
           }
         } catch (e) {
           // ignore

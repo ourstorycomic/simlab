@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, Suspense } from "react";
+import React, { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useDeviceSensors } from "@/hooks/useDeviceSensors";
 import { remoteSyncService } from "@/lib/remoteSyncService";
@@ -57,9 +57,39 @@ function RemoteControllerContent() {
   } = useDeviceSensors();
 
   const phoneSenderRef = useRef<any>(null);
+  const phoneSseRef = useRef<EventSource | null>(null);
+  const lastProcessedActionTimeRef = useRef<number>(Date.now());
   const lastSentRef = useRef<number>(0);
   const pourIntervalRef = useRef<any>(null);
   const connectTimeRef = useRef<number>(Date.now());
+
+  useEffect(() => {
+    return () => {
+      if (phoneSseRef.current) {
+        phoneSseRef.current.close();
+        phoneSseRef.current = null;
+      }
+    };
+  }, []);
+
+  // Lắng nghe và đồng bộ 2 chiều các thao tác từ Laptop (Làm sạch bàn, Rửa bình, Chọn hóa chất)
+  const handleLaptopAction = useCallback((action: any) => {
+    if (!action) return;
+    if (action.type === "clean") {
+      setFillPercent(100);
+      setBeakerFillPercent(0);
+      triggerHaptic([40, 50]);
+    } else if (action.type === "select_chemical") {
+      if (action.chemicalName) setChemicalName(action.chemicalName);
+      if (action.chemicalFormula) setChemicalFormula(action.chemicalFormula);
+      if (action.liquidColor) setLiquidColor(action.liquidColor);
+      setFillPercent(100);
+      triggerHaptic([40, 40]);
+    } else if (action.type === "refill") {
+      setFillPercent(100);
+      triggerHaptic([30, 40]);
+    }
+  }, [triggerHaptic]);
 
   // Tọa độ điều khiển tự do kéo thả (Touchpad / Drag controller)
   const [touchOffset, setTouchOffset] = useState({ x: 0, y: 0 });
@@ -130,10 +160,34 @@ function RemoteControllerContent() {
           setConnected(true);
           triggerHaptic([40, 60, 40]);
         },
+        onLaptopAction: (action: any) => {
+          handleLaptopAction(action);
+        },
       });
       phoneSenderRef.current = sender;
 
-      // 2. Kênh phụ: HTTP join route để lưu session
+      // 2. Kênh phụ 1: SSE fallback để nhận lệnh reset / clean liên tục
+      if (phoneSseRef.current) {
+        phoneSseRef.current.close();
+      }
+      try {
+        const sse = new EventSource(`/api/remote/stream?roomId=${cleanRoom}`);
+        phoneSseRef.current = sse;
+        sse.onmessage = (event) => {
+          try {
+            const room = JSON.parse(event.data);
+            if (room.actions && room.actions.length > 0) {
+              const lastAction = room.actions[room.actions.length - 1];
+              if (lastAction && lastAction.timestamp > lastProcessedActionTimeRef.current) {
+                lastProcessedActionTimeRef.current = lastAction.timestamp;
+                handleLaptopAction(lastAction);
+              }
+            }
+          } catch (e) {}
+        };
+      } catch (e) {}
+
+      // 3. Kênh phụ 2: HTTP join route để lưu session
       fetch("/api/remote/room", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -294,6 +348,32 @@ function RemoteControllerContent() {
 
         {connected ? (
           <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => {
+                setFillPercent(100);
+                setBeakerFillPercent(0);
+                triggerHaptic([40, 60]);
+                if (phoneSenderRef.current) {
+                  phoneSenderRef.current({
+                    pitch: 0,
+                    roll: 0,
+                    yaw: 0,
+                    touchX: 0,
+                    touchY: 0,
+                    isPourTilted: false,
+                    pourIntensity: 0,
+                    isShaking: false,
+                    motionMagnitude: 0,
+                    action: { type: "clean", timestamp: Date.now() },
+                  });
+                }
+              }}
+              className="text-[10px] px-2 py-1 rounded-lg bg-rose-950/70 hover:bg-rose-900 text-rose-300 border border-rose-700/60 flex items-center gap-1 font-semibold"
+              title="Rửa sạch cốc và nạp đầy lại bình"
+            >
+              <RotateCcw className="w-3 h-3 text-rose-400" />
+              <span>Rửa sạch</span>
+            </button>
             <button
               onClick={handleResetPosition}
               className="text-[10px] px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-teal-300 border border-slate-700 flex items-center gap-1 font-semibold"

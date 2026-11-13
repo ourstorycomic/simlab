@@ -89,6 +89,7 @@ class RemoteSyncService {
     deviceName: string,
     callbacks?: {
       onSubscribed?: () => void;
+      onLaptopAction?: (action: any) => void;
     }
   ) {
     if (this.activePhoneChannel) {
@@ -103,18 +104,24 @@ class RemoteSyncService {
       config: { broadcast: { self: false } },
     });
 
-    channel.subscribe((status: string) => {
-      console.log(`[Phone] Supabase Realtime Channel ${channelName} status:`, status);
-      if (status === "SUBSCRIBED") {
-        callbacks?.onSubscribed?.();
-        // Thông báo cho Laptop biết điện thoại đã kết nối
-        channel.send({
-          type: "broadcast",
-          event: "phone-connected",
-          payload: { deviceName, timestamp: Date.now() },
-        });
-      }
-    });
+    channel
+      .on("broadcast", { event: "laptop-action" }, ({ payload }: any) => {
+        if (payload) {
+          callbacks?.onLaptopAction?.(payload);
+        }
+      })
+      .subscribe((status: string) => {
+        console.log(`[Phone] Supabase Realtime Channel ${channelName} status:`, status);
+        if (status === "SUBSCRIBED") {
+          callbacks?.onSubscribed?.();
+          // Thông báo cho Laptop biết điện thoại đã kết nối
+          channel.send({
+            type: "broadcast",
+            event: "phone-connected",
+            payload: { deviceName, timestamp: Date.now() },
+          });
+        }
+      });
 
     this.activePhoneChannel = channel;
 
@@ -152,6 +159,34 @@ class RemoteSyncService {
 
   public getActiveRoomId(): string | null {
     return this.currentRoomId;
+  }
+
+  /**
+   * Laptop: Gửi lệnh điều khiển / làm sạch / đổi chất sang Điện thoại
+   */
+  public sendActionToPhone(action: any) {
+    if (this.activeLaptopChannel) {
+      try {
+        this.activeLaptopChannel.send({
+          type: "broadcast",
+          event: "laptop-action",
+          payload: action,
+        });
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    if (this.currentRoomId) {
+      fetch("/api/remote/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roomId: this.currentRoomId,
+          action,
+        }),
+      }).catch(() => {});
+    }
   }
 }
 

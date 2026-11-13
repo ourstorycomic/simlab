@@ -20,6 +20,7 @@ import React, { useRef, useState, useEffect, useCallback, Suspense } from "react
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
+import { LogoMark } from "@/components/Footer";
 import { HandState, DEFAULT_HAND_STATE } from "@/lib/handTracking";
 import { chemicals } from "@/lib/chemicals";
 import { playLabSound } from "@/components/lab3d/ChemistryRealisticModels";
@@ -367,8 +368,20 @@ function Lab3DContent() {
                 id="top-unified-nav"
                 className="fixed top-0 left-0 right-0 h-14 bg-slate-950/90 backdrop-blur-xl border-b border-slate-800/80 z-[70] pointer-events-auto px-2 sm:px-6 flex items-center justify-between gap-1 select-none shadow-lg"
             >
-                {/* Left: Back to 2D Mode */}
-                <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+                {/* Left: SimLab Brand & Back to 2D Mode */}
+                <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                    <Link href="/" className="flex items-center gap-2 group shrink-0" title="Về trang chủ SimLab">
+                        <LogoMark className="w-7 h-7" />
+                        <div className="hidden md:flex flex-col leading-tight">
+                            <span className="text-xs font-bold text-white group-hover:text-blue-400 transition-colors">
+                                SimLab
+                            </span>
+                            <span className="text-[9px] text-cyan-400 font-mono">Không Gian 3D</span>
+                        </div>
+                    </Link>
+
+                    <div className="w-px h-5 bg-slate-800 hidden sm:block" />
+
                     <Link
                         href={back2DRoute}
                         className="flex items-center gap-1.5 bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white px-2.5 py-1.5 rounded-xl border border-slate-700/60 transition-all text-xs font-semibold shadow-md active:scale-95 flex-shrink-0"

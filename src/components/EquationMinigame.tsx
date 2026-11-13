@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Footer, { LogoMark } from "@/components/Footer";
+import UnifiedNavbar from "./UnifiedNavbar";
 import confetti from "canvas-confetti";
 import { sound } from "@/lib/gameSound";
 import {
@@ -844,219 +845,93 @@ export default function EquationMinigame() {
         />
       </div>
 
-      {/* ─── TOP COCKPIT BAR (HEADER TRÀN VIỀN) ─── */}
-      <header className="relative z-30 h-16 px-3 sm:px-6 bg-slate-900/90 backdrop-blur-xl border-b border-slate-800 flex items-center justify-between shrink-0">
-        {/* Brand & Subject Switcher Tabs */}
-        <div className="flex items-center gap-2 sm:gap-4">
-          <Link href="/" className="flex items-center gap-2 group shrink-0">
-            <LogoMark className="w-7 h-7 sm:w-8 sm:h-8" />
-            <div className="hidden xl:block">
-              <span className="font-bold text-white text-base tracking-tight group-hover:text-blue-400 transition-colors">
-                Simlab Edu
-              </span>
-              <p className="text-[10px] text-slate-400 leading-none">Phòng thực hành ảo</p>
-            </div>
-          </Link>
-
-          <div className="h-5 w-px bg-slate-800 hidden sm:block" />
-
-          {/* Subject Switcher Tabs (Hóa học, Vật lý, Sinh học, Nối phương trình) */}
-          <nav className="flex items-center gap-1 bg-slate-800/80 p-1 rounded-xl border border-slate-700/60">
-            <Link
-              href="/lab"
-              className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-700/60 transition-all border border-transparent"
-              title="Phòng thí nghiệm Hóa học ảo"
-            >
-              <IconBeaker className="w-3.5 h-3.5 text-blue-400" />
-              <span className="hidden sm:inline">Hóa học</span>
-            </Link>
-
-            <Link
-              href="/physics"
-              className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-700/60 transition-all border border-transparent"
-              title="Phòng thực hành Vật lý ảo"
-            >
-              <IconPhysics className="w-3.5 h-3.5 text-indigo-400" />
-              <span className="hidden sm:inline">Vật lý</span>
-            </Link>
-
-            <Link
-              href="/biology"
-              className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-700/60 transition-all border border-transparent"
-              title="Mô hình Sinh học 3D"
-            >
-              <IconBiology className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="hidden sm:inline">Sinh học</span>
-            </Link>
-
-            <Link
-              href="/minigame"
-              className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold bg-blue-600/20 text-blue-400 border border-blue-500/40 shadow-xs"
-              title="Bài tập Ghép nối Phương trình Hóa học"
-            >
-              <IconTarget className="w-3.5 h-3.5 text-blue-400" />
-              <span>Nối phương trình</span>
-            </Link>
-          </nav>
-        </div>
-
-        {/* HUD Chỉ số trung tâm (Khi đang làm bài) */}
-        {gameState === "playing" && (
-          <div className="flex items-center gap-3 sm:gap-5 bg-slate-950/90 border border-slate-800 rounded-xl px-4 py-2 shadow-inner">
-            {/* Điểm số */}
-            <div className="flex items-center gap-2">
-              <IconTrophy className="w-4 h-4 text-amber-400 shrink-0" />
-              <div>
-                <span className="text-[9px] font-medium text-slate-400 uppercase tracking-wider block leading-none">Điểm</span>
-                <span className="text-sm sm:text-base font-bold text-amber-300 leading-none">{score}</span>
-              </div>
-            </div>
-
-            <div className="h-5 w-px bg-slate-800" />
-
-            {/* Chuỗi đúng liên tiếp */}
-            <div className="flex items-center gap-1.5">
-              <IconFlame className="w-4 h-4 text-orange-400 shrink-0" />
-              <div>
-                <span className="text-[9px] font-medium text-slate-400 uppercase tracking-wider block leading-none">Chuỗi</span>
-                <span className={`text-sm sm:text-base font-bold leading-none ${combo >= 5 ? "text-orange-400" : "text-slate-200"}`}>
-                  {combo}x
-                </span>
-              </div>
-            </div>
-
-            <div className="h-5 w-px bg-slate-800" />
-
-            {/* Độ chính xác */}
-            <div className="hidden md:flex items-center gap-1.5">
-              <IconTarget className="w-4 h-4 text-emerald-400 shrink-0" />
-              <div>
-                <span className="text-[9px] font-medium text-slate-400 uppercase tracking-wider block leading-none">Chính xác</span>
-                <span
-                  className={`text-sm sm:text-base font-bold leading-none ${
-                    (correctCount + wrongCount === 0)
-                      ? "text-slate-300"
-                      : Math.round((correctCount / (correctCount + wrongCount)) * 100) < 60
-                      ? "text-rose-400"
-                      : Math.round((correctCount / (correctCount + wrongCount)) * 100) < 80
-                      ? "text-amber-400"
-                      : "text-emerald-400"
-                  }`}
-                >
-                  {correctCount + wrongCount === 0 ? "100%" : `${Math.round((correctCount / (correctCount + wrongCount)) * 100)}%`}
-                </span>
-              </div>
-            </div>
-
-            <div className="h-5 w-px bg-slate-800" />
-
-            {/* Thời gian hoặc Mạng */}
-            {mode === "survival" ? (
-              <div className="flex items-center gap-1.5">
-                <span className="text-[9px] font-medium text-slate-400 uppercase tracking-wider mr-1">Lượt:</span>
-                <div className="flex items-center gap-1">
-                  {[...Array(3)].map((_, i) => (
-                    <IconHeart
-                      key={i}
-                      className={`w-3.5 h-3.5 ${i < lives ? "text-rose-500" : "text-slate-700"}`}
-                    />
-                  ))}
-                </div>
-              </div>
-            ) : (
+      {/* ─── TOP COCKPIT BAR (HEADER THỐNG NHẤT CHUẨN DOANH NGHIỆP) ─── */}
+      <UnifiedNavbar
+        currentSubject="minigame"
+        centerContent={
+          gameState === "playing" ? (
+            <div className="flex items-center gap-3 sm:gap-5 bg-slate-950/90 border border-slate-800 rounded-xl px-4 py-1.5 shadow-inner">
+              {/* Điểm số */}
               <div className="flex items-center gap-2">
-                <IconClock className="w-4 h-4 text-cyan-400 shrink-0" />
+                <IconTrophy className="w-4 h-4 text-amber-400 shrink-0" />
                 <div>
-                  <span className="text-[9px] font-medium text-slate-400 uppercase tracking-wider block leading-none">Thời gian</span>
-                  <span className={`text-sm sm:text-base font-bold leading-none ${timeLeft <= 10 ? "text-rose-400 animate-pulse" : "text-cyan-400"}`}>
-                    {timeLeft}s
+                  <span className="text-[9px] font-medium text-slate-400 uppercase tracking-wider block leading-none">Điểm</span>
+                  <span className="text-sm sm:text-base font-bold text-amber-300 leading-none">{score}</span>
+                </div>
+              </div>
+
+              <div className="h-5 w-px bg-slate-800" />
+
+              {/* Chuỗi đúng liên tiếp */}
+              <div className="flex items-center gap-1.5">
+                <IconFlame className="w-4 h-4 text-orange-400 shrink-0" />
+                <div>
+                  <span className="text-[9px] font-medium text-slate-400 uppercase tracking-wider block leading-none">Chuỗi</span>
+                  <span className={`text-sm sm:text-base font-bold leading-none ${combo >= 5 ? "text-orange-400" : "text-slate-200"}`}>
+                    {combo}x
                   </span>
                 </div>
               </div>
-            )}
-          </div>
-        )}
 
-        {/* Right utility buttons */}
-        <div className="flex items-center gap-2.5">
-          {/* Nút Bảng Xếp Hạng */}
-          <button
-            id="btn-leaderboard"
-            onClick={() => {
-              if (!leaderboardOpen) {
-                setLeaderboardTab(mode);
-              }
-              setLeaderboardOpen(!leaderboardOpen);
-            }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all flex items-center gap-1.5 ${
-              leaderboardOpen
-                ? "bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm"
-                : "bg-slate-800/80 text-slate-300 border-slate-700 hover:text-white hover:bg-slate-800"
-            }`}
-          >
-            <IconTrophy className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden sm:inline">Bảng xếp hạng</span>
-          </button>
+              <div className="h-5 w-px bg-slate-800" />
 
-          {/* Âm thanh */}
-          <button
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            title={soundEnabled ? "Tắt âm thanh" : "Bật âm thanh"}
-            className="w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 hover:text-white transition-colors"
-          >
-            {soundEnabled ? <IconVolume className="w-4 h-4" /> : <IconVolumeOff className="w-4 h-4 text-slate-500" />}
-          </button>
-
-          {/* User profile chip ở góc trên */}
-          {currentUser ? (
-            <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-slate-800">
-              <Link
-                href={currentUser.role === "teacher" ? "/dashboard/teacher" : "/dashboard/student"}
-                title="Xem hồ sơ học bạ và điểm tích lũy"
-                className="flex items-center gap-2 hover:opacity-85 transition-opacity"
-              >
-                <div
-                  className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs text-white shadow-sm shrink-0"
-                  style={{ backgroundColor: currentUser.avatarColor || "#2563eb" }}
-                >
-                  {currentUser.name ? currentUser.name.split(" ").slice(-1)[0][0] : "U"}
-                </div>
-                <div className="flex flex-col text-left">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-medium text-white leading-tight">{currentUser.name}</span>
-                    {userProgress && (
-                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                        <IconZap className="w-2.5 h-2.5 text-amber-400" />
-                        {userProgress.xp} XP
-                      </span>
-                    )}
+              {/* Thời gian hoặc Mạng */}
+              {mode === "survival" ? (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] font-medium text-slate-400 uppercase tracking-wider mr-1">Lượt:</span>
+                  <div className="flex items-center gap-1">
+                    {[...Array(3)].map((_, i) => (
+                      <IconHeart
+                        key={i}
+                        className={`w-3.5 h-3.5 ${i < lives ? "text-rose-500" : "text-slate-700"}`}
+                      />
+                    ))}
                   </div>
-                  <span className="text-[10px] text-slate-400 leading-none">
-                    {currentUser.role === "teacher"
-                      ? "Giáo viên"
-                      : `Cấp ${userProgress ? getLevel(userProgress.xp).level : 1} • Học sinh`}
-                  </span>
                 </div>
-              </Link>
-              <button
-                onClick={handleLogout}
-                title="Đăng xuất / Đổi tài khoản"
-                className="ml-1 p-1 rounded hover:bg-slate-800 text-slate-500 hover:text-rose-400 transition-colors text-[11px]"
-              >
-                Đăng xuất
-              </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <IconClock className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <div>
+                    <span className="text-[9px] font-medium text-slate-400 uppercase tracking-wider block leading-none">Thời gian</span>
+                    <span className={`text-sm sm:text-base font-bold leading-none ${timeLeft <= 10 ? "text-rose-400 animate-pulse" : "text-cyan-400"}`}>
+                      {timeLeft}s
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
-          ) : (
+          ) : null
+        }
+        rightContent={
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => setAuthModalOpen(true)}
-              className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-sm transition-colors flex items-center gap-1"
+              id="btn-leaderboard"
+              onClick={() => {
+                if (!leaderboardOpen) {
+                  setLeaderboardTab(mode);
+                }
+                setLeaderboardOpen(!leaderboardOpen);
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all flex items-center gap-1.5 ${
+                leaderboardOpen
+                  ? "bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm"
+                  : "bg-slate-900 text-slate-300 border-slate-800 hover:text-white hover:bg-slate-800"
+              }`}
             >
-              <IconUser className="w-3.5 h-3.5" />
-              <span>Đăng nhập</span>
+              <IconTrophy className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">Bảng xếp hạng</span>
             </button>
-          )}
-        </div>
-      </header>
+
+            <button
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              title={soundEnabled ? "Tắt âm thanh" : "Bật âm thanh"}
+              className="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 flex items-center justify-center text-slate-300 hover:text-white transition-colors"
+            >
+              {soundEnabled ? <IconVolume className="w-4 h-4" /> : <IconVolumeOff className="w-4 h-4 text-slate-500" />}
+            </button>
+          </div>
+        }
+      />
 
       {/* ─── VÙNG NỘI DUNG CHÍNH (FULL VIEWPORT) ─── */}
       <main className="relative z-10 flex-1 w-full p-3 sm:p-6 flex flex-col justify-between min-h-[calc(100vh-4rem)]">
