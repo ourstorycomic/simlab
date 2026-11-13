@@ -1,38 +1,28 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { User, getCurrentUser, seedIfNeeded } from "@/lib/storage";
 import UnifiedNavbar from "@/components/UnifiedNavbar";
-import Footer, { LogoMark } from "@/components/Footer";
+import Footer from "@/components/Footer";
 import EnterpriseLabShowcase from "@/components/EnterpriseLabShowcase";
 import {
-    FlaskConical,
-    Atom,
-    Dna,
     Box,
     GraduationCap,
     School,
-    CheckCircle2,
     ShieldCheck,
     Sparkles,
-    Zap,
     ArrowRight,
-    Play,
-    Users,
-    ChevronRight,
     Smartphone,
     Bot,
     Layers,
     Activity,
-    FileText,
 } from "lucide-react";
 
 export default function Home() {
     const router = useRouter();
     const [user, setUser] = useState<User | null>(null);
-    const [activeDemoTab, setActiveDemoTab] = useState<"chemistry" | "physics" | "biology" | "3d">("chemistry");
 
     useEffect(() => {
         seedIfNeeded();
@@ -40,315 +30,103 @@ export default function Home() {
         setUser(currentUser);
     }, []);
 
-    // Danh sách 4 phân hệ Lab thí nghiệm chính
-    const labShowcases = useMemo(() => [
-        {
-            id: "chemistry",
-            subject: "Hóa Học 3D",
-            badge: "GDPT 2018 • Tủ 107 Hóa Chất",
-            title: "Mô Phỏng Phản Ứng & Rót Dung Dịch Chuẩn Phòng Thí Nghiệm",
-            desc: "Trải nghiệm dốc rót chai hóa chất theo góc nghiêng thực tế, quan sát đổi màu chỉ thị quỳ tím, kết tủa keo, sủi bọt khí và tỏa nhiệt. 100% không khói độc, không nguy cơ bỏng axit.",
-            features: [
-                "Tủ hóa chất tiêu chuẩn 107 chất: Axit, Bazo, Muối, Kim loại & Chỉ thị màu",
-                "Cảm biến gia tốc & Gyroscope: Cầm smartphone dốc rót bình như ngoài đời",
-                "Tự động cân bằng phương trình ion thu gọn & giải thích bản chất electron",
-            ],
-            color: "emerald",
-            icon: FlaskConical,
-            route: "/lab",
-            ctaText: "Vào Phòng Lab Hóa Học",
-            previewBg: "from-emerald-950/40 to-slate-900",
-            stat: "107+ Hóa chất",
-        },
-        {
-            id: "physics",
-            subject: "Vật Lý 3D",
-            badge: "Lớp 10, 11 & 12 • Cơ - Điện - Quang",
-            title: "Thí Nghiệm Quang Hình Học, Mạch Điện & Dao Động Điều Hòa",
-            desc: "Kéo thả lắp ráp mạch điện định luật Ôm, điều chỉnh tiêu cự thấu kính hội tụ/phân kỳ, quan sát vệt tia sáng khúc xạ và đồ thị năng lượng con lắc đơn thời gian thực.",
-            features: [
-                "Mô phỏng thấu kính và ảnh thật/ảnh ảo với nguồn sáng đa điểm",
-                "Lắp ráp vôn kế, ampe kế, điện trở biến thiên và đo dòng điện chính xác",
-                "Đồ thị động năng - thế năng bảo toàn cơ năng với chu kỳ dao động",
-            ],
-            color: "sky",
-            icon: Atom,
-            route: "/physics",
-            ctaText: "Vào Phòng Lab Vật Lý",
-            previewBg: "from-sky-950/40 to-slate-900",
-            stat: "3 Chuyên đề chính",
-        },
-        {
-            id: "biology",
-            subject: "Sinh Học 3D",
-            badge: "Giải Phẫu Số • Tế Bào & Cơ Thể",
-            title: "Atlas Cơ Thể Người & Cấu Trúc Tế Bào Thực Vật 3D",
-            desc: "Bóc tách từng lớp cơ quan (Tim, Phổi, Não, Hệ tuần hoàn) trong không gian 3 chiều. Soi lát cắt tế bào thực vật quang hợp với độ phân giải hiển vi phân tử.",
-            features: [
-                "Atlas 3D bóc tách 8 hệ cơ quan sinh học người có thể xoay 360 độ",
-                "Mô hình tế bào thực vật đa tầng: Lục lạp, ti thể, không bào & vách tế bào",
-                "Tương tác cảm biến bàn tay cử chỉ (Hand Tracking) không cần chạm chuột",
-            ],
-            color: "purple",
-            icon: Dna,
-            route: "/biology",
-            ctaText: "Vào Phòng Lab Sinh Học",
-            previewBg: "from-purple-950/40 to-slate-900",
-            stat: "8 Hệ cơ quan 3D",
-        },
-        {
-            id: "3d",
-            subject: "Lab 3D VR Chuyên Sâu",
-            badge: "Độc Quyền • WebGL & Mobile Gyro",
-            title: "Không Gian Phòng Lab Ảo Toàn Cảnh 360° Đạt Chuẩn Quốc Tế",
-            desc: "Phòng thí nghiệm không gian 3D hoàn chỉnh với bàn đá ceramic chống ăn mòn, tủ hóa chất kính mở trượt, giáo viên AI hướng dẫn cử chỉ và đồng bộ 2 chiều với điện thoại.",
-            features: [
-                "Biến Smartphone thành con trỏ & bình hóa chất cầm tay qua mã QR tức thì",
-                "Trợ lý AI Cô giáo Mai GDPT 2018 hỗ trợ hỏi đáp giọng nói 24/7",
-                "Nhận diện bàn tay qua Webcam (MediaPipe Hand Tracking) chọn chất trong không trung",
-            ],
-            color: "amber",
-            icon: Box,
-            route: "/lab/3d",
-            ctaText: "Mở Phòng Lab 3D VR",
-            previewBg: "from-amber-950/40 to-slate-900",
-            stat: "Đồng bộ Realtime 60fps",
-        },
-    ], []);
-
-    const activeShowcase = useMemo(() => {
-        return labShowcases.find((item) => item.id === activeDemoTab) || labShowcases[0];
-    }, [activeDemoTab, labShowcases]);
-
     return (
         <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-[#070b14] dark:text-slate-100 flex flex-col transition-colors duration-200">
             {/* 1. Header điều hướng thống nhất */}
             <UnifiedNavbar />
 
-            {/* 2. Hero Section Doanh Nghiệp Cấp Quốc Gia với Live Animated Lab Stage */}
-            <section className="relative pt-8 pb-14 md:pt-14 md:pb-20 overflow-hidden border-b border-slate-200/80 dark:border-slate-800/80 bg-gradient-to-b from-sky-50/50 via-transparent to-transparent dark:from-sky-950/20 dark:via-transparent dark:to-transparent">
+            {/* 2. Hero Section Doanh Nghiệp Cấp Quốc Gia */}
+            <section className="relative pt-12 pb-16 md:pt-18 md:pb-24 overflow-hidden border-b border-slate-200/80 dark:border-slate-800/80 bg-gradient-to-b from-sky-50/50 via-transparent to-transparent dark:from-sky-950/20 dark:via-transparent dark:to-transparent text-center">
                 {/* Background decorative glow */}
-                <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[400px] bg-gradient-to-r from-sky-500/10 via-teal-500/10 to-indigo-500/10 dark:from-sky-500/15 dark:via-teal-500/15 dark:to-indigo-500/15 blur-3xl pointer-events-none -z-10 rounded-full" />
+                <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[360px] bg-gradient-to-r from-sky-500/10 via-teal-500/10 to-indigo-500/10 dark:from-sky-500/15 dark:via-teal-500/15 dark:to-indigo-500/15 blur-3xl pointer-events-none -z-10 rounded-full" />
 
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
-                        {/* Cột trái: Tiêu đề Doanh nghiệp, Giới thiệu & CTA */}
-                        <div className="lg:col-span-6 text-left space-y-5">
-                            {/* Badge công nhận chương trình chuẩn */}
-                            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-100/90 dark:bg-sky-950/90 border border-sky-300/60 dark:border-sky-700/50 text-sky-800 dark:text-sky-300 text-xs font-semibold shadow-sm">
-                                <Sparkles className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
-                                <span>Chương Trình GDPT 2018 Bộ GD&ĐT • Khối 10, 11 & 12</span>
-                            </div>
+                <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+                    {/* Badge công nhận chương trình chuẩn */}
+                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-100/90 dark:bg-sky-950/90 border border-sky-300/60 dark:border-sky-700/50 text-sky-800 dark:text-sky-300 text-xs font-semibold shadow-sm">
+                        <Sparkles className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+                        <span>Chương Trình GDPT 2018 Bộ GD&ĐT • Khối 10, 11 & 12</span>
+                    </div>
 
-                            {/* Headline Doanh Nghiệp */}
-                            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-normal text-slate-900 dark:text-white leading-tight">
-                                Nền Tảng Thực Hành{" "}
-                                <span className="bg-gradient-to-r from-sky-600 via-teal-600 to-indigo-600 dark:from-sky-400 dark:via-teal-300 dark:to-indigo-300 bg-clip-text text-transparent">
-                                    Thí Nghiệm Ảo 3D
-                                </span>{" "}
-                                Dành Cho THPT
-                            </h1>
+                    {/* Headline Doanh Nghiệp */}
+                    <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-normal text-slate-900 dark:text-white leading-tight max-w-4xl mx-auto">
+                        Nền Tảng Thực Hành{" "}
+                        <span className="bg-gradient-to-r from-sky-600 via-teal-600 to-indigo-600 dark:from-sky-400 dark:via-teal-300 dark:to-indigo-300 bg-clip-text text-transparent">
+                            Thí Nghiệm Ảo 3D
+                        </span>{" "}
+                        Dành Cho THPT
+                    </h1>
 
-                            {/* Subtitle */}
-                            <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed max-w-xl">
-                                Giải pháp số hóa phòng thực hành môn Hóa học, Vật lý và Sinh học trực quan, an toàn tuyệt đối 100%. Tích hợp điều khiển cảm biến con quay hồi chuyển di động (Gyroscope Wand) và hệ thống LMS hỗ trợ kiểm tra, đánh giá kiến thức.
-                            </p>
+                    {/* Subtitle */}
+                    <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-3xl mx-auto">
+                        Giải pháp số hóa phòng thực hành môn Hóa học, Vật lý và Sinh học trực quan, an toàn tuyệt đối 100%. Tích hợp điều khiển cảm biến con quay hồi chuyển di động (Gyroscope Wand) và hệ thống LMS hỗ trợ kiểm tra, đánh giá kiến thức.
+                    </p>
 
-                            {/* CTA Group */}
-                            <div className="flex flex-wrap items-center gap-3 pt-1">
-                                <Link
-                                    href="/lab/3d"
-                                    className="px-5 py-3 rounded-xl bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-500 hover:to-teal-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-sky-600/25 border border-sky-400/30 flex items-center gap-2 transition-all transform hover:-translate-y-0.5 cursor-pointer"
-                                >
-                                    <Box className="w-4 h-4" />
-                                    <span>Vào Phòng Lab 3D VR</span>
-                                    <ArrowRight className="w-4 h-4 ml-0.5" />
-                                </Link>
+                    {/* CTA Group */}
+                    <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                        <Link
+                            href="/lab/3d"
+                            className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-500 hover:to-teal-500 text-white font-bold text-sm shadow-lg shadow-sky-600/25 border border-sky-400/30 flex items-center gap-2 transition-all transform hover:-translate-y-0.5 cursor-pointer"
+                        >
+                            <Box className="w-4 h-4" />
+                            <span>Vào Phòng Lab 3D VR</span>
+                            <ArrowRight className="w-4 h-4 ml-0.5" />
+                        </Link>
 
-                                <Link
-                                    href="/login"
-                                    className="px-5 py-3 rounded-xl bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold text-xs sm:text-sm shadow-md border border-slate-300 dark:border-slate-700 flex items-center gap-2 transition-all cursor-pointer"
-                                >
-                                    <School className="w-4 h-4 text-sky-600 dark:text-sky-400" />
-                                    <span>Cổng Đăng Nhập LMS</span>
-                                </Link>
+                        <Link
+                            href="/login"
+                            className="px-6 py-3.5 rounded-xl bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold text-sm shadow-md border border-slate-300 dark:border-slate-700 flex items-center gap-2 transition-all cursor-pointer"
+                        >
+                            <School className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+                            <span>Cổng Đăng Nhập LMS</span>
+                        </Link>
 
-                                <Link
-                                    href="/remote"
-                                    className="px-4 py-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 font-semibold text-xs sm:text-sm border border-emerald-300/60 dark:border-emerald-700/50 flex items-center gap-1.5 transition-all cursor-pointer"
-                                    title="Quét QR bằng điện thoại để cầm và rót bình thật"
-                                >
-                                    <Smartphone className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                                    <span>Cảm Biến Di Động</span>
-                                </Link>
-                            </div>
+                        <Link
+                            href="/remote"
+                            className="px-5 py-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 font-semibold text-sm border border-emerald-300/60 dark:border-emerald-700/50 flex items-center gap-1.5 transition-all cursor-pointer"
+                            title="Quét QR bằng điện thoại để cầm và rót bình thật"
+                        >
+                            <Smartphone className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                            <span>Cảm Biến Di Động</span>
+                        </Link>
+                    </div>
 
-                            {/* Metrics row */}
-                            <div className="pt-4 border-t border-slate-200 dark:border-slate-800/80 grid grid-cols-3 gap-3 max-w-lg">
-                                <div>
-                                    <div className="text-xl sm:text-2xl font-extrabold text-sky-600 dark:text-sky-400">107+</div>
-                                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Hóa chất chuẩn IUPAC</div>
-                                </div>
-                                <div>
-                                    <div className="text-xl sm:text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">100%</div>
-                                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">An toàn phòng thí nghiệm</div>
-                                </div>
-                                <div>
-                                    <div className="text-xl sm:text-2xl font-extrabold text-indigo-600 dark:text-indigo-400">3 Môn</div>
-                                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Hóa • Lý • Sinh</div>
-                                </div>
-                            </div>
+                    {/* Metrics row */}
+                    <div className="pt-8 border-t border-slate-200 dark:border-slate-800/80 grid grid-cols-3 gap-4 max-w-xl mx-auto">
+                        <div className="p-2">
+                            <div className="text-2xl sm:text-3xl font-extrabold text-sky-600 dark:text-sky-400">107+</div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">Hóa chất chuẩn IUPAC</div>
                         </div>
-
-                        {/* Cột phải: Live Interactive Simulation Stage Component */}
-                        <div className="lg:col-span-6 w-full">
-                            <EnterpriseLabShowcase />
+                        <div className="p-2">
+                            <div className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">100%</div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">An toàn phòng thực hành</div>
+                        </div>
+                        <div className="p-2">
+                            <div className="text-2xl sm:text-3xl font-extrabold text-indigo-600 dark:text-indigo-400">3 Môn</div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">Hóa • Lý • Sinh</div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* 3. Phân Hệ Trưng Bày Tương Tác (Interactive Product Window Mockup) */}
+            {/* 3. Phân Hệ Trưng Bày Tương Tác Số (Interactive Product Suite) */}
             <section className="py-16 md:py-24 bg-white dark:bg-slate-950/60 border-b border-slate-200 dark:border-slate-800 transition-colors">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center max-w-3xl mx-auto mb-10">
-                        <h2 className="text-xs font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">
-                            Không Gian Thực Hành Đa Môn
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 text-xs font-semibold mb-3">
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>Mô Phỏng Trực Quan Thời Gian Thực</span>
+                        </div>
+                        <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">
+                            Không Gian Thực Hành Thí Nghiệm Đa Môn
                         </h2>
-                        <h3 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mt-2">
-                            Trải Nghiệm Trực Quan 4 Phân Hệ Phòng Lab Hiện Đại
-                        </h3>
-                        <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 mt-3">
-                            Mỗi phân hệ được thiết kế bám sát bài học trong Sách giáo khoa Hóa học, Vật lý và Sinh học các bộ Kết Nối Tri Thức, Cánh Diều và Chân Trời Sáng Tạo.
+                        <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 mt-2">
+                            Tương tác trực tiếp với các mô hình thí nghiệm chuẩn theo chương trình GDPT 2018. Chọn phân hệ bên dưới để bắt đầu thử nghiệm.
                         </p>
                     </div>
 
-                    {/* Tab Navigation Switcher */}
-                    <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-8">
-                        {labShowcases.map((tab) => {
-                            const isCurrent = tab.id === activeDemoTab;
-                            const IconComponent = tab.icon;
-                            return (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveDemoTab(tab.id as any)}
-                                    className={`px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
-                                        isCurrent
-                                            ? "bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-md scale-102"
-                                            : "bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800"
-                                    }`}
-                                >
-                                    <IconComponent className="w-4 h-4" />
-                                    <span>{tab.subject}</span>
-                                </button>
-                            );
-                        })}
-                    </div>
-
-                    {/* Showcase Window Display Card */}
-                    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-900 text-white shadow-2xl overflow-hidden">
-                        {/* Window Header */}
-                        <div className="px-4 py-3 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <span className="w-3 h-3 rounded-full bg-rose-500 inline-block" />
-                                <span className="w-3 h-3 rounded-full bg-amber-500 inline-block" />
-                                <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block" />
-                                <span className="text-xs text-slate-400 ml-2 font-mono hidden sm:inline">
-                                    SimLab v2.5 • Chuẩn GDPT 2018 ({activeShowcase.subject})
-                                </span>
-                            </div>
-                            <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-sky-950 text-sky-300 border border-sky-700/50 font-semibold">
-                                {activeShowcase.badge}
-                            </span>
-                        </div>
-
-                        {/* Content Window Grid */}
-                        <div className="p-6 sm:p-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-                            {/* Cột trái: Mô tả chi tiết phân hệ */}
-                            <div className="lg:col-span-6 space-y-5">
-                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20 text-xs font-semibold">
-                                    <Sparkles className="w-3.5 h-3.5" />
-                                    <span>{activeShowcase.stat}</span>
-                                </div>
-                                <h4 className="text-xl sm:text-3xl font-extrabold text-white leading-snug">
-                                    {activeShowcase.title}
-                                </h4>
-                                <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
-                                    {activeShowcase.desc}
-                                </p>
-
-                                {/* Danh sách tính năng then chốt */}
-                                <div className="space-y-2.5 pt-2">
-                                    {activeShowcase.features.map((feat, idx) => (
-                                        <div key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-200">
-                                            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                                            <span>{feat}</span>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* Nút điều hướng vào Lab */}
-                                <div className="pt-4 flex flex-wrap items-center gap-3">
-                                    <Link
-                                        href={activeShowcase.route}
-                                        className="px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-sky-600/30 flex items-center gap-2 transition-all"
-                                    >
-                                        <Play className="w-3.5 h-3.5 fill-current" />
-                                        <span>{activeShowcase.ctaText}</span>
-                                        <ChevronRight className="w-4 h-4" />
-                                    </Link>
-                                    <Link
-                                        href="/login"
-                                        className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-semibold border border-slate-700 transition-colors"
-                                    >
-                                        Xem Hướng Dẫn Giáo Viên
-                                    </Link>
-                                </div>
-                            </div>
-
-                            {/* Cột phải: Preview Mockup tương tác */}
-                            <div className="lg:col-span-6">
-                                <div className="relative rounded-xl border border-slate-800 bg-slate-950 p-6 shadow-inner space-y-4">
-                                    <div className="flex items-center justify-between pb-3 border-b border-slate-800 text-xs text-slate-400">
-                                        <span className="font-semibold text-white">Bảng Điều Khiển Tương Tác Số</span>
-                                        <span className="text-emerald-400 flex items-center gap-1 font-mono">
-                                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
-                                            Trực Tuyến 60 FPS
-                                        </span>
-                                    </div>
-
-                                    {/* Thẻ mô phỏng tình huống */}
-                                    <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xs font-semibold text-slate-300">Thí nghiệm mẫu chọn lọc:</span>
-                                            <span className="text-[11px] text-sky-400 font-mono">Bài thực hành số 02</span>
-                                        </div>
-                                        <p className="text-sm font-bold text-white">
-                                            {activeDemoTab === "chemistry" && "Tác dụng của dd CuSO₄ với dd NaOH tạo kết tủa Cu(OH)₂ xanh lam"}
-                                            {activeDemoTab === "physics" && "Xác định tiêu cự của thấu kính hội tụ bằng phương pháp dịch chuyển vật và màn ảnh"}
-                                            {activeDemoTab === "biology" && "Quan sát cấu trúc phiến lá và lục lạp thực vật dưới kính hiển vi quang học"}
-                                            {activeDemoTab === "3d" && "Cầm điện thoại di động dốc rót bình hóa chất vào cốc phản ứng và hỏi AI Cô giáo Mai"}
-                                        </p>
-                                        <div className="p-2.5 rounded-lg bg-slate-950 text-xs text-slate-300 border border-slate-800/80 font-mono">
-                                            {activeDemoTab === "chemistry" && "CuSO4 + 2NaOH → Cu(OH)2↓ (xanh lam) + Na2SO4"}
-                                            {activeDemoTab === "physics" && "1/f = 1/d + 1/d' | Độ phóng đại k = -d'/d"}
-                                            {activeDemoTab === "biology" && "Cơ quan: Lục lạp (Chloroplast) • Quang hợp tạo ATP và NADPH"}
-                                            {activeDemoTab === "3d" && "WebRTC Gyroscope Synced: Pitch, Roll, Acceleration 60Hz"}
-                                        </div>
-                                    </div>
-
-                                    {/* Action link */}
-                                    <div className="pt-2 text-center">
-                                        <Link
-                                            href={activeShowcase.route}
-                                            className="text-xs text-sky-400 hover:text-sky-300 font-semibold inline-flex items-center gap-1"
-                                        >
-                                            Nhấn vào đây để chạy thử nghiệm trực tiếp ngay trên trình duyệt →
-                                        </Link>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    {/* Sân Khấu Mô Phỏng Tương Tác Thật Đầy Đủ 4 Phân Hệ */}
+                    <div className="max-w-5xl mx-auto">
+                        <EnterpriseLabShowcase />
                     </div>
                 </div>
             </section>

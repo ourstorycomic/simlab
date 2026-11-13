@@ -6,14 +6,16 @@ import {
     FlaskConical,
     Atom,
     Dna,
+    Box,
     RotateCcw,
     ArrowRight,
     Sliders,
     Info,
     CheckCircle2,
+    Smartphone,
 } from "lucide-react";
 
-type LabTab = "chemistry" | "physics" | "biology";
+type LabTab = "chemistry" | "physics" | "biology" | "3d";
 
 export default function EnterpriseLabShowcase() {
     const [activeTab, setActiveTab] = useState<LabTab>("chemistry");
@@ -37,11 +39,14 @@ export default function EnterpriseLabShowcase() {
     // Biology interactive state
     const [selectedOrganelle, setSelectedOrganelle] = useState<"chloroplast" | "nucleus" | "mitochondria" | "vacuole">("chloroplast");
 
+    // 3D VR interactive state
+    const [phoneTilt, setPhoneTilt] = useState(38); // degrees
+
     return (
         <div className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-xl overflow-hidden transition-all">
             {/* Header: Tab Navigation Switcher */}
             <div className="px-4 py-3 bg-slate-100 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                     <button
                         type="button"
                         onClick={() => setActiveTab("chemistry")}
@@ -52,7 +57,7 @@ export default function EnterpriseLabShowcase() {
                         }`}
                     >
                         <FlaskConical className="w-3.5 h-3.5" />
-                        <span>Hóa Học</span>
+                        <span>Hóa Học 3D</span>
                     </button>
 
                     <button
@@ -65,7 +70,7 @@ export default function EnterpriseLabShowcase() {
                         }`}
                     >
                         <Atom className="w-3.5 h-3.5" />
-                        <span>Vật Lý</span>
+                        <span>Vật Lý 3D</span>
                     </button>
 
                     <button
@@ -78,7 +83,20 @@ export default function EnterpriseLabShowcase() {
                         }`}
                     >
                         <Dna className="w-3.5 h-3.5" />
-                        <span>Sinh Học</span>
+                        <span>Sinh Học 3D</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab("3d")}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                            activeTab === "3d"
+                                ? "bg-amber-600 text-white shadow-sm"
+                                : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800"
+                        }`}
+                    >
+                        <Box className="w-3.5 h-3.5" />
+                        <span>Lab 3D VR</span>
                     </button>
                 </div>
 
@@ -87,6 +105,7 @@ export default function EnterpriseLabShowcase() {
                         {activeTab === "chemistry" && "Hóa Học 11 • Phản Ứng Trao Đổi"}
                         {activeTab === "physics" && "Vật Lý 11 • Quang Hình Học"}
                         {activeTab === "biology" && "Sinh Học 10 • Tế Bào Học"}
+                        {activeTab === "3d" && "Công Nghệ • Gyroscope & VR"}
                     </span>
                 </div>
             </div>
@@ -452,18 +471,109 @@ export default function EnterpriseLabShowcase() {
                     </div>
                 )}
 
+                {/* ─── TAB 4: LAB 3D VR & GYRO CONTROLLER ─── */}
+                {activeTab === "3d" && (
+                    <div className="space-y-4">
+                        <div className="relative rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+                            <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 items-center">
+                                {/* Khung mô phỏng 3D di động kết nối Gyroscope */}
+                                <div className="sm:col-span-7 flex flex-col items-center justify-center p-5 rounded-xl bg-slate-950 text-white border border-slate-800 relative overflow-hidden min-h-[220px]">
+                                    <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 opacity-90" />
+                                    <div className="absolute inset-x-0 bottom-0 h-14 bg-slate-900/90 border-t border-slate-800" />
+
+                                    <div className="relative z-10 flex items-center justify-around w-full max-w-xs py-2">
+                                        {/* Điện thoại mô phỏng xoay theo phoneTilt */}
+                                        <div className="flex flex-col items-center gap-1.5">
+                                            <div
+                                                className="w-14 h-24 rounded-xl border-2 border-emerald-400 bg-slate-900 p-1 flex flex-col items-center justify-between shadow-xl transition-transform duration-150"
+                                                style={{ transform: `rotate(${phoneTilt * 0.75}deg)` }}
+                                            >
+                                                <div className="w-5 h-1 rounded-full bg-slate-700" />
+                                                <div className="text-[9px] font-mono text-emerald-400 font-bold text-center leading-tight">
+                                                    Điện thoại<br />{phoneTilt}°
+                                                </div>
+                                                <div className="w-2.5 h-2.5 rounded-full border border-slate-600" />
+                                            </div>
+                                            <span className="text-[10px] text-slate-400 font-semibold">Cảm biến xoay</span>
+                                        </div>
+
+                                        {/* Dòng chất lỏng rót khi góc > 25 */}
+                                        {phoneTilt > 25 && (
+                                            <div className="w-1.5 h-14 bg-gradient-to-b from-sky-400 to-sky-600 rounded-full animate-pulse shadow-sm" />
+                                        )}
+
+                                        {/* Bình hóa chất 3D xoay đồng bộ */}
+                                        <div className="flex flex-col items-center gap-1.5">
+                                            <div
+                                                className="w-16 h-22 border-2 border-sky-400 rounded-b-xl rounded-t-md bg-sky-950/40 p-1 flex flex-col justify-end transition-transform duration-150 shadow-lg"
+                                                style={{ transform: `rotate(${phoneTilt}deg)` }}
+                                            >
+                                                <div
+                                                    className="w-full bg-gradient-to-t from-sky-600 to-sky-400 rounded-b-lg transition-all"
+                                                    style={{ height: `${Math.max(12, 70 - phoneTilt * 0.65)}%` }}
+                                                />
+                                            </div>
+                                            <span className="text-[10px] text-slate-400 font-semibold">Bình trên máy tính</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="relative z-10 text-[10px] font-mono text-emerald-400 mt-2 flex items-center gap-1.5 bg-emerald-950/80 px-2.5 py-1 rounded-full border border-emerald-500/40">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
+                                        <span>Đồng bộ 2 chiều WebRTC 60Hz • Góc dốc: {phoneTilt}°</span>
+                                    </div>
+                                </div>
+
+                                {/* Thông tin & Thanh kéo thử nghiệm góc nghiêng */}
+                                <div className="sm:col-span-5 space-y-3 text-xs">
+                                    <div className="p-3.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-2">
+                                        <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                                            <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
+                                            <span>Điều Khiển Bằng Điện Thoại Thật</span>
+                                        </div>
+                                        <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                                            Chỉ cần quét mã QR bằng camera điện thoại, con quay hồi chuyển trên điện thoại sẽ điều khiển góc dốc bình và lắc trộn phản ứng tức thì trên màn hình máy tính.
+                                        </p>
+                                        <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                                            <span className="text-[11px] text-slate-600 dark:text-slate-400">Thử góc nghiêng:</span>
+                                            <div className="flex items-center gap-1.5">
+                                                <input
+                                                    type="range"
+                                                    min="0"
+                                                    max="70"
+                                                    value={phoneTilt}
+                                                    onChange={(e) => setPhoneTilt(parseInt(e.target.value, 10))}
+                                                    className="w-24 accent-emerald-600 cursor-pointer"
+                                                />
+                                                <span className="font-mono font-bold text-slate-900 dark:text-white w-7 text-right">
+                                                    {phoneTilt}°
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                        <span>Tương thích mọi trình duyệt iOS Safari & Android Chrome</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Footer Link vào phòng lab 3D thực tế */}
                 <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
                     <span className="text-xs text-slate-500 dark:text-slate-400">
                         {activeTab === "chemistry" && "Đầy đủ 107 hóa chất trong phòng Lab 3D"}
                         {activeTab === "physics" && "Thực hành mạch điện & con lắc trong Lab Vật lý"}
                         {activeTab === "biology" && "Mô hình giải phẫu người 360° trong Lab Sinh học"}
+                        {activeTab === "3d" && "Trải nghiệm không gian phòng lab ảo toàn cảnh 360°"}
                     </span>
                     <Link
-                        href={activeTab === "chemistry" ? "/lab" : activeTab === "physics" ? "/physics" : "/biology"}
+                        href={activeTab === "chemistry" ? "/lab" : activeTab === "physics" ? "/physics" : activeTab === "biology" ? "/biology" : "/lab/3d"}
                         className="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
                     >
-                        <span>Mở phân hệ {activeTab === "chemistry" ? "Hóa" : activeTab === "physics" ? "Lý" : "Sinh"}</span>
+                        <span>Mở phân hệ {activeTab === "chemistry" ? "Hóa" : activeTab === "physics" ? "Lý" : activeTab === "biology" ? "Sinh" : "3D VR"}</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
                 </div>
