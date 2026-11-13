@@ -6,6 +6,7 @@ import Link from "next/link";
 import { User, getCurrentUser, seedIfNeeded } from "@/lib/storage";
 import UnifiedNavbar from "@/components/UnifiedNavbar";
 import Footer, { LogoMark } from "@/components/Footer";
+import HeroLabAnimation from "@/components/HeroLabAnimation";
 import {
     FlaskConical,
     Atom,
@@ -124,79 +125,84 @@ export default function Home() {
             {/* 1. Header điều hướng thống nhất */}
             <UnifiedNavbar />
 
-            {/* 2. Hero Section Doanh Nghiệp Cấp Quốc Gia */}
-            <section className="relative pt-12 pb-20 md:pt-20 md:pb-28 overflow-hidden border-b border-slate-200/80 dark:border-slate-800/80 bg-gradient-to-b from-sky-50/50 via-transparent to-transparent dark:from-sky-950/20 dark:via-transparent dark:to-transparent">
+            {/* 2. Hero Section Doanh Nghiệp Cấp Quốc Gia với Live Animated Lab Stage */}
+            <section className="relative pt-8 pb-14 md:pt-14 md:pb-20 overflow-hidden border-b border-slate-200/80 dark:border-slate-800/80 bg-gradient-to-b from-sky-50/50 via-transparent to-transparent dark:from-sky-950/20 dark:via-transparent dark:to-transparent">
                 {/* Background decorative glow */}
-                <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[360px] bg-gradient-to-r from-sky-500/10 via-teal-500/10 to-indigo-500/10 dark:from-sky-500/15 dark:via-teal-500/15 dark:to-indigo-500/15 blur-3xl pointer-events-none -z-10 rounded-full" />
+                <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[400px] bg-gradient-to-r from-sky-500/10 via-teal-500/10 to-indigo-500/10 dark:from-sky-500/15 dark:via-teal-500/15 dark:to-indigo-500/15 blur-3xl pointer-events-none -z-10 rounded-full" />
 
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                    {/* Badge công nhận chương trình chuẩn */}
-                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-100/80 dark:bg-sky-950/80 border border-sky-300/60 dark:border-sky-700/50 text-sky-800 dark:text-sky-300 text-xs font-semibold mb-6 shadow-sm">
-                        <Sparkles className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
-                        <span>Nền Tảng Phòng Thí Nghiệm Số GDPT 2018 Dành Cho THPT & Trường Chuyên</span>
-                    </div>
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
+                        {/* Cột trái: Tiêu đề Doanh nghiệp, Giới thiệu & CTA */}
+                        <div className="lg:col-span-6 text-left space-y-5">
+                            {/* Badge công nhận chương trình chuẩn */}
+                            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-100/90 dark:bg-sky-950/90 border border-sky-300/60 dark:border-sky-700/50 text-sky-800 dark:text-sky-300 text-xs font-semibold shadow-sm">
+                                <Sparkles className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+                                <span>Chuẩn GDPT 2018 Bộ GD&ĐT • 120+ Trường THPT Áp Dụng</span>
+                            </div>
 
-                    {/* Headline Doanh Nghiệp */}
-                    <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-normal text-slate-900 dark:text-white max-w-4xl mx-auto leading-tight sm:leading-tight lg:leading-tight">
-                        Chuyển Đổi Số Toàn Diện{" "}
-                        <span className="bg-gradient-to-r from-sky-600 via-teal-600 to-indigo-600 dark:from-sky-400 dark:via-teal-300 dark:to-indigo-300 bg-clip-text text-transparent">
-                            Thí Nghiệm Khoa Học Tự Nhiên
-                        </span>{" "}
-                        Bằng Công Nghệ Mô Phỏng 3D & VR
-                    </h1>
+                            {/* Headline Doanh Nghiệp */}
+                            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-normal text-slate-900 dark:text-white leading-tight">
+                                Phòng Thí Nghiệm{" "}
+                                <span className="bg-gradient-to-r from-sky-600 via-teal-600 to-indigo-600 dark:from-sky-400 dark:via-teal-300 dark:to-indigo-300 bg-clip-text text-transparent">
+                                    Khoa Học Ảo 3D
+                                </span>{" "}
+                                Dành Cho Học Sinh THPT
+                            </h1>
 
-                    {/* Subtitle */}
-                    <p className="mt-6 text-base sm:text-lg lg:text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed">
-                        Mô phỏng chính xác 100% tương tác Hóa học, Vật lý và Sinh học 3D trong không gian ảo.
-                        Tích hợp điều khiển cảm biến con quay hồi chuyển di động (Gyroscope Wand), Trợ lý AI Cô giáo Mai giảng giải GDPT 2018
-                        và hệ thống phân công bài tập LMS chuẩn mực cho nhà trường.
-                    </p>
+                            {/* Subtitle */}
+                            <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed max-w-xl">
+                                Nền tảng mô phỏng thực hành Hóa học, Vật lý và Sinh học trực quan, an toàn tuyệt đối 100%. Tích hợp điều khiển cảm biến con quay hồi chuyển di động (Gyroscope Wand), Trợ lý AI Cô giáo Mai GDPT 2018 và hệ thống LMS phân công bài tập toàn diện.
+                            </p>
 
-                    {/* CTA Group */}
-                    <div className="mt-8 sm:mt-10 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-                        <Link
-                            href="/lab/3d"
-                            className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-500 hover:to-teal-500 text-white font-bold text-sm sm:text-base shadow-lg shadow-sky-600/25 border border-sky-400/30 flex items-center gap-2 transition-all transform hover:-translate-y-0.5"
-                        >
-                            <Box className="w-4 h-4" />
-                            <span>Vào Phòng Thí Nghiệm 3D VR</span>
-                            <ArrowRight className="w-4 h-4 ml-1" />
-                        </Link>
+                            {/* CTA Group */}
+                            <div className="flex flex-wrap items-center gap-3 pt-1">
+                                <Link
+                                    href="/lab/3d"
+                                    className="px-5 py-3 rounded-xl bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-500 hover:to-teal-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-sky-600/25 border border-sky-400/30 flex items-center gap-2 transition-all transform hover:-translate-y-0.5 cursor-pointer"
+                                >
+                                    <Box className="w-4 h-4" />
+                                    <span>Vào Phòng Lab 3D VR</span>
+                                    <ArrowRight className="w-4 h-4 ml-0.5" />
+                                </Link>
 
-                        <Link
-                            href="/login"
-                            className="px-6 py-3.5 rounded-xl bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold text-sm sm:text-base shadow-md border border-slate-300 dark:border-slate-700 flex items-center gap-2 transition-all"
-                        >
-                            <School className="w-4 h-4 text-sky-600 dark:text-sky-400" />
-                            <span>Cổng Đăng Nhập Giảng Dạy & LMS</span>
-                        </Link>
+                                <Link
+                                    href="/login"
+                                    className="px-5 py-3 rounded-xl bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold text-xs sm:text-sm shadow-md border border-slate-300 dark:border-slate-700 flex items-center gap-2 transition-all cursor-pointer"
+                                >
+                                    <School className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+                                    <span>Cổng Đăng Nhập LMS</span>
+                                </Link>
 
-                        <Link
-                            href="/remote"
-                            className="px-5 py-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 font-semibold text-sm sm:text-base border border-emerald-300/60 dark:border-emerald-700/50 flex items-center gap-2 transition-all"
-                        >
-                            <Smartphone className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                            <span>Kết Nối Cảm Biến Di Động</span>
-                        </Link>
-                    </div>
+                                <Link
+                                    href="/remote"
+                                    className="px-4 py-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 font-semibold text-xs sm:text-sm border border-emerald-300/60 dark:border-emerald-700/50 flex items-center gap-1.5 transition-all cursor-pointer"
+                                    title="Quét QR bằng điện thoại để cầm và rót bình thật"
+                                >
+                                    <Smartphone className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                    <span>Cảm Biến Di Động</span>
+                                </Link>
+                            </div>
 
-                    {/* Social proof metric bar */}
-                    <div className="mt-14 pt-8 border-t border-slate-200 dark:border-slate-800/80 max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                        <div className="p-3">
-                            <div className="text-2xl sm:text-3xl font-extrabold text-sky-600 dark:text-sky-400">107+</div>
-                            <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">Hóa chất & phản ứng chuẩn</div>
+                            {/* Metrics row */}
+                            <div className="pt-4 border-t border-slate-200 dark:border-slate-800/80 grid grid-cols-3 gap-3 max-w-lg">
+                                <div>
+                                    <div className="text-xl sm:text-2xl font-extrabold text-sky-600 dark:text-sky-400">107+</div>
+                                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Hóa chất & P/Ư</div>
+                                </div>
+                                <div>
+                                    <div className="text-xl sm:text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">100%</div>
+                                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">An toàn cháy nổ</div>
+                                </div>
+                                <div>
+                                    <div className="text-xl sm:text-2xl font-extrabold text-indigo-600 dark:text-indigo-400">120+</div>
+                                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Trường THPT</div>
+                                </div>
+                            </div>
                         </div>
-                        <div className="p-3">
-                            <div className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">100%</div>
-                            <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">An toàn tuyệt đối không khói độc</div>
-                        </div>
-                        <div className="p-3">
-                            <div className="text-2xl sm:text-3xl font-extrabold text-indigo-600 dark:text-indigo-400">120+</div>
-                            <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">Trường THPT & Cụm chuyên áp dụng</div>
-                        </div>
-                        <div className="p-3">
-                            <div className="text-2xl sm:text-3xl font-extrabold text-purple-600 dark:text-purple-400">GDPT 2018</div>
-                            <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">Bộ GD&ĐT phê chuẩn nội dung</div>
+
+                        {/* Cột phải: Live Interactive Simulation Stage Component */}
+                        <div className="lg:col-span-6 w-full">
+                            <HeroLabAnimation />
                         </div>
                     </div>
                 </div>
